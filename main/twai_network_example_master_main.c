@@ -38,12 +38,7 @@
 #define RX_GPIO_NUM             10
 #define EXAMPLE_TAG             "TWAI Master"
 
-#define ID_MASTER_STOP_CMD      0x0A0
-#define ID_MASTER_START_CMD     0x0A1
-#define ID_MASTER_PING          0x0A2
-#define ID_SLAVE_STOP_RESP      0x0B0
 #define ID_SLAVE_DATA           0x0B1
-#define ID_SLAVE_PING_RESP      0x0B2
 #define ID_DJI_RM_MOTOR         0x200
 
 typedef enum {
@@ -145,6 +140,10 @@ static void twai_receive_task(void *arg)
 
 static void twai_transmit_task(void *arg)
 {
+    int16_t motor1_speed = 700;   // These could be variables from elsewhere
+    int16_t motor2_speed = 0;   // in your program
+    int16_t motor3_speed = 0;
+    int16_t motor4_speed = 0;
     while (1) {
         tx_task_action_t action;
         xQueueReceive(tx_task_queue, &action, portMAX_DELAY);
@@ -152,14 +151,8 @@ static void twai_transmit_task(void *arg)
         if (action == TX_SEND_SPEED) {
             //Repeatedly transmit motor speeds
             ESP_LOGI(EXAMPLE_TAG, "Transmitting motor speeds");
-            
-            // Example variables that could come from sensors, calculations, etc.
-            int16_t motor1_speed = 1000;   // These could be variables from elsewhere
-            int16_t motor2_speed = 0;   // in your program
-            int16_t motor3_speed = 0;
-            int16_t motor4_speed = 0;
             uint32_t data_transmitted = 0;
-            while (data_transmitted < 1000) {
+            while (data_transmitted < 500) {
                 // Update the message with current motor speed values
                 update_can_message(&speed_message, motor1_speed, motor2_speed, 
                                   motor3_speed, motor4_speed);
@@ -173,23 +166,28 @@ static void twai_transmit_task(void *arg)
                 }
                 vTaskDelay(pdMS_TO_TICKS(5));
                 data_transmitted ++;
-                // Optionally change speeds for next iteration
-                motor1_speed += 10;  // Example of changing values between transmissions
             }
             xSemaphoreGive(stop_receive_sem); // Stop receiving data messages
             xSemaphoreGive(ctrl_task_sem);
         } else if (action == TX_SEND_STOP_CMD){
             ESP_LOGI(EXAMPLE_TAG, "Sending stop command to motors");
-            update_can_message(&speed_message, 0, 0, 0, 0);
-            esp_err_t status = twai_transmit(&speed_message, pdMS_TO_TICKS(1000));
-            if(status == ESP_ERR_TIMEOUT) {
-                ESP_LOGI(EXAMPLE_TAG, "Timeout waiting for twai_transmit");
-                break;
-            } else if (status != ESP_OK) {
-                ESP_LOGE(EXAMPLE_TAG, "Error twai_transmit message: %s", esp_err_to_name(status));
-                break;
+            while(motor1_speed > 0) {
+                motor1_speed -= 10; // Gradually decrease speed to 0
+                motor2_speed -= 10;
+                motor3_speed -= 10;
+                motor4_speed -= 10;
+                vTaskDelay(pdMS_TO_TICKS(PING_PERIOD_MS));
+                update_can_message(&speed_message, motor1_speed, motor2_speed, motor3_speed, motor4_speed);
+                esp_err_t status = twai_transmit(&speed_message, pdMS_TO_TICKS(1000));
+                if(status == ESP_ERR_TIMEOUT) {
+                    ESP_LOGI(EXAMPLE_TAG, "Timeout waiting for twai_transmit");
+                    break;
+                } else if (status != ESP_OK) {
+                    ESP_LOGE(EXAMPLE_TAG, "Error twai_transmit message: %s", esp_err_to_name(status));
+                    break;
+                }
             }
-            break;
+            xSemaphoreGive(ctrl_task_sem);
         } else if (action == TX_TASK_EXIT) {
             break;
         }
@@ -207,7 +205,6 @@ static void twai_control_task(void *arg)
         // xSemaphoreTake(ctrl_task_sem, portMAX_DELAY);
         ESP_ERROR_CHECK(twai_start());
         ESP_LOGI(EXAMPLE_TAG, "Driver started");
-        // Print the ticks
         xSemaphoreGive(ctrl_task_sem);
         tx_action = TX_SEND_SPEED;
         rx_action = RX_RECEIVE_DATA;
@@ -230,6 +227,12 @@ static void twai_control_task(void *arg)
         ESP_LOGI(EXAMPLE_TAG, "Driver stopped");
         vTaskDelay(pdMS_TO_TICKS(ITER_DELAY_MS));
     }
+
+    ESP_ERROR_CHECK(twai_start());
+    tx_action = TX_SEND_STOP_CMD;
+    xQueueSend(tx_task_queue, &tx_action, portMAX_DELAY);
+    xSemaphoreTake(ctrl_task_sem, portMAX_DELAY);
+    ESP_ERROR_CHECK(twai_stop());
 
     //Stop TX and RX tasks
     tx_action = TX_TASK_EXIT;
