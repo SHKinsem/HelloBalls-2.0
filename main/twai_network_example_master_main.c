@@ -24,6 +24,9 @@
 #include "esp_err.h"
 #include "esp_log.h"
 #include "driver/twai.h"
+#include "esp32_s3_szp.h"
+#include "app_ui.h"
+#include "app_button.h"
 
 /* --------------------- Definitions and static variables ------------------ */
 //Example Configuration
@@ -261,8 +264,8 @@ void can_task(void){
     //Install TWAI driver
     ESP_ERROR_CHECK(twai_driver_install(&g_config, &t_config, &f_config));
     ESP_LOGI(EXAMPLE_TAG, "Driver installed");
-    uint32_t alerts = {TWAI_ALERT_TX_FAILED, TWAI_ALERT_RX_QUEUE_FULL};
-    twai_read_alerts(&alerts, pdMS_TO_TICKS(1000));
+    // uint32_t alerts = {TWAI_ALERT_TX_FAILED, TWAI_ALERT_RX_QUEUE_FULL};
+    // twai_read_alerts(&alerts, pdMS_TO_TICKS(1000));
 
     xSemaphoreGive(ctrl_task_sem);              //Start control task
     xSemaphoreTake(done_sem, portMAX_DELAY);    //Wait for completion
@@ -281,7 +284,20 @@ void can_task(void){
 
 void app_main(void)
 {
+    bsp_i2c_init();  // I2C initialization
+    pca9557_init();  // IO expander initialization
+    bsp_lvgl_start(); // Lvgl initialization
+    bsp_codec_init(); // Codec initialization
+
+    if(bsp_sdcard_mount() == ESP_OK) {
+        ESP_LOGI(EXAMPLE_TAG, "SD card mounted successfully");
+        mp3_player_init();
+    } else {
+        ESP_LOGE(EXAMPLE_TAG, "Failed to mount SD card");
+    }
+
     ESP_LOGI(EXAMPLE_TAG, "TWAI Master Example");
-    can_task();
+    button_init(NULL); // Initialize button with no callback function
+    // can_task();
     ESP_LOGI(EXAMPLE_TAG, "TWAI Master Example completed");
 }
