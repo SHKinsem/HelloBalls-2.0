@@ -1,6 +1,6 @@
 
-#ifndef __DJI_MOTORS_C
-#define __DJI_MOTORS_C
+#ifndef __DJI_MOTORS_H
+#define __DJI_MOTORS_H
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -8,6 +8,7 @@
 #include "IQmathLib.h"
 #include "driver/twai.h"
 
+#define USE_DM3519
 #define FOUR_SLAVE_MODE
 #define CAN_SPEED 1000 // 1 Mbps
 
@@ -23,6 +24,7 @@
 extern "C" {
 #endif
 
+// Specific for ESP32
 class can_channel_t
 {
 private:
@@ -56,7 +58,7 @@ public:
     void sendMessage(int message_id, const char *data, int data_length);
     void receiveMessage(int *message_id, char *data, int *data_length);
     uint8_t getState() {return this->state;}
-    uint8_t getMotorRx(uint8_t motor_id) {return this->rx_buffer[motor_id];}
+    uint8_t* getMotorRx(uint8_t motor_id) {return this->rx_buffer[motor_id];}
     uint8_t getMotorTx(uint8_t motor_id) {return this->tx_buffer[motor_id];}
 };
 
@@ -150,4 +152,4 @@ public:
 #ifdef __cplusplus
 }
 #endif
-#endif // __DJI_MOTORS_C
+#endif // __DJI_MOTORS_H
