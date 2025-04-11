@@ -1,14 +1,3 @@
-set(requires    fatfs
-                spiffs)
-
-set(srcs    "main.c"
-            "esp32_s3_szp.c" 
-            # "dji_rm_motors.cpp" 
-            "app_ui.c"
-            "app_button.c"
-            "app_twai.c")
-
-idf_component_register(SRCS ${srcs}
-                       REQUIRES ${requires}
+idf_component_register(SRCS "main.c"
                        WHOLE_ARCHIVE
                        INCLUDE_DIRS ".")

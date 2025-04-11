@@ -1,8 +1,4 @@
 dependencies:
-<<<<<<< HEAD
-  espressif/iqmath:
-    component_hash: 407d5bc3fd358a73d2b09982918ab508b4e804cc547942c5979d226be86b7e75
-=======
   chmorgan/esp-audio-player:
     component_hash: c8ac1998e9af863bc41b57e592f88d1a5791a0f891485122336ddabbf7a65033
     dependencies:
@@ -73,17 +69,10 @@ dependencies:
     version: 1.0.7
   espressif/esp_lvgl_port:
     component_hash: b43dc04720d126cbfe14d53a84787e4c24b7bd7f15468e224c930ad3ffb32258
->>>>>>> b0e1c16d5d8c25a2fe7c4fefb2945bd5e7cc2486
     dependencies:
     - name: idf
       require: private
       version: '>=4.4'
-<<<<<<< HEAD
-    source:
-      registry_url: https://components.espressif.com/
-      type: service
-    version: 1.11.0
-=======
     - name: lvgl/lvgl
       registry_url: https://components.espressif.com
       require: public
@@ -92,18 +81,20 @@ dependencies:
       registry_url: https://components.espressif.com/
       type: service
     version: 1.4.0
->>>>>>> b0e1c16d5d8c25a2fe7c4fefb2945bd5e7cc2486
+  espressif/iqmath:
+    component_hash: 407d5bc3fd358a73d2b09982918ab508b4e804cc547942c5979d226be86b7e75
+    dependencies:
+    - name: idf
+      require: private
+      version: '>=4.4'
+    source:
+      registry_url: https://components.espressif.com/
+      type: service
+    version: 1.11.0
   idf:
     source:
       type: idf
     version: 5.4.0
-<<<<<<< HEAD
-direct_dependencies:
-- espressif/iqmath
-- idf
-manifest_hash: 91c88d6d2918dbbc2316d6505ff397819346ea17c311043b50fee1fc7b9e5b9d
-target: esp32
-=======
   lvgl/lvgl:
     component_hash: 948bff879a345149b83065535bbc4a026ce9f47498a22881e432a264b9098015
     dependencies: []
@@ -117,9 +108,9 @@ direct_dependencies:
 - espressif/esp_codec_dev
 - espressif/esp_lcd_touch_ft5x06
 - espressif/esp_lvgl_port
+- espressif/iqmath
 - idf
 - lvgl/lvgl
-manifest_hash: 1f3485bef99716e9b0a28bed8ef7ba6b0205e917ae8446390916939fbf2b3733
+manifest_hash: f66b34fc8dbc11cb9261a2f4d5ba682799eed01dc7c778919ec40e69b7c75da0
 target: esp32s3
->>>>>>> b0e1c16d5d8c25a2fe7c4fefb2945bd5e7cc2486
 version: 2.0.0
