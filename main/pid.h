@@ -6,6 +6,8 @@
 #ifndef __PID_H__
 #define __PID_H__
 
+#include "IQmathLib.h"
+
 typedef struct {  _iq  Ref;      // 输入：参考设定值
       _iq  Fbk;      // 输入：反馈值
       _iq  Out;      // 输出：控制器输出
