@@ -1,10 +1,12 @@
 
-#ifndef __DJI_MOTORS_C
-#define __DJI_MOTORS_C
+#ifndef __DJI_MOTORS_H
+#define __DJI_MOTORS_H
 
 #include <stdio.h>
 #include <stdlib.h>
+#include "driver/twai.h"
 
+#define USE_DM3519
 #define FOUR_SLAVE_MODE
 #define CAN_SPEED 1000 // 1 Mbps
 
@@ -17,10 +19,22 @@
 extern "C" {
 #endif
 
+// Specific for ESP32
 class can_channel_t
 {
+private:
+    int channel_id;
+    int baud_rate;
+    uint32_t gpio_tx;
+    uint32_t gpio_rx;
+    twai_handle_t twai_bus;
+    twai_general_config_t g_config;
+    twai_timing_config_t t_config;
+    twai_filter_config_t f_config;
+
 public:
     can_channel_t();
+    can_channel_t(uint32_t tx, uint32_t rx, int baud_rate);
     ~can_channel_t();
 
     void init(int channel_id, int baud_rate);
@@ -80,10 +94,10 @@ private:
     void parseData(const char *data, int data_length); // Parse the data received from the motor
 public:
     motor_data_t();
-    ~motor_data_t();
+    virtual ~motor_data_t();
 
-    int getRawSpeed(); // Get raw speed of motor in counts
-    int getRawCurrent(); // Get raw current of motor in counts
+    int getRawSpeed() { return raw_speed; } const // Get raw speed of motor in counts
+    int getRawCurrent() { return raw_current; } const  // Get raw current of motor in counts
 
     float getSpeed(); // Get speed of motor in RPM
     float getCurrent(); // Get current of motor in Amps
@@ -91,8 +105,8 @@ public:
 };
 
 class dji_rm_motor_t:
- private motor_data_t,
- private pid_controller_t
+    public motor_data_t,
+    public pid_controller_t
 {
 public:
     dji_rm_motor_t();
@@ -108,4 +122,4 @@ public:
 #ifdef __cplusplus
 }
 #endif
-#endif // __DJI_MOTORS_C
+#endif // __DJI_MOTORS_H

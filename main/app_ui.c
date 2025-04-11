@@ -127,6 +127,7 @@ void mp3_player_init(void)
     player_config.write_fn = _audio_player_write_fn;
     player_config.clk_set_fn = _audio_player_std_clock;
     player_config.priority = 1;
+    player_config.coreID = 1;
 
     ESP_ERROR_CHECK(audio_player_new(player_config));
     ESP_ERROR_CHECK(audio_player_callback_register(_audio_player_callback, NULL));

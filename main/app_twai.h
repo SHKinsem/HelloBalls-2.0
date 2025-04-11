@@ -5,8 +5,9 @@ extern "C" {
 #endif
 
 
-void button_init();
-
+void install_twai_driver();
+void uninstall_twai_driver();
+void can_task(void);
 
 #ifdef __cplusplus
 }

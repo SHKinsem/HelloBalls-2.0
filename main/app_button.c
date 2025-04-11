@@ -5,7 +5,7 @@
 #include "freertos/task.h"
 #include "freertos/queue.h"
 #include "driver/gpio.h"
-
+#include "app_twai.h"
 static QueueHandle_t gpio_evt_queue = NULL;  // 定义队列句柄
 
 // GPIO中断服务函数
@@ -16,22 +16,19 @@ static void IRAM_ATTR gpio_isr_handler(void* arg)
 }
 
 // GPIO任务函数
-static void gpio_task_example(void* func)
+static void gpio_task_example(void *arg)
 {
     uint32_t io_num; // 定义变量 表示哪个GPIO
     for(;;) {
         if(xQueueReceive(gpio_evt_queue, &io_num, portMAX_DELAY)) {  // 死等队列消息
             printf("GPIO[%"PRIu32"] intr, val: %d\n", io_num, gpio_get_level(io_num)); // 打印相关内容
-            if(func != NULL) {
-                // 如果函数不为空 执行函数
-                void (*func_ptr)(void) = (void (*)(void)) func;
-                func_ptr();
-            }
+            can_task();
         }
     }
+    uninstall_twai_driver();
 }
 
-void button_init(void* func)
+void button_init()
 {
     gpio_config_t io0_conf = {
         .intr_type = GPIO_INTR_NEGEDGE, // 下降沿中断
@@ -42,11 +39,10 @@ void button_init(void* func)
     };
     // 根据上面的配置 设置GPIO
     gpio_config(&io0_conf);
-
+    
     // 创建一个队列处理GPIO事件
     gpio_evt_queue = xQueueCreate(10, sizeof(uint32_t));
-    // 开启GPIO任务
-    xTaskCreate(gpio_task_example, "gpio_task_example", 2048, NULL, 10, func);
+    xTaskCreate(gpio_task_example, "gpio_task_example", 5120, NULL, 10, NULL);
     // 创建GPIO中断服务
     gpio_install_isr_service(0);
     // 给GPIO0添加中断处理
