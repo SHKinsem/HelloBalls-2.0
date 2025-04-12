@@ -104,7 +104,6 @@ static void twai_receive_task(void *arg)
                     break;
                 }
                 int msg_id = rx_msg.identifier % ID_DJI_RM_MOTOR;
-                // if (rx_msg.identifier == ID_SLAVE_DATA) {
                 if(msg_id > 0 && msg_id < 5) {
                     uint32_t data = 0;
                     for (int i = 0; i < rx_msg.data_length_code; i++) data |= (rx_msg.data[i] << (i * 8));
@@ -175,7 +174,7 @@ static void twai_transmit_task(void *arg)
             xSemaphoreGive(ctrl_task_sem);
         } else if (action == TX_SEND_STOP_CMD){
             ESP_LOGI(TWAI_TAG, "Sending stop command to motors");
-            while(motor1_speed > 0) {
+            while(motor1_speed > 10) {
                 motor1_speed -= 10; // Gradually decrease speed to 0
                 motor2_speed -= 10;
                 motor3_speed -= 10;

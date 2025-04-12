@@ -22,23 +22,26 @@
 #include "app_ui.h"
 #include "app_button.h"
 #include "app_twai.h"
+#include "ui.h"
 
 void app_main(void)
 {
     bsp_i2c_init();  // I2C initialization
     pca9557_init();  // IO expander initialization
     bsp_lvgl_start(); // Lvgl initialization
-    bsp_codec_init(); // Codec initialization
+    
     install_twai_driver();
     
     if(bsp_sdcard_mount() == ESP_OK) {
         ESP_LOGI(TAG, "SD card mounted successfully");
+        bsp_codec_init(); // Codec initialization
         mp3_player_init();
     } else {
+        ui_init(); // Initialize UI without SD card
         ESP_LOGE(TAG, "Failed to mount SD card");
     }
 
     ESP_LOGI(TAG, "Button initialization");
     button_init(); // Initialize button with no callback function
-    // ESP_LOGI(TAG, "TWAI Master Example completed");
+    ESP_LOGI(TAG, "TWAI Master Example completed");
 }

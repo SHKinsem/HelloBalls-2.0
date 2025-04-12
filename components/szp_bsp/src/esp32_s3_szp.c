@@ -428,7 +428,7 @@ void lcd_draw_pictrue(int x_start, int y_start, int x_end, int y_end, const unsi
     uint16_t *pixels = (uint16_t *)heap_caps_malloc(pixels_byte_size, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
     if (NULL == pixels)
     {
-        ESP_LOGE(TAG, "Memory for bitmap is not enough");
+        ESP_LOGE(TAG, "draw_pictrue: Memory for bitmap is not enough");
         return;
     }
     memcpy(pixels, gImage, pixels_byte_size);  // 把图片数据拷贝到内存
@@ -444,7 +444,7 @@ void lcd_set_color(uint16_t color)
     
     if (NULL == buffer)
     {
-        ESP_LOGE(TAG, "Memory for bitmap is not enough");
+        ESP_LOGE(TAG, "set_color: Memory for bitmap is not enough");
     }
     else
     {
