@@ -1,4 +1,3 @@
-
 #ifndef __DJI_MOTORS_H
 #define __DJI_MOTORS_H
 

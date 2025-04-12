@@ -1,5 +1,8 @@
 #pragma once
 
+#ifndef APP_UI_H
+#define APP_UI_H
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -16,6 +19,8 @@ extern "C" {
 #ifdef __cplusplus
 }
 #endif
+
+#endif // APP_UI_H
 
 
 

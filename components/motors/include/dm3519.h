@@ -1,3 +1,6 @@
+#ifndef DM3519_H
+#define DM3519_H
+
 #include "dji_rm_motors.h"
 
 #ifdef USE_DM3519
@@ -33,5 +36,6 @@ twai_message_t dm3519_clear_error_msg;
 #endif
 
 
-
 #endif
+
+#endif // __cplusplus

@@ -1,5 +1,8 @@
 #pragma once
 
+#ifndef ESP32_S3_SZP_H
+#define ESP32_S3_SZP_H
+
 #include <string.h>
 #include "math.h"
 #include "esp_err.h"
@@ -310,4 +313,6 @@ esp_err_t bsp_get_feed_data(bool is_get_raw_channel, int16_t *buffer, int buffer
 
 #ifdef __cplusplus
 }
+#endif
+
 #endif
