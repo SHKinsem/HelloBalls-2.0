@@ -6,6 +6,7 @@
 #include "freertos/queue.h"
 #include "driver/gpio.h"
 #include "app_twai.h"
+
 static QueueHandle_t gpio_evt_queue = NULL;  // 定义队列句柄
 
 // GPIO中断服务函数
@@ -25,7 +26,6 @@ static void gpio_task_example(void *arg)
             // can_task();
         }
     }
-    uninstall_twai_driver();
 }
 
 void button_init()

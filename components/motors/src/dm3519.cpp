@@ -7,29 +7,29 @@ std::string dm3519_error_code_to_string(DM3519_ERROR_CODE code)
     switch (code)
     {
         case DM3519_DISABLED:
-            return "DM3519 Disabled";
+            return "Disabled";
         case DM3519_ENABLED:
-            return "DM3519 Enabled";
+            return "Enabled";
         case DM3519_SENSOR_ERROR:
-            return "DM3519 Sensor Error";
+            return "SensorErr";
         case DM3519_PARAM_ERROR:
-            return "DM3519 Parameter Error";
+            return "ParamErr";
         case DM3519_OVERVOLTAGE:
-            return "DM3519 Overvoltage";
+            return "OvrVoltage";
         case DM3519_UNDERVOLTAGE:
-            return "DM3519 Undervoltage";
+            return "UdrVoltage";
         case DM3519_OVERCURRENT:
-            return "DM3519 Overcurrent";
+            return "OvrCurr";
         case DM3519_MOS_OVERHEAT:
-            return "DM3519 MOS Overheat";
+            return "MOSOvrheat";
         case DM3519_MOTOR_OVERHEAT:
-            return "DM3519 Motor Overheat";
+            return "MtrOvrheat";
         case DM3519_LOST_COMM:
-            return "DM3519 Lost Communication";
+            return "LostCommu";
         case DM3519_OVERLOAD:
-            return "DM3519 Overload";
+            return "Overload";
         default:
-            return "Unknown Error Code";
+            return "Unknown";
     }
 }
 

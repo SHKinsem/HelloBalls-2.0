@@ -11,6 +11,8 @@ extern "C" {
 #endif
 
 void lvgl_can_task(lv_event_t * e);
+void lvgl_start_twai_receive(lv_event_t * e);
+void lvgl_stop_twai_receive(lv_event_t * e);
 
 #ifdef __cplusplus
 } /*extern "C"*/

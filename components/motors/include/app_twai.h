@@ -23,7 +23,12 @@ void can_task(void);
 void control_motor_speed(int16_t* speed);
 void twai_transmit_speed(int16_t speed);
 int getGlobalSpeed();
+uint8_t* motorDataHook(uint8_t motor_id);
 void start_twai_receive_task(void);
+
+void twai_init();
+void start_twai_receive();
+void stop_twai_receive();
 
 #ifdef __cplusplus
 }

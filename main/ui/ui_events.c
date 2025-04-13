@@ -10,3 +10,15 @@ void lvgl_can_task(lv_event_t * e)
 {
 	can_task();
 }
+
+void lvgl_start_twai_receive(lv_event_t * e)
+{
+	// Your code here
+	start_twai_receive();
+}
+
+void lvgl_stop_twai_receive(lv_event_t * e)
+{
+	// Your code here
+	stop_twai_receive();
+}

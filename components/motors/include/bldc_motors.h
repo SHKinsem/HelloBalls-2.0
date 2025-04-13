@@ -39,14 +39,14 @@ protected:
     int16_t raw_speed;          // Raw speed of motor in counts
     int16_t raw_current;        // Raw current of motor in counts
     int16_t raw_angle;          // Raw angle of motor in counts
-    int8_t raw_status;         // Raw status of motor
+    int8_t status;              // Status of motor
 
     int16_t target_speed;   // Raw target speed of motor
     int16_t target_angle;   // Raw target angle of motor
     _iq temperature;      // Temperature of motor in Celsius
 
-    const _iq scale_angle = _IQdiv(_IQ(360.0), _IQ(8191.0)); // Scaling factor for angle
-    const _iq scale_current = _IQdiv(_IQ(20.0), _IQ(16384.0)); // Scaling factor for current
+    _iq scale_angle = _IQdiv(_IQ(360.0), _IQ(8191.0)); // Scaling factor for angle
+    _iq scale_current = _IQdiv(_IQ(20.0), _IQ(16384.0)); // Scaling factor for current
 
     PID_CONTROLLER speed_pid = {
         PID_TERM_DEFAULTS,
@@ -58,10 +58,10 @@ public:
     base_motor_t(uint8_t motor_id);
     virtual ~base_motor_t();
 
-    virtual void parseData(const uint8_t data[]) {}; // Parse the data received from the motor
+    virtual void parseData(const uint8_t* data) = 0; // Parse the data received from the motor
 
-    void enable()                   {this->enabled = true; } // Enable the motor
-    void disable()                  {this->enabled = false; } // Disable the motor
+    void enable()                   {this->enabled = true; }    // Enable the motor
+    void disable()                  {this->enabled = false; }   // Disable the motor
     
     void setMotorId(uint8_t motor_id)   {this->motor_id = motor_id;}
 
@@ -69,7 +69,8 @@ public:
     int16_t getRawAngle() const     {return this->raw_angle;}
     int16_t getRawSpeed() const     {return this->raw_speed;}
     int16_t getRawCurrent() const   {return this->raw_current;}
-    int16_t getTargetSpeed() const  {return _IQint(this->target_speed);} // in counts
+    int16_t getTargetSpeed() const  {return _IQint(this->target_speed);}
+    int8_t getStatus() const        {return this->status;}
 
     float getCurrent() const        {return _IQtoF(_IQmpy(_IQ(this->raw_current), scale_current));}  // in Amps
     float getTemperature() const    {return _IQtoF(this->temperature);} // in Celsius
@@ -78,6 +79,7 @@ public:
     void setRawSpeed(int16_t raw_speed)         {this->raw_speed = raw_speed;} // Set raw speed of motor
     void setRawCurrent(int16_t current)         {this->raw_current = current;} // Set raw current of motor
     void setTargetSpeed(int16_t target_speed)   {this->target_speed = target_speed;}
+
 
     /**
      * @brief Sets the parameters for the speed PID controller

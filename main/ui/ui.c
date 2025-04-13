@@ -14,7 +14,13 @@ lv_obj_t * ui_ScreenScreen1;
 void ui_event_Screen1ButtonTestButton(lv_event_t * e);
 lv_obj_t * ui_Screen1ButtonTestButton;
 lv_obj_t * ui_Screen1LabelTestButtonLabel;
+void ui_event_Screen1SwitchSwitch1(lv_event_t * e);
+lv_obj_t * ui_Screen1SwitchSwitch1;
+lv_obj_t * ui_Screen1LabelLabel1;
+lv_obj_t * ui_Screen1TextareaTextArea2;
 // CUSTOM VARIABLES
+lv_obj_t * uic_Screen1LabelTestButtonLabel;
+lv_obj_t * uic_TextArea2;
 
 // EVENTS
 lv_obj_t * ui_Startevents___initial_actions0;
@@ -38,6 +44,19 @@ void ui_event_Screen1ButtonTestButton(lv_event_t * e)
 
     if(event_code == LV_EVENT_CLICKED) {
         lvgl_can_task(e);
+    }
+}
+
+void ui_event_Screen1SwitchSwitch1(lv_event_t * e)
+{
+    lv_event_code_t event_code = lv_event_get_code(e);
+    lv_obj_t * target = lv_event_get_target(e);
+
+    if(event_code == LV_EVENT_VALUE_CHANGED &&  lv_obj_has_state(target, LV_STATE_CHECKED)) {
+        lvgl_start_twai_receive(e);
+    }
+    if(event_code == LV_EVENT_VALUE_CHANGED &&  !lv_obj_has_state(target, LV_STATE_CHECKED)) {
+        lvgl_stop_twai_receive(e);
     }
 }
 

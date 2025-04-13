@@ -26,9 +26,7 @@
 #include "app_twai.h"
 #include "ui.h"
 #include "app_motors.h"
-#include "debugHelper.cpp"
-
-
+#include "debugger.h"
 
 
 void setup(){
@@ -44,10 +42,12 @@ void setup(){
     } else {
         ui_init(); // Initialize UI without SD card
         ESP_LOGE(TAG, "Failed to mount SD card");
+        ESP_LOGE(TAG, "Entering motor Debug mode");
     }
     button_init(); // Initialize button with no callback function
-    start_twai_receive_task();
+    // start_twai_receive_task();
     motor_task_init(); // Initialize motor task
+    twai_init();
 }
 
 extern "C" void app_main(void)
@@ -60,4 +60,5 @@ extern "C" void app_main(void)
         vTaskDelay(pdMS_TO_TICKS(100)); // Delay for 1 second
     }
 
+    uninstall_twai_driver();
 }

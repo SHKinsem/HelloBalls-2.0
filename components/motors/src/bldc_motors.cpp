@@ -11,19 +11,19 @@ base_motor_t::base_motor_t(uint8_t motor_id){
     this->raw_speed = 0;
     this->raw_current = 0;
     this->raw_angle = 0;
-    this->raw_status = 0;
+    this->status = 0;
     this->target_speed = 0;
     this->target_angle = 0;
     this->temperature = 0;
 
     // Initialize PID parameters
-    speed_pid.param.Kp = _IQ(10.0);      // Proportional gain
+    speed_pid.param.Kp = _IQ(10.0);     // Proportional gain
     speed_pid.param.Ki = _IQ(0);        // Integral gain
     speed_pid.param.Kd = _IQ(0);        // Derivative gain
     speed_pid.param.Kr = _IQ(1.0);      // Reference weight, usually set to 1
-    speed_pid.param.Km = _IQ(0);      // Derivative weight
-    speed_pid.param.Umax = _IQ(500.0);   // Output upper limit
-    speed_pid.param.Umin = _IQ(-500.0);  // Output lower limit
+    speed_pid.param.Km = _IQ(0);        // Derivative weight
+    speed_pid.param.Umax = _IQ(500.0);  // Output upper limit
+    speed_pid.param.Umin = _IQ(-500.0); // Output lower limit
 
     // Set up differential filter coefficients
     speed_pid.term.c1 = _IQ(0);     // Differential filter coefficient 1

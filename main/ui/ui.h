@@ -22,7 +22,13 @@ extern lv_obj_t * ui_ScreenScreen1;
 void ui_event_Screen1ButtonTestButton(lv_event_t * e);
 extern lv_obj_t * ui_Screen1ButtonTestButton;
 extern lv_obj_t * ui_Screen1LabelTestButtonLabel;
+void ui_event_Screen1SwitchSwitch1(lv_event_t * e);
+extern lv_obj_t * ui_Screen1SwitchSwitch1;
+extern lv_obj_t * ui_Screen1LabelLabel1;
+extern lv_obj_t * ui_Screen1TextareaTextArea2;
 // CUSTOM VARIABLES
+extern lv_obj_t * uic_Screen1LabelTestButtonLabel;
+extern lv_obj_t * uic_TextArea2;
 
 // EVENTS
 
