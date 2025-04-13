@@ -7,7 +7,15 @@
 extern "C" {
 #endif
 
-#include <stdlib.h>
+#ifndef TWAI_TX_PIN
+    #define TWAI_TX_PIN             11
+#endif
+
+#ifndef TWAI_RX_PIN
+    #define TWAI_RX_PIN             10
+#endif
+
+#include <stdint.h>
 
 void install_twai_driver();
 void uninstall_twai_driver();

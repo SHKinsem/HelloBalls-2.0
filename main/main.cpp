@@ -17,7 +17,9 @@
  */
 
 #define TAG "app_main"
+#define GLOBAL_IQ 15    // IQ math library global IQ value
 
+#include "board_pins.h"
 #include "esp32_s3_szp.h"
 #include "app_ui.h"
 #include "app_button.h"

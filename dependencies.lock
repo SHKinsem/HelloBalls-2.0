@@ -1,4 +1,12 @@
 dependencies:
+  FastAccelStepper:
+    component_hash: ea6b764f5ce1fabde542c3ec2a373719284a356ea4f359c45d87cb44ceebcd1f
+    dependencies: []
+    source:
+      git: https://github.com/gin66/FastAccelStepper.git
+      path: .
+      type: git
+    version: c8d63b453731ec9ee3a40d5ac11cb35d8281e0f0
   chmorgan/esp-audio-player:
     component_hash: c8ac1998e9af863bc41b57e592f88d1a5791a0f891485122336ddabbf7a65033
     dependencies:
@@ -103,6 +111,7 @@ dependencies:
       type: service
     version: 8.3.11
 direct_dependencies:
+- FastAccelStepper
 - chmorgan/esp-audio-player
 - chmorgan/esp-file-iterator
 - espressif/esp_codec_dev
@@ -111,6 +120,6 @@ direct_dependencies:
 - espressif/iqmath
 - idf
 - lvgl/lvgl
-manifest_hash: f66b34fc8dbc11cb9261a2f4d5ba682799eed01dc7c778919ec40e69b7c75da0
+manifest_hash: 7441c88a33c770fb8bb5943fd246f9383e8a9fc1a232b6c6f5e9fab93ebb8ff9
 target: esp32s3
 version: 2.0.0

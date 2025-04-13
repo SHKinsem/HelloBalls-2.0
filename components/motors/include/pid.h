@@ -5,7 +5,9 @@
 #ifndef __PID_H__
 #define __PID_H__
 
-#define GLOBAL_IQ 15
+#ifndef GLOBAL_IQ
+  #define GLOBAL_IQ 15
+#endif
 
 #include "IQmathLib.h"
 

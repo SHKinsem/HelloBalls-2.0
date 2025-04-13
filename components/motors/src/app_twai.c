@@ -18,8 +18,6 @@
 #define RX_TASK_PRIO            8
 #define TX_TASK_PRIO            9
 #define CTRL_TSK_PRIO           10
-#define TX_GPIO_NUM             11
-#define RX_GPIO_NUM             10
 #define TWAI_TAG                "TWAI Master"
 
 #define ID_SLAVE_DATA           0x0B1
@@ -47,7 +45,7 @@ typedef enum {
 // static const twai_timing_config_t t_config = TWAI_TIMING_CONFIG_25KBITS();
 static const twai_timing_config_t t_config = TWAI_TIMING_CONFIG_1MBITS(); // 1 Mbps
 static const twai_filter_config_t f_config = TWAI_FILTER_CONFIG_ACCEPT_ALL();
-static const twai_general_config_t g_config = TWAI_GENERAL_CONFIG_DEFAULT(TX_GPIO_NUM, RX_GPIO_NUM, TWAI_MODE_NORMAL);
+static const twai_general_config_t g_config = TWAI_GENERAL_CONFIG_DEFAULT(TWAI_TX_PIN, TWAI_RX_PIN, TWAI_MODE_NORMAL);
 
 static twai_message_t speed_message = {
     // Message type and format settings

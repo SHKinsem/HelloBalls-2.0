@@ -4,6 +4,7 @@
 #include "app_twai.h"
 #include "ui.h"
 #include "app_motors.h"
+#include "bldc_motors.h"
 
 base_motor_t motor1(1); // Create an instance of base_motor_t for motor 1
 int16_t output = 200;
