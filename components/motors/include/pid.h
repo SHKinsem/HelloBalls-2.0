@@ -2,9 +2,10 @@
 文件名：PID_GRANDO.H 
 ===================================================================================*/
 
-
 #ifndef __PID_H__
 #define __PID_H__
+
+#define GLOBAL_IQ 15
 
 #include "IQmathLib.h"
 

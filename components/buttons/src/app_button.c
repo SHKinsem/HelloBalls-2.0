@@ -22,7 +22,7 @@ static void gpio_task_example(void *arg)
     for(;;) {
         if(xQueueReceive(gpio_evt_queue, &io_num, portMAX_DELAY)) {  // 死等队列消息
             printf("GPIO[%"PRIu32"] intr, val: %d\n", io_num, gpio_get_level(io_num)); // 打印相关内容
-            can_task();
+            // can_task();
         }
     }
     uninstall_twai_driver();

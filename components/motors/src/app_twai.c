@@ -13,8 +13,8 @@
 //Example Configuration
 #define PING_PERIOD_MS          250
 #define SEND_DELAY_MS           1
-#define NO_OF_ITERS             3
-#define ITER_DELAY_MS           1000
+#define NO_OF_ITERS             10
+#define ITER_DELAY_MS           10
 #define RX_TASK_PRIO            8
 #define TX_TASK_PRIO            9
 #define CTRL_TSK_PRIO           10
@@ -25,6 +25,11 @@
 #define ID_SLAVE_DATA           0x0B1
 #define ID_DJI_RM_MOTOR         0x200
 
+int16_t myGlobalSpeed = 0;
+
+int getGlobalSpeed() {
+    return myGlobalSpeed;
+}
 typedef enum {
     TX_SEND_SPEED,
     TX_SEND_START_CMD,
@@ -95,19 +100,18 @@ static void twai_receive_task(void *arg)
             ESP_LOGI(TWAI_TAG, "Waiting for data messages from slave...");
             while (xSemaphoreTake(stop_receive_sem, 0) != pdTRUE) {
                 twai_message_t rx_msg;
-                esp_err_t status = twai_receive(&rx_msg, 1000 / portTICK_PERIOD_MS);
-                if(status == ESP_ERR_TIMEOUT) {
-                    ESP_LOGI(TWAI_TAG, "Timeout waiting for data message from slave");
-                    break;
-                } else if (status != ESP_OK) {
+                esp_err_t status = twai_receive(&rx_msg, pdMS_TO_TICKS(50));
+                if (status != ESP_OK) {
                     ESP_LOGE(TWAI_TAG, "Error receiving message: %s", esp_err_to_name(status));
                     break;
                 }
                 int msg_id = rx_msg.identifier % ID_DJI_RM_MOTOR;
                 if(msg_id > 0 && msg_id < 5) {
-                    uint32_t data = 0;
-                    for (int i = 0; i < rx_msg.data_length_code; i++) data |= (rx_msg.data[i] << (i * 8));
-                    ESP_LOGI(TWAI_TAG, "Received data value from id %d %"PRIu32, msg_id, data);
+                    // uint8_t data[8] = 0;
+                    // for (int i = 0; i < rx_msg.data_length_code; i++) data[i] = rx_msg.data[i];
+                    myGlobalSpeed = rx_msg.data[0] | (rx_msg.data[1] << 8); // Combine high and low bytes
+                    // ESP_LOGI(TWAI_TAG, "Received data value from id %d %"PRIu32, msg_id, data);
+                    ESP_LOGI(TWAI_TAG, "Received data value from id %d %d", msg_id, myGlobalSpeed);
                     data_msgs_rec ++;
                 } else {
                     ESP_LOGI(TWAI_TAG, "Received unknown message with ID %d", msg_id);
@@ -121,24 +125,20 @@ static void twai_receive_task(void *arg)
     vTaskDelete(NULL);
 }
 
-void twai_transmit_speed(void *arg){
+void twai_transmit_speed(int16_t speed) {
     // Convert arg to int16_t
-    int16_t speed = *(int16_t *)arg;
-    while(speed != 0){
-        // Update the message with current motor speed values
-        update_can_message(&speed_message, speed, speed, 
-            speed, speed);
-        esp_err_t status = twai_transmit(&speed_message, pdMS_TO_TICKS(1000));
-        if(status == ESP_ERR_TIMEOUT) {
-            ESP_LOGI(TWAI_TAG, "Timeout waiting for twai_transmit");
-            break;
-        } else if (status != ESP_OK) {
-            ESP_LOGE(TWAI_TAG, "Error twai_transmit message: %s", esp_err_to_name(status));
-            break;
-        }
-        vTaskDelay(pdMS_TO_TICKS(5));
+    if(speed == 0){
+        return;
     }
-    vTaskDelete(NULL);
+    // Update the message with current motor speed values
+    update_can_message(&speed_message, speed, speed, 
+        speed, speed);
+    esp_err_t status = twai_transmit(&speed_message, pdMS_TO_TICKS(50));
+    if(status == ESP_ERR_TIMEOUT) {
+        ESP_LOGI(TWAI_TAG, "Timeout waiting for twai_transmit");
+    } else if (status != ESP_OK) {
+        ESP_LOGE(TWAI_TAG, "Error twai_transmit message: %s", esp_err_to_name(status));
+    }
 }
 
 static void twai_transmit_task(void *arg)
@@ -283,4 +283,40 @@ void can_task(void){
     vSemaphoreDelete(ctrl_task_sem);
     vSemaphoreDelete(stop_receive_sem);
     vSemaphoreDelete(done_sem);
+}
+
+// void control_motor_speed(int16_t* speed){
+//     // Create a task to transmit speed
+//     xTaskCreate(twai_transmit_speed, "TWAI_tx_speed", 4096, speed, TX_TASK_PRIO, NULL);
+// }
+
+void twai_receive_task_continuous(void *arg)
+{
+    ESP_ERROR_CHECK(twai_start());
+    while (1) {
+        //Receive data messages from slave
+        twai_message_t rx_msg;
+        esp_err_t status = twai_receive(&rx_msg, pdMS_TO_TICKS(50));
+        if (status != ESP_OK) {
+            ESP_LOGE(TWAI_TAG, "Error receiving message: %s", esp_err_to_name(status));
+            break;
+        }
+        int msg_id = rx_msg.identifier % ID_DJI_RM_MOTOR;
+        if(msg_id > 0 && msg_id < 5) {
+            // uint8_t data[8] = 0;
+            // for (int i = 0; i < rx_msg.data_length_code; i++) data[i] = rx_msg.data[i];
+            myGlobalSpeed = (uint16_t)((rx_msg.data[2] << 8) | rx_msg.data[3]); // Combine high and low bytes
+            // ESP_LOGI(TWAI_TAG, "id %d: %d", msg_id, myGlobalSpeed);
+        } else {
+            ESP_LOGI(TWAI_TAG, "Received unknown message with ID %d", msg_id);
+        }
+        vTaskDelay(pdMS_TO_TICKS(1)); // Add a small delay to avoid busy waiting
+    }
+    ESP_ERROR_CHECK(twai_stop());
+    vTaskDelete(NULL);
+}
+
+void start_twai_receive_task(void) {
+    // Create a task to receive messages continuously
+    xTaskCreate(twai_receive_task_continuous, "TWAI_rx_continuous", 4096, NULL, RX_TASK_PRIO, NULL);
 }

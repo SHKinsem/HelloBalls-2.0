@@ -1,7 +1,7 @@
 #ifndef DM3519_H
 #define DM3519_H
 
-#include "dji_rm_motors.h"
+#include "app_motors.h"
 
 #ifdef USE_DM3519
 

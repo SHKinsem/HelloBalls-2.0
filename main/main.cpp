@@ -23,13 +23,16 @@
 #include "app_button.h"
 #include "app_twai.h"
 #include "ui.h"
+#include "app_motors.h"
+#include "debugHelper.cpp"
 
-void app_main(void)
-{
+
+
+
+void setup(){
     bsp_i2c_init();  // I2C initialization
     pca9557_init();  // IO expander initialization
     bsp_lvgl_start(); // Lvgl initialization
-    
     install_twai_driver();
     
     if(bsp_sdcard_mount() == ESP_OK) {
@@ -40,8 +43,19 @@ void app_main(void)
         ui_init(); // Initialize UI without SD card
         ESP_LOGE(TAG, "Failed to mount SD card");
     }
-
-    ESP_LOGI(TAG, "Button initialization");
     button_init(); // Initialize button with no callback function
-    ESP_LOGI(TAG, "TWAI Master Example completed");
+    start_twai_receive_task();
+    motor_task_init(); // Initialize motor task
+}
+
+extern "C" void app_main(void)
+{
+    setup(); // Call the setup function to initialize the system
+
+    while(1){
+        // Main loop can be used for other tasks or to keep the program running
+        debugLoggingTask(NULL); // Call the debug logging task
+        vTaskDelay(pdMS_TO_TICKS(100)); // Delay for 1 second
+    }
+
 }

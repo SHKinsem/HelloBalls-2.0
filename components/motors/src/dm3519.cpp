@@ -33,15 +33,15 @@ std::string dm3519_error_code_to_string(DM3519_ERROR_CODE code)
     }
 }
 
-twai_message_t dm3519_clear_error_msg = {
-    dm3519_clear_error_msg.extd = 0,
-    dm3519_clear_error_msg.rtr = 0,
-    dm3519_clear_error_msg.ss = 1,
-    dm3519_clear_error_msg.self = 0,
-    dm3519_clear_error_msg.dlc_non_comp = 0,
-    .identifier = 0,
-    .data_length_code = 8,
-    .data = {0},
-};
+// twai_message_t dm3519_clear_error_msg = {
+//     dm3519_clear_error_msg.extd = 0,
+//     dm3519_clear_error_msg.rtr = 0,
+//     dm3519_clear_error_msg.ss = 1,
+//     dm3519_clear_error_msg.self = 0,
+//     dm3519_clear_error_msg.dlc_non_comp = 0,
+//     .identifier = 0,
+//     .data_length_code = 8,
+//     .data = {0},
+// };
 
 #endif
