@@ -89,6 +89,8 @@ public:
     twai_message_t* getClearErrorMessage() const {
         return const_cast<twai_message_t*>(&clr_err_msg);
     }
+
+    char* getMotorInfo() override;
 };
 
 

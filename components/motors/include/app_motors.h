@@ -7,6 +7,7 @@
 #include "rm3508.h"
 #include "dm3519.h"
 
+
 void bldc_motor_task_init(void);
 void stepper_motor_task_init(void);
 
@@ -14,5 +15,30 @@ void home_stepper_motor(void);
 void set_stepper_pos(int32_t pos);  // In steps
 void set_friction_wheel_speed(float speed); // In rpm
 void set_wheel_speed(float speed1, float speed2); // In rpm
+
+class can_channel_t
+{
+private:
+    uint8_t channel_id; // Channel ID for the CAN channel
+    uint8_t motorCount;
+    base_motor_t** motors;
+    uint8_t** rx_buffer;
+    uint8_t* tx_buffer;
+
+public:
+    can_channel_t(uint8_t channel_id) : channel_id(channel_id) {}
+    ~can_channel_t() {}
+
+    void reg_motor(base_motor_t* motor) {
+        if (motorCount < 4) { // Assuming a maximum of 4 motors per channel
+            motors[motorCount++] = motor;
+            rx_buffer[motorCount - 1] = new uint8_t[8]; // Allocate memory for the motor's RX buffer
+        } else {
+            // Handle error: too many motors registered
+        }
+    }
+    void setChannelId(uint8_t channel_id) { this->channel_id = channel_id; }
+    uint8_t getChannelId() const { return this->channel_id; }
+};
 
 #endif // __APP_MOTORS_H

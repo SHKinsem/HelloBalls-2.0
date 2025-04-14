@@ -51,3 +51,19 @@ int16_t base_motor_t::calOutput(){
 
     return control_output;
 }
+
+char* base_motor_t::getMotorInfo(){
+    snprintf(motor_info, sizeof(motor_info),
+        "Motor ID %1u:\n"
+        "Angle:\n\t%6.1f Degrees\n"      // Fixed width for angle
+        "Speed:\n\t%5d RPM\n"            // Fixed width for RPM
+        "TargetSpeed:\n\t%5d RPM\n"     // Fixed width for target speed
+        "Current:\n\t%5.1f Amps\n",       // Fixed width for current
+        this->getMotorId(),
+        this->getAngle(),          // e.g. " 360.0" (always 6 characters)
+        this->getRawSpeed(),       // e.g. " 100" (5 characters)
+        this->getTargetSpeed(),
+        this->getCurrent()        // e.g. " 1.0" (5 characters)
+    );
+    return motor_info;
+}

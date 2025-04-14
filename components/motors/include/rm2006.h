@@ -47,6 +47,8 @@ public:
         // this->temperature = data[6]; // Temperature byte
         // this->raw_status = data[7]; // Status byte
     }
+
+    // char* getMotorInfo() override;
 };
 
 

@@ -1,4 +1,4 @@
-SET(SOURCES screens/ui_ScreenScreen1.c
+SET(SOURCES screens/ui_ScreenMainMenu.c
     ui.c
     components/ui_comp_hook.c
     ui_helpers.c

@@ -18,7 +18,7 @@
 #define RX_TASK_PRIO            8
 #define TX_TASK_PRIO            9
 #define CTRL_TSK_PRIO           10
-#define TWAI_TAG                "TWAI Master"
+#define TWAI_TAG                "APP_TWAI"
 
 #define ID_SLAVE_DATA           0x0B1
 #define ID_DJI_RM_MOTOR         0x200
@@ -26,9 +26,10 @@
 int16_t myGlobalSpeed = 0;
 bool twai_running = false;
 
-int getGlobalSpeed() {
-    return myGlobalSpeed;
-}
+// static int getGlobalSpeed() {
+//     return myGlobalSpeed;
+// }
+
 typedef enum {
     TX_SEND_SPEED,
     TX_SEND_START_CMD,
@@ -295,7 +296,7 @@ void twai_receive_task_continuous(void *arg)
     while (true) {
         if(!twai_running) {
             vTaskDelay(pdMS_TO_TICKS(1000));
-            ESP_LOGI(TWAI_TAG, "TWAI driver not running, waiting...");
+            // ESP_LOGI(TWAI_TAG, "TWAI driver not running, waiting...");
             continue;
         }
 
@@ -347,3 +348,6 @@ void twai_init(){
     xTaskCreate(twai_receive_task_continuous, "TWAI_rx_continuous", 4096, NULL, RX_TASK_PRIO, NULL);
 }
 
+bool get_twai_running(){
+    return twai_running;
+}
