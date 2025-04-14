@@ -23,9 +23,10 @@ void ui_ScreenMainMenu_screen_init(void)
     lv_obj_clear_flag(ui_MainMenuTextareaTextArea2,
                       LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_PRESS_LOCK | LV_OBJ_FLAG_CLICK_FOCUSABLE | LV_OBJ_FLAG_GESTURE_BUBBLE |
                       LV_OBJ_FLAG_SNAPPABLE);     /// Flags
-    lv_obj_set_scrollbar_mode(ui_MainMenuTextareaTextArea2, LV_SCROLLBAR_MODE_ACTIVE);
+    lv_obj_set_scrollbar_mode(ui_MainMenuTextareaTextArea2, LV_SCROLLBAR_MODE_OFF);
     lv_obj_set_style_text_color(ui_MainMenuTextareaTextArea2, lv_color_hex(0xFAFAFA), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_opa(ui_MainMenuTextareaTextArea2, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(ui_MainMenuTextareaTextArea2, &lv_font_montserrat_12, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_bg_color(ui_MainMenuTextareaTextArea2, lv_color_hex(0x424242), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_bg_opa(ui_MainMenuTextareaTextArea2, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_opa(ui_MainMenuTextareaTextArea2, 0, LV_PART_MAIN | LV_STATE_DEFAULT);

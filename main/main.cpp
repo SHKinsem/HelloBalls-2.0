@@ -54,12 +54,9 @@ extern "C" void app_main(void)
 {
     setup(); // Call the setup function to initialize the system
 
-    xTaskCreatePinnedToCore(debugLoggingTask, "Debug Logging Task", 4096, NULL, 5, NULL, 1); // Create the debug logging task on core 1
     while(1){
-        // Main loop can be used for other tasks or to keep the program running
-        // debugLoggingTask(NULL); // Call the debug logging task
         vTaskDelay(pdMS_TO_TICKS(100)); // Delay for 1 second
     }
 
-    uninstall_twai_driver();
+    // uninstall_twai_driver();
 }
