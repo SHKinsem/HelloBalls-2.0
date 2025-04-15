@@ -634,7 +634,7 @@
               {
                 "nid": 300,
                 "strtype": "OBJECT/Scrollbar_mode",
-                "strval": "ACTIVE",
+                "strval": "OFF",
                 "InheritedType": 3
               },
               {
@@ -663,7 +663,6 @@
               },
               {
                 "nid": 1010,
-                "flags": 1048576,
                 "strtype": "TEXTAREA/TextArea",
                 "InheritedType": 1
               },
@@ -721,6 +720,12 @@
                           255
                         ],
                         "InheritedType": 7
+                      },
+                      {
+                        "nid": 10450,
+                        "strtype": "_style/Text_Font",
+                        "strval": "montserrat_12",
+                        "InheritedType": 3
                       },
                       {
                         "nid": 10520,
@@ -4047,8 +4052,8 @@
     "theme_dark": false,
     "theme_color1": 5,
     "theme_color2": 0,
-    "uiExportFolderPath": "D:\\temp\\HelloBalls_2.0\\HelloBalls-2.0\\main\\ui",
-    "projectExportFolderPath": "D:\\temp\\HelloBalls_2.0\\HelloBalls-2.0",
+    "uiExportFolderPath": "H:\\temp\\twai_motors_network\\main\\ui",
+    "projectExportFolderPath": "",
     "custom_variable_prefix": "uic",
     "backup_cnt": 13,
     "autosave_cnt": 0,
