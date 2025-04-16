@@ -68,7 +68,7 @@ void ui_ScreenMainMenu_screen_init(void)
     lv_obj_set_style_opa(ui_MainMenuContainerContainer2, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
 
     ui_MainMenuSliderSlider1 = lv_slider_create(ui_MainMenuContainerContainer2);
-    lv_slider_set_range(ui_MainMenuSliderSlider1, -1000, 1000);
+    lv_slider_set_range(ui_MainMenuSliderSlider1, -5000, 5000);
     lv_slider_set_value(ui_MainMenuSliderSlider1, 0, LV_ANIM_OFF);
     if(lv_slider_get_mode(ui_MainMenuSliderSlider1) == LV_SLIDER_MODE_RANGE) lv_slider_set_left_value(
             ui_MainMenuSliderSlider1, 0, LV_ANIM_OFF);

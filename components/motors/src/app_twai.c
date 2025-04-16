@@ -21,7 +21,7 @@
 #define TWAI_TAG                "APP_TWAI"
 
 #define ID_SLAVE_DATA           0x0B1
-#define ID_DJI_RM_MOTOR         0x200
+
 
 int16_t myGlobalSpeed = 0;
 bool twai_running = false;
@@ -47,7 +47,18 @@ typedef enum {
 // static const twai_timing_config_t t_config = TWAI_TIMING_CONFIG_25KBITS();
 static const twai_timing_config_t t_config = TWAI_TIMING_CONFIG_1MBITS(); // 1 Mbps
 static const twai_filter_config_t f_config = TWAI_FILTER_CONFIG_ACCEPT_ALL();
-static const twai_general_config_t g_config = TWAI_GENERAL_CONFIG_DEFAULT(TWAI_TX_PIN, TWAI_RX_PIN, TWAI_MODE_NO_ACK);
+static const twai_general_config_t g_config = { .controller_id = 0,             
+                                                // .mode = TWAI_MODE_NO_ACK,
+                                                .mode = TWAI_MODE_NORMAL, 
+                                                .tx_io = TWAI_TX_PIN, 
+                                                .rx_io = TWAI_RX_PIN,        
+                                                .clkout_io = TWAI_IO_UNUSED, 
+                                                .bus_off_io = TWAI_IO_UNUSED,      
+                                                .tx_queue_len = 5, 
+                                                .rx_queue_len = 32,                           
+                                                .alerts_enabled = TWAI_ALERT_ALL,  
+                                                .clkout_divider = 0,        
+                                                .intr_flags = ESP_INTR_FLAG_LEVEL2};
 
 static twai_message_t speed_message = {
     // Message type and format settings
@@ -128,17 +139,30 @@ static void twai_receive_task(void *arg)
     vTaskDelete(NULL);
 }
 
-void twai_transmit_speed(int16_t speed) {
+void twai_transmit_speed(int16_t speed1, int16_t speed2) {
     // Convert arg to int16_t
-    if(speed == 0){
-        return;
+    if(speed1 == 0){
+        speed_message.data[0] = 0;
+        speed_message.data[1] = 0;
+        speed_message.data[2] = 0;
+        speed_message.data[3] = 0;
+        speed_message.data[4] = 0;
+        speed_message.data[5] = 0; 
+        speed_message.data[6] = 0;
+        speed_message.data[7] = 0;
     }
-    // Update the message with current motor speed values
-    update_can_message(&speed_message, speed, speed, speed, speed);
-    esp_err_t status = twai_transmit(&speed_message, pdMS_TO_TICKS(50));
-    if (status != ESP_OK) {
-        ESP_LOGE(TWAI_TAG, "Error twai_transmit message: %s", esp_err_to_name(status));
+    else{
+
+        speed_message.data[0] = (speed1 >> 8) & 0xFF;    // High byte of motor 1
+        speed_message.data[1] = speed1 & 0xFF;           // Low byte of motor 1
+        speed_message.data[2] = (speed2 >> 8) & 0xFF;    // High byte of motor 2
+        speed_message.data[3] = speed2 & 0xFF;           // Low byte of motor 2
+        speed_message.data[4] = (speed1 >> 8) & 0xFF;    // High byte of motor 3
+        speed_message.data[5] = speed1 & 0xFF;           // Low byte of motor 3
+        speed_message.data[6] = (speed2 >> 8) & 0xFF;    // High byte of motor 4
+        speed_message.data[7] = speed2 & 0xFF;           // Low byte of motor 4
     }
+    twai_transmit(&speed_message, pdMS_TO_TICKS(100));
 }
 
 static void twai_transmit_task(void *arg)
@@ -282,7 +306,7 @@ void can_task(void){
 //     xTaskCreate(twai_transmit_speed, "TWAI_tx_speed", 4096, speed, TX_TASK_PRIO, NULL);
 // }
 
-uint8_t motor_data[4][8] = {0};
+static uint8_t motor_data[4][8] = {0};
 
 uint8_t* motorDataHook(uint8_t motor_id){
     // uint8_t data[8] = {0};
@@ -302,7 +326,7 @@ void twai_receive_task_continuous(void *arg)
 
         //Receive data messages from slave
         twai_message_t rx_msg;
-        esp_err_t status = twai_receive(&rx_msg, pdMS_TO_TICKS(50));
+        esp_err_t status = twai_receive(&rx_msg, pdMS_TO_TICKS(1000));
         if (status != ESP_OK) {
             ESP_LOGE(TWAI_TAG, "Error receiving message: %s", esp_err_to_name(status));
             continue;
@@ -332,20 +356,12 @@ void start_twai_receive(){
     // Control the semaphore to start receiving messages
     ESP_LOGI(TWAI_TAG, "Starting to receive messages...");
     twai_running = true; // Set the flag to indicate that TWAI is running
-    ESP_LOGI(TWAI_TAG, "Semaphore taken, receiving messages...");
 }
 
 void stop_twai_receive(){
     // Control the semaphore to stop receiving messages
     ESP_LOGI(TWAI_TAG, "Stopping to receive messages...");
     twai_running = false;
-    ESP_LOGI(TWAI_TAG, "Semaphore given, stopped receiving messages...");
-}
-
-void twai_init(){
-    twai_start();
-    stop_twai_receive();    // Stop receiving messages by default
-    xTaskCreate(twai_receive_task_continuous, "TWAI_rx_continuous", 4096, NULL, RX_TASK_PRIO, NULL);
 }
 
 bool get_twai_running(){

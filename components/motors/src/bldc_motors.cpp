@@ -37,19 +37,19 @@ base_motor_t::~base_motor_t(){
 int16_t base_motor_t::calOutput(){
 
     // Set PID input values
-    speed_pid.term.Ref = _IQ(this->target_speed);     // Set reference input (target speed)
-    speed_pid.term.Fbk = _IQ(this->raw_speed);        // Set feedback value (current speed)
+    speed_pid.term.Ref = _IQ(getTargetSpeed());     // Set reference input (target speed)
+    speed_pid.term.Fbk = _IQ(getRawSpeed());        // Set feedback value (current speed)
 
     // Execute PID calculation
     PID_MACRO(speed_pid);
 
     // Get control output
-    int16_t control_output = _IQint(speed_pid.term.Out);    
+    controlOutput = _IQint(speed_pid.term.Out);    
     // int16_t control_output = speed_pid.term.Out;
 
-    if(!enabled) return 0; // If motor is not enabled, return 0
+    if(!enabled) controlOutput = 0; // If motor is not enabled, return 0
 
-    return control_output;
+    return controlOutput;
 }
 
 char* base_motor_t::getMotorInfo(){

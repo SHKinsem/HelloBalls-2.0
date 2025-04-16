@@ -54,6 +54,8 @@ protected:
         PID_DATA_DEFAULTS
     };
 
+    int16_t controlOutput;
+
 public:
     base_motor_t(uint8_t motor_id);
     virtual ~base_motor_t();
@@ -65,17 +67,19 @@ public:
     
     void setMotorId(uint8_t motor_id)   {this->motor_id = motor_id;}
 
-    uint8_t getMotorId() const      {return this->motor_id;}    
-    int16_t getRawAngle() const     {return this->raw_angle;}
-    int16_t getRawSpeed() const     {return this->raw_speed;}
-    int16_t getRawCurrent() const   {return this->raw_current;}
-    int16_t getTargetSpeed() const  {return this->target_speed;}
-    int8_t getStatus() const        {return this->status;}
-    int16_t* getTargetSpeedPtr()    {return &this->target_speed;}
+    uint8_t getMotorId() const          {return this->motor_id;}    
+    int16_t getRawAngle() const         {return this->raw_angle;}
+    int16_t getRawSpeed() const         {return this->raw_speed;}
+    int16_t getRawCurrent() const       {return this->raw_current;}
+    int16_t getTargetSpeed() const      {return this->target_speed;}
+    int8_t getStatus() const            {return this->status;}
+    int16_t getControlOutput() const    {return this->controlOutput;}
 
-    float getCurrent() const        {return _IQtoF(_IQmpy(_IQ(this->raw_current), scale_current));}  // in Amps
-    float getTemperature() const    {return _IQtoF(this->temperature);} // in Celsius
-    float getAngle() const          {return _IQtoF(_IQmpy(_IQ(this->raw_angle), scale_angle));} // in degrees
+    int16_t* getTargetSpeedPtr()        {return &this->target_speed;}
+    
+    float getCurrent() const            {return _IQtoF(_IQmpy(_IQ(this->raw_current), scale_current));}  // in Amps
+    float getTemperature() const        {return _IQtoF(this->temperature);} // in Celsius
+    float getAngle() const              {return _IQtoF(_IQmpy(_IQ(this->raw_angle), scale_angle));} // in degrees
 
     void setRawSpeed(int16_t raw_speed)         {this->raw_speed = raw_speed;} // Set raw speed of motor
     void setRawCurrent(int16_t current)         {this->raw_current = current;} // Set raw current of motor

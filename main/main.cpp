@@ -25,7 +25,7 @@
 #include "app_button.h"
 #include "app_twai.h"
 #include "ui.h"
-#include "app_motors.h"
+// #include "app_motors.h"
 #include "debugger.h"
 
 
@@ -47,7 +47,6 @@ void setup(){
     button_init(); // Initialize button with no callback function
     // start_twai_receive_task();
     motor_task_init(); // Initialize motor task
-    twai_init();
 }
 
 extern "C" void app_main(void)

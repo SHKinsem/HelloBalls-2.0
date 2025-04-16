@@ -65,7 +65,6 @@ public:
         clr_err_msg.data[1] = 0x00;
         clr_err_msg.data[2] = 0x55;
         clr_err_msg.data[3] = 0x3C;
-
     }
 
     ~dm3519_t() {

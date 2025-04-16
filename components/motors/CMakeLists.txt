@@ -7,4 +7,5 @@ idf_component_register(  SRCS           "src/app_twai"
                                         freertos
                                         iqmath
                                         FastAccelStepper
-                         INCLUDE_DIRS   "include")
+                                        lvgl
+                         INCLUDE_DIRS   "include" "../../main/ui")

@@ -13,6 +13,7 @@ float global_angle = 0; // Global angle variable
 bool button_state = false; // Button state variable
 
 int16_t* global_speed_ptr = &global_speed; // Pointer to global speed variable
+int16_t* global_speed_ptr2 = &global_speed; // Pointer to global speed variable
 
 void lvgl_can_task(lv_event_t * e)
 {
@@ -34,6 +35,7 @@ void lvgl_stop_twai_receive(lv_event_t * e)
 
 int16_t* getGlobalSpeed() { return &global_speed; }
 void setGlobalSpeedPtr(int16_t* ptr) { global_speed_ptr = ptr;}
+void setGlobalSpeedPtr2(int16_t* ptr) { global_speed_ptr2 = ptr;}
 // float getGlobalAngle() { return global_angle; }
 
 void lvgl_set_global_speed(lv_event_t * e)
@@ -41,6 +43,7 @@ void lvgl_set_global_speed(lv_event_t * e)
 	lv_obj_t * target = lv_event_get_target(e);
 	// global_speed = (int16_t)lv_slider_get_value(target);
 	*global_speed_ptr = lv_slider_get_value(target);
+	*global_speed_ptr2 = -lv_slider_get_value(target);
 }
 
 bool* get_button_state_ptr(){

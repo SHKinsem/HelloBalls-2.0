@@ -33,11 +33,12 @@ public:
 
     void parseData(const uint8_t* data) {
         // Parse the data received from the motor
-        this->raw_angle = (data[0] << 8) | data[1]; // Combine high and low byte for angle
-        this->raw_speed = (data[2] << 8) | data[3]; // Combine high and low byte for speed
-        this->raw_current = (data[4] << 8) | data[5]; // Combine high and low byte for current
+        this->raw_angle =   (uint16_t)((data[0] << 8) | data[1]); // Combine high and low byte for angle
+        this->raw_speed =   (uint16_t)((data[2] << 8) | data[3]); // Combine high and low byte for speed
+        this->raw_current = (uint16_t)((data[4] << 8) | data[5]); // Combine high and low byte for current
         this->temperature = _IQ(data[6]); // Temperature byte
         this->status = data[7]; // Status byte
+        calOutput(); // Calculate control output
     }
 };
 #endif // __RM3508_H
