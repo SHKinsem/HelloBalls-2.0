@@ -27,6 +27,7 @@
 #include "ui.h"
 // #include "app_motors.h"
 #include "debugger.h"
+#include "serial.h"
 
 
 void setup(){
@@ -52,6 +53,7 @@ void setup(){
 extern "C" void app_main(void)
 {
     setup(); // Call the setup function to initialize the system
+    uart_init();
 
     while(1){
         vTaskDelay(pdMS_TO_TICKS(100)); // Delay for 1 second
