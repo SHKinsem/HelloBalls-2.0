@@ -18,8 +18,8 @@ void motor_displayer(void* arg){
     setGlobalSpeedPtr(motor_ptr[0]->getTargetSpeedPtr());
     setGlobalSpeedPtr2(motor_ptr[1]->getTargetSpeedPtr());
 
-    motor_ptr[0]->setPIDParameters(0.06, 0.0005, 0.00001, 1.0, 0.0, 5000.0, -5000.0); // Set PID parameters
-    motor_ptr[1]->setPIDParameters(0.03, 0.001, 0.00001, 1.0, 0.0, 5000.0, -5000.0); // Set PID parameters
+    motor_ptr[0]->setPIDParameters(50.0, 0.01, 0.0001, 0.1, 0.01, 10000.0, -10000.0); // Set PID parameters
+    motor_ptr[1]->setPIDParameters(50.0, 0.01, 0.0001, 0.1, 0.01, 10000.0, -10000.0); // Set PID parameters
 
     vTaskDelay(pdMS_TO_TICKS(1000)); // Delay for 100 ms
     int counter = 0; // Counter for the run time
@@ -39,9 +39,10 @@ void motor_displayer(void* arg){
 }
 
 #define RUN_MOTOR_PERIOD 20000 // Run motor for 10000 ms
-#define MESSAGE_FREQUENCY 15 // Frequency of sending messages in ms
+#define MESSAGE_FREQUENCY 10 // Frequency of sending messages in ms
 
 void debugLoggingTask(void *arg) {
+    // TickType_t xLastWakeTime = xTaskGetTickCount(); // Get the current tick count
     while (1) {
         // Log the current speed of the motor
         int counter = RUN_MOTOR_PERIOD / MESSAGE_FREQUENCY; // Counter for the run time
@@ -54,12 +55,12 @@ void debugLoggingTask(void *arg) {
             lv_obj_set_style_bg_color(ui_MainMenuButtonTestButton, lv_color_hex(0xFF0085), LV_PART_MAIN | LV_STATE_DEFAULT);
 
             while(get_twai_running() && counter > 0) {
-                // output = motor_ptr[0]->getControlOutput(); // Get the control output from the motor
-                // output = motor_ptr[1]->getControlOutput();
-
+                motor_ptr[0]->calOutput();
+                motor_ptr[1]->calOutput();
                 twai_transmit_speed(motor_ptr[0]->getControlOutput(), motor_ptr[1]->getControlOutput()); // Transmit the speed to the motor
                 // ESP_LOGI(TAG, "O: %d, R: %d, T: %d", output, motor_ptr[0]->getRawSpeed(), motor_ptr[0]->getTargetSpeed());
-                vTaskDelay(pdMS_TO_TICKS(MESSAGE_FREQUENCY)); // Adjusted delay for consistent timing
+                // xTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(5)); // Delay until the next period
+                vTaskDelay(pdMS_TO_TICKS(MESSAGE_FREQUENCY)); // Delay for the message frequency
                 counter--;
             }
             motor_ptr[0]->disable();
@@ -97,5 +98,5 @@ void motor_task_init(){
     // Create a task for motor control
     xTaskCreatePinnedToCore(motor_displayer, "Motor displayer Task", 4096, NULL, 3, NULL, tskNO_AFFINITY);
     vTaskDelay(pdMS_TO_TICKS(100)); // Delay for 100 ms
-    xTaskCreatePinnedToCore(debugLoggingTask, "Debug Logging Task", 4096, NULL, 6, NULL, tskNO_AFFINITY);
+    xTaskCreatePinnedToCore(debugLoggingTask, "Debug Logging Task", 4096, NULL, 6, NULL, 0);
 }

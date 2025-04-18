@@ -38,7 +38,6 @@ public:
         this->raw_current = (uint16_t)((data[4] << 8) | data[5]); // Combine high and low byte for current
         this->temperature = _IQ(data[6]); // Temperature byte
         this->status = data[7]; // Status byte
-        calOutput(); // Calculate control output
     }
 };
 #endif // __RM3508_H

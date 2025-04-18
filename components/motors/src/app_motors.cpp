@@ -64,4 +64,3 @@ void twai_init(){
     stop_twai_receive();    // Stop receiving messages by default
     xTaskCreatePinnedToCore(twai_receive_task_continuous, "TWAI_rx_continuous", 4096, NULL, 1, NULL, tskNO_AFFINITY);
 }
-
