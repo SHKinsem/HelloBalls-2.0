@@ -5,6 +5,7 @@
 #include "FastAccelStepper.h"
 #include "app_motors.h"
 #include "esp_log.h"
+#include <inttypes.h>
 
 #define HOME_SPEED_US    2000
 #define HOME_MAX_STEPS   10000
@@ -22,6 +23,10 @@ void stepper_motor_task_init(void) {
         stepper->setAutoEnable(true);
         stepper->setSpeedInUs(1000);
         stepper->setAcceleration(1000);
+        #ifdef SUPPORT_ESP32_PULSE_COUNTER
+        stepper->attachToPulseCounter(7);
+        #endif
+
         ESP_LOGI(TAG, "Stepper initialized successfully");
     } else {
         ESP_LOGE(TAG, "Stepper initialization failed");
@@ -52,9 +57,11 @@ void home_stepper_motor(void) {
     stepper->setCurrentPosition(0);
     ESP_LOGI(TAG, "Stepper homed to position 0");
 }
-
 void set_stepper_pos(int32_t pos) {
     if (!stepper) return;
     stepper->moveTo(pos);
-    // ESP_LOGI(TAG, "Moving stepper to position %d", pos);
+    ESP_LOGI(TAG, "Moving stepper to position %" PRId32, pos);
+
+    // int16_t pcnt = stepper->readPulseCounter();
+    // ESP_LOGI(TAG, "Current position: %" PRId32 ", Pulse counter: %d", stepper->getCurrentPosition(), pcnt);
 }

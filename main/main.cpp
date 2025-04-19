@@ -19,7 +19,6 @@
 #define TAG "app_main"
 #define GLOBAL_IQ 15    // IQ math library global IQ value
 #include "board_pins.h"
-
 #include "esp32_s3_szp.h"
 #include "app_ui.h"
 #include "app_button.h"
@@ -28,6 +27,7 @@
 // #include "app_motors.h"
 #include "debugger.h"
 #include "serial.h"
+#include "stepper_motors.h"
 
 
 void setup(){
@@ -38,27 +38,36 @@ void setup(){
     
     if(bsp_sdcard_mount() == ESP_OK) {
         ESP_LOGI(TAG, "SD card mounted successfully");
-        bsp_codec_init(); // Codec initialization
-        mp3_player_init();
+        // bsp_codec_init(); // Codec initialization
+        // mp3_player_init();
     } else {
         ui_init(); // Initialize UI without SD card
         ESP_LOGE(TAG, "Failed to mount SD card");
         ESP_LOGE(TAG, "Entering motor Debug mode");
     }
-    button_init(); // Initialize button with no callback function
+    // button_init(); // Initialize button with no callback function
     // start_twai_receive_task();
-    motor_task_init(); // Initialize motor task
+    // motor_task_init(); // Initialize motor task
 }
 
 extern "C" void app_main(void)
 {
     setup(); // Call the setup function to initialize the system
-    uart_init();
+    // uart_init();
+    stepper_motor_task_init(); // Initialize stepper motor task
 
-    measure_important_function();
+    vTaskDelay(pdMS_TO_TICKS(5000));
+    ESP_LOGI(TAG, "Starting main application...");
+    home_stepper_motor(); // Home the stepper motor
 
+    // measure_important_function();
     while(1){
-        vTaskDelay(pdMS_TO_TICKS(100)); // Delay for 1 second
+        for(int i = 0; i < 10; i++){
+            int32_t pos = i * 1000; // Set position to move to
+            set_stepper_pos(pos); // Move stepper to the specified position
+            vTaskDelay(pdMS_TO_TICKS(1000)); // Delay for 100 milliseconds
+        }
+        vTaskDelay(pdMS_TO_TICKS(100));
     }
 
     // uninstall_twai_driver();

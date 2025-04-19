@@ -7,6 +7,8 @@
 extern "C" {
 #endif
 
+#include "../../main/board_pins.h"
+
 #ifndef TWAI_TX_PIN
     #define TWAI_TX_PIN             11
 #endif

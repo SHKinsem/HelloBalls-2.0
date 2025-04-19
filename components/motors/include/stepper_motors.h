@@ -1,12 +1,14 @@
 #ifndef __STEPPER_MOTORS_H
 #define __STEPPER_MOTORS_H
 
+#include "../../main/board_pins.h"
+
 #ifndef DIR_PIN
-  #define DIR_PIN 23
+  #define DIR_PIN 11
 #endif
 
 #ifndef STEP_PIN
-  #define STEP_PIN 22
+  #define STEP_PIN 10
 #endif
 
 #ifndef ENDSTOP_PIN
