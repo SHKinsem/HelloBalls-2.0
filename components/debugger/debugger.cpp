@@ -40,14 +40,15 @@ void motor_displayer(void* arg){
     }
 }
 
-#define RUN_MOTOR_PERIOD 20000 // Run motor for 10000 ms
-#define MESSAGE_FREQUENCY 10 // Frequency of sending messages in ms
+#define RUN_MOTOR_PERIOD 40000
+#define MESSAGE_FREQUENCY 1 // Frequency of sending messages in ms
+#define MAX_COUNTER RUN_MOTOR_PERIOD / MESSAGE_FREQUENCY // Maximum counter value
 
 void debugLoggingTask(void *arg) {
-    // TickType_t xLastWakeTime = xTaskGetTickCount(); // Get the current tick count
+    TickType_t xLastWakeTime = xTaskGetTickCount(); // Get the current tick count
     while (1) {
         // Log the current speed of the motor
-        int counter = RUN_MOTOR_PERIOD / MESSAGE_FREQUENCY; // Counter for the run time
+        int counter = 0; // Counter for the run time
         twai_transmit_speed(0, 0); // Transmit the speed to the motor
         if(*get_button_state_ptr()) {
 
@@ -56,14 +57,15 @@ void debugLoggingTask(void *arg) {
             ESP_LOGI(TAG, "Motor started, output: %d", output);
             lv_obj_set_style_bg_color(ui_MainMenuButtonTestButton, lv_color_hex(0xFF0085), LV_PART_MAIN | LV_STATE_DEFAULT);
 
-            while(get_twai_running() && counter > 0) {
-                motor_ptr[0]->calOutput();
-                motor_ptr[1]->calOutput();
-                twai_transmit_speed(motor_ptr[0]->getControlOutput(), motor_ptr[1]->getControlOutput()); // Transmit the speed to the motor
+            while(get_twai_running() && counter < MAX_COUNTER) {
+                twai_transmit_speed(motor_ptr[0]->calOutput(), motor_ptr[1]->calOutput()); // Transmit the speed to the motor
+                counter ++;
+                if(counter % 1000 == 0) {
+                    ESP_LOGI(TAG, "Counter: %d", counter);
+                }
                 // ESP_LOGI(TAG, "O: %d, R: %d, T: %d", output, motor_ptr[0]->getRawSpeed(), motor_ptr[0]->getTargetSpeed());
-                // xTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(5)); // Delay until the next period
-                vTaskDelay(pdMS_TO_TICKS(MESSAGE_FREQUENCY)); // Delay for the message frequency
-                counter--;
+                xTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(MESSAGE_FREQUENCY)); // Delay until the next period
+                // vTaskDelay(pdMS_TO_TICKS(MESSAGE_FREQUENCY)); // Delay for the message frequency
             }
             motor_ptr[0]->disable();
             motor_ptr[1]->disable();

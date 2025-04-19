@@ -162,7 +162,7 @@ void twai_transmit_speed(int16_t speed1, int16_t speed2) {
         speed_message.data[6] = (speed2 >> 8) & 0xFF;    // High byte of motor 4
         speed_message.data[7] = speed2 & 0xFF;           // Low byte of motor 4
     }
-    twai_transmit(&speed_message, pdMS_TO_TICKS(100));
+    twai_transmit(&speed_message, pdMS_TO_TICKS(10));
 }
 
 static void twai_transmit_task(void *arg)
