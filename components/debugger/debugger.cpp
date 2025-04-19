@@ -24,17 +24,19 @@ void motor_displayer(void* arg){
     vTaskDelay(pdMS_TO_TICKS(1000)); // Delay for 100 ms
     int counter = 0; // Counter for the run time
     while (1) {
+        if(get_twai_running()) {
+            if (counter < 10) {
+                lv_textarea_set_text(ui_MainMenuTextareaTextArea2, motor_ptr[0]->getMotorInfo());
+            }
+            else if (counter > 10 && counter < 20) {
+                lv_textarea_set_text(ui_MainMenuTextareaTextArea2, motor_ptr[1]->getMotorInfo());
+            }
+            else if (counter > 20) {
+                counter = 0; // Reset the counter
+            }
+            counter++;
+        }
         vTaskDelay(pdMS_TO_TICKS(200));
-        if (counter < 10) {
-            lv_textarea_set_text(ui_MainMenuTextareaTextArea2, motor_ptr[0]->getMotorInfo()); // Update the UI with motor info
-        }
-        if (counter > 10 && counter < 20) {
-            lv_textarea_set_text(ui_MainMenuTextareaTextArea2, motor_ptr[1]->getMotorInfo()); // Update the UI with motor info
-        }
-        if (counter > 20) {
-            counter = 0; // Reset the counter
-        }
-        counter++;
     }
 }
 

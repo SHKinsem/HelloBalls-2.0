@@ -6,6 +6,16 @@
 #include "string.h"
 #include "driver/gpio.h"
 
+/*
+    RX message format:
+    [machine_state, wheel1_speed, wheel2_speed]
+    Frequency: 50 Hz
+
+    TX message format:
+    [machine_state, wheel1_distance, wheel2_distance, imu_x, imu_y, imu_z, imu_yaw]
+    Frequency: 50 Hz
+*/
+
 static const int RX_BUF_SIZE = 1024;
 
 #define TXD_PIN (GPIO_NUM_4)
@@ -47,6 +57,10 @@ static void tx_task(void *arg)
     static const char *TX_TASK_TAG = "TX_TASK";
     esp_log_level_set(TX_TASK_TAG, ESP_LOG_INFO);
     while (1) {
+        if (task_state == IDLE) {
+            vTaskDelay(pdMS_TO_TICKS(1000)); // Wait for 1 second before sending data
+            continue;
+        }
         sendData(TX_TASK_TAG, "Hello world");
         vTaskDelay(pdMS_TO_TICKS(1000)); // 1 second delay
     }
@@ -55,7 +69,6 @@ static void tx_task(void *arg)
 static void rx_task(void *arg)
 {   
     int receiveCount = 0;
-    task_state = RECEIVING;
     static const char *RX_TASK_TAG = "RX_TASK";
     esp_log_level_set(RX_TASK_TAG, ESP_LOG_INFO);
     uint8_t* data = (uint8_t*) malloc(RX_BUF_SIZE + 1);
@@ -71,14 +84,19 @@ static void rx_task(void *arg)
                 ESP_LOGI(RX_TASK_TAG, "Task state changed to RECEIVING");
             }
         }
-        else {
-            ESP_LOGI(RX_TASK_TAG, "No data received");
+        else if(receiveCount < 5) {
             receiveCount++;
-            if (receiveCount > 5) {
-                ESP_LOGI(RX_TASK_TAG, "No data received for 5 seconds, stopping task");
+            vTaskDelay(pdMS_TO_TICKS(500));
+        }
+
+        if (receiveCount >= 5) {
+            if (task_state == RECEIVING) {
                 task_state = IDLE;
+                ESP_LOGI(RX_TASK_TAG, "No data received for 5 seconds");
+                ESP_LOGI(RX_TASK_TAG, "Task state changed to IDLE");
             }
-            vTaskDelay(pdMS_TO_TICKS(1000));
+            vTaskDelay(pdMS_TO_TICKS(1000)); // Wait for 1 second before checking again
+            continue;
         }
     }
     free(data);
@@ -86,7 +104,8 @@ static void rx_task(void *arg)
 
 void uart_init(void)
 {
+    task_state = RECEIVING;
     init();
-    xTaskCreate(rx_task, "uart_rx_task", 1024 * 2, NULL, configMAX_PRIORITIES - 1, NULL);
-    xTaskCreate(tx_task, "uart_tx_task", 1024 * 2, NULL, configMAX_PRIORITIES - 2, NULL);
+    xTaskCreate(rx_task, "uart_rx_task", 1024 * 3, NULL, 3, NULL);
+    xTaskCreate(tx_task, "uart_tx_task", 1024 * 3, NULL, 3, NULL);
 }
