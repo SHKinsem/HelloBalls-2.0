@@ -55,6 +55,8 @@ extern "C" void app_main(void)
     setup(); // Call the setup function to initialize the system
     uart_init();
 
+    measure_important_function();
+
     while(1){
         vTaskDelay(pdMS_TO_TICKS(100)); // Delay for 1 second
     }

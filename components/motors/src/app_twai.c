@@ -48,8 +48,8 @@ typedef enum {
 static const twai_timing_config_t t_config = TWAI_TIMING_CONFIG_1MBITS(); // 1 Mbps
 static const twai_filter_config_t f_config = TWAI_FILTER_CONFIG_ACCEPT_ALL();
 static const twai_general_config_t g_config = { .controller_id = 0,             
-                                                // .mode = TWAI_MODE_NO_ACK,
-                                                .mode = TWAI_MODE_NORMAL, 
+                                                .mode = TWAI_MODE_NO_ACK,
+                                                // .mode = TWAI_MODE_NORMAL, 
                                                 .tx_io = TWAI_TX_PIN, 
                                                 .rx_io = TWAI_RX_PIN,        
                                                 .clkout_io = TWAI_IO_UNUSED, 
