@@ -56,5 +56,5 @@ void home_stepper_motor(void) {
 void set_stepper_pos(int32_t pos) {
     if (!stepper) return;
     stepper->moveTo(pos);
-    ESP_LOGI(TAG, "Moving stepper to position %d", pos);
+    // ESP_LOGI(TAG, "Moving stepper to position %d", pos);
 }
