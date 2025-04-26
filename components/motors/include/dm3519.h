@@ -6,7 +6,7 @@
 #ifdef USE_DM3519
 
 #include <string>
-#include "rm3508.h"
+#include "m3508.h"
 #include "driver/twai.h"
 
 /**
@@ -43,7 +43,7 @@ enum DM3519_ERROR_CODE
 
 std::string dm3519_error_code_to_string(DM3519_ERROR_CODE code);
 
-class dm3519_t : public rm3508_t
+class dm3519_t : public m3508_t
 {
 
 private:
@@ -52,7 +52,7 @@ private:
     twai_message_t clr_err_msg = {};
 
 public:
-    dm3519_t(uint8_t motor_id) : rm3508_t(motor_id) {
+    dm3519_t(uint8_t motor_id) : m3508_t(motor_id) {
         // Constructor implementation if needed
         clr_err_msg.extd = 0;
         clr_err_msg.rtr = 0;

@@ -1,11 +1,11 @@
-#ifndef __RM2006_H
-#define __RM2006_H
+#ifndef __M2006_H
+#define __M2006_H
 
 
 #include "bldc_motors.h"
 
 /**
- * @brief Motor data structure for DJI RM2006 motors.
+ * @brief Motor data structure for DJI M2006 motors.
  * 
  * This structure contains the data received from the motor over CAN bus.
  * The data is received in the following format:
@@ -22,20 +22,20 @@
  */
 
 
-class rm2006_t : public base_motor_t
+class m2006_t : public base_motor_t
 {
 private:
     _iq gear_ratio = _IQ(1.0);
     _iq shaft_angle = _IQ(0.0);
     _iq shaft_speed = _IQ(0.0);
 public:
-    rm2006_t(uint8_t motor_id) : base_motor_t(motor_id) {
+    m2006_t(uint8_t motor_id) : base_motor_t(motor_id) {
         scale_current = _IQdiv(_IQ(10.0), _IQ(10000.0)); // Scaling factor for current
-        temperature = -1; // RM2006 temperature is not available
+        temperature = -1; // M2006 temperature is not available
         status = 0; // Initialize raw status to 0
     }
 
-    ~rm2006_t() {
+    ~m2006_t() {
         // Destructor implementation if needed
     }
 
@@ -52,4 +52,4 @@ public:
 };
 
 
-#endif // __RM2006_H
+#endif // __M2006_H

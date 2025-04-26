@@ -7,8 +7,8 @@
 #include "driver/twai.h"
 #include "bldc_motors.h"
 #include "stepper_motors.h"
-#include "rm2006.h"
-#include "rm3508.h"
+#include "m2006.h"
+#include "m3508.h"
 #include "dm3519.h"
 // #include "ui.h"
 #include "app_twai.h"
@@ -18,7 +18,7 @@
 #define TAG "MOTORS"
 #define ID_DJI_RM_MOTOR         0x200
 
-rm3508_t frictionwheels[2] = {rm3508_t(1), rm3508_t(2)}; // Create instances of rm3508 motors for friction wheels
+m3508_t frictionwheels[2] = {m3508_t(1), m3508_t(2)}; // Create instances of m3508 motors for friction wheels
 
 // static int stepper_motor_pos = 0; // Current position of the stepper motor
 

@@ -1,10 +1,10 @@
-#ifndef __RM3508_H
-#define __RM3508_H
+#ifndef __M3508_H
+#define __M3508_H
 
-#include "rm2006.h"
+#include "m2006.h"
 
 /**
- * @brief Motor data structure for DJI RM3508 motors.
+ * @brief Motor data structure for DJI M3508 motors.
  * 
  * This structure contains the data received from the motor over CAN bus.
  * The data is received in the following format:
@@ -20,14 +20,14 @@
  * 
  */
 
-class rm3508_t : public rm2006_t
+class m3508_t : public m2006_t
 {
 public:
-    rm3508_t(uint8_t motor_id) : rm2006_t(motor_id) {
+    m3508_t(uint8_t motor_id) : m2006_t(motor_id) {
         // Constructor implementation if needed
     }
 
-    ~rm3508_t() {
+    ~m3508_t() {
         // Destructor implementation if needed
     }
 
@@ -40,4 +40,4 @@ public:
         this->status = data[7]; // Status byte
     }
 };
-#endif // __RM3508_H
+#endif // __M3508_H

@@ -5,7 +5,7 @@
 #include "dm3519.h"
 
 
-// extern rm3508_t motor1; // Create an instance of base_motor_t for motor 1
+// extern m3508_t motor1; // Create an instance of base_motor_t for motor 1
 
 base_motor_t* get_motor_ptr(uint8_t motor_id); // Function to get the pointer to motor
 
