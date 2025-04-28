@@ -102,42 +102,6 @@ static SemaphoreHandle_t done_sem;
 
 /* --------------------------- Tasks and Functions -------------------------- */
 
-static void twai_receive_task(void *arg)
-{
-    while (1) {
-        rx_task_action_t action;
-        xQueueReceive(rx_task_queue, &action, portMAX_DELAY);
-
-         if (action == RX_RECEIVE_DATA) {
-            //Receive data messages from slave
-            uint32_t data_msgs_rec = 0;
-            ESP_LOGI(TWAI_TAG, "Waiting for data messages from slave...");
-            while (xSemaphoreTake(stop_receive_sem, 0) != pdTRUE) {
-                twai_message_t rx_msg;
-                esp_err_t status = twai_receive(&rx_msg, pdMS_TO_TICKS(100));
-                if (status != ESP_OK) {
-                    ESP_LOGE(TWAI_TAG, "Error receiving message: %s", esp_err_to_name(status));
-                    continue;;
-                }
-                int msg_id = rx_msg.identifier % ID_DJI_RM_MOTOR;
-                if(msg_id > 0 && msg_id < 5) {
-                    // uint8_t data[8] = 0;
-                    // for (int i = 0; i < rx_msg.data_length_code; i++) data[i] = rx_msg.data[i];
-                    myGlobalSpeed = rx_msg.data[0] | (rx_msg.data[1] << 8); // Combine high and low bytes
-                    // ESP_LOGI(TWAI_TAG, "Received data value from id %d %"PRIu32, msg_id, data);
-                    ESP_LOGI(TWAI_TAG, "Received data value from id %d %d", msg_id, myGlobalSpeed);
-                    data_msgs_rec ++;
-                } else {
-                    ESP_LOGI(TWAI_TAG, "Received unknown message with ID %d", msg_id);
-                }
-
-            }
-        } else if (action == RX_TASK_EXIT) {
-            break;
-        }
-    }
-    vTaskDelete(NULL);
-}
 
 void twai_transmit_speed(int16_t speed1, int16_t speed2) {
     // Convert arg to int16_t
@@ -152,7 +116,6 @@ void twai_transmit_speed(int16_t speed1, int16_t speed2) {
         speed_message.data[7] = 0;
     }
     else{
-
         speed_message.data[0] = (speed1 >> 8) & 0xFF;    // High byte of motor 1
         speed_message.data[1] = speed1 & 0xFF;           // Low byte of motor 1
         speed_message.data[2] = (speed2 >> 8) & 0xFF;    // High byte of motor 2
@@ -163,102 +126,6 @@ void twai_transmit_speed(int16_t speed1, int16_t speed2) {
         speed_message.data[7] = speed2 & 0xFF;           // Low byte of motor 4
     }
     twai_transmit(&speed_message, pdMS_TO_TICKS(10));
-}
-
-static void twai_transmit_task(void *arg)
-{
-    int16_t motor1_speed = 10;   // These could be variables from elsewhere
-    int16_t motor2_speed = 0;   // in your program
-    int16_t motor3_speed = 0;
-    int16_t motor4_speed = 0;
-    while (1) {
-        tx_task_action_t action;
-        xQueueReceive(tx_task_queue, &action, portMAX_DELAY);
-
-        if (action == TX_SEND_SPEED) {
-            //Repeatedly transmit motor speeds
-            ESP_LOGI(TWAI_TAG, "Transmitting motor speeds");
-            uint32_t data_transmitted = 0;
-            while (data_transmitted < 2000) {
-                // Update the message with current motor speed values
-                update_can_message(&speed_message, motor1_speed, motor2_speed, 
-                                  motor3_speed, motor4_speed);
-                esp_err_t status = twai_transmit(&speed_message, pdMS_TO_TICKS(1000));
-                if(status == ESP_ERR_TIMEOUT) {
-                    ESP_LOGI(TWAI_TAG, "Timeout waiting for twai_transmit");
-                    break;
-                } else if (status != ESP_OK) {
-                    ESP_LOGE(TWAI_TAG, "Error twai_transmit message: %s", esp_err_to_name(status));
-                    break;
-                }
-                vTaskDelay(pdMS_TO_TICKS(SEND_DELAY_MS));
-                data_transmitted ++;
-            }
-            xSemaphoreGive(stop_receive_sem); // Stop receiving data messages
-            xSemaphoreGive(ctrl_task_sem);
-        } else if (action == TX_SEND_STOP_CMD){
-            ESP_LOGI(TWAI_TAG, "Sending stop command to motors");
-            while(motor1_speed > 10) {
-                motor1_speed -= 10; // Gradually decrease speed to 0
-                motor2_speed -= 10;
-                motor3_speed -= 10;
-                motor4_speed -= 10;
-                vTaskDelay(pdMS_TO_TICKS(SEND_DELAY_MS));
-                update_can_message(&speed_message, motor1_speed, motor2_speed, motor3_speed, motor4_speed);
-                esp_err_t status = twai_transmit(&speed_message, pdMS_TO_TICKS(1000));
-                if (status != ESP_OK) {
-                    ESP_LOGE(TWAI_TAG, "Error twai_transmit message: %s", esp_err_to_name(status));
-                    break;
-                }
-            }
-            xSemaphoreGive(ctrl_task_sem);
-        } else if (action == TX_TASK_EXIT) {
-            break;
-        }
-    }
-    vTaskDelete(NULL);
-}
-
-static void twai_control_task(void *arg)
-{
-    xSemaphoreTake(ctrl_task_sem, portMAX_DELAY);
-    tx_task_action_t tx_action;
-    rx_task_action_t rx_action;
-
-    for (int iter = 0; iter < NO_OF_ITERS; iter++) {
-        // xSemaphoreTake(ctrl_task_sem, portMAX_DELAY);
-        ESP_ERROR_CHECK(twai_start());
-        ESP_LOGI(TWAI_TAG, "Driver started");
-        xSemaphoreGive(ctrl_task_sem);
-        tx_action = TX_SEND_SPEED;
-        rx_action = RX_RECEIVE_DATA;
-        xQueueSend(tx_task_queue, &tx_action, portMAX_DELAY);
-        xSemaphoreTake(ctrl_task_sem, portMAX_DELAY);
-
-        xQueueSend(rx_task_queue, &rx_action, portMAX_DELAY);
-        ESP_LOGI(TWAI_TAG, "Waiting for semaphore");
-        xSemaphoreTake(ctrl_task_sem, portMAX_DELAY);
-
-        ESP_ERROR_CHECK(twai_stop());
-        ESP_LOGI(TWAI_TAG, "Driver stopped");
-        vTaskDelay(pdMS_TO_TICKS(ITER_DELAY_MS));
-    }
-
-    ESP_ERROR_CHECK(twai_start());
-    tx_action = TX_SEND_STOP_CMD;
-    xQueueSend(tx_task_queue, &tx_action, portMAX_DELAY);
-    xSemaphoreTake(ctrl_task_sem, portMAX_DELAY);
-    ESP_ERROR_CHECK(twai_stop());
-
-    //Stop TX and RX tasks
-    tx_action = TX_TASK_EXIT;
-    rx_action = RX_TASK_EXIT;
-    xQueueSend(tx_task_queue, &tx_action, portMAX_DELAY);
-    xQueueSend(rx_task_queue, &rx_action, portMAX_DELAY);
-
-    //Delete Control task
-    xSemaphoreGive(done_sem);
-    vTaskDelete(NULL);
 }
 
 void install_twai_driver(){
@@ -272,46 +139,9 @@ void uninstall_twai_driver(){
     ESP_LOGI(TWAI_TAG, "Driver uninstalled");
 }
 
-void can_task(void){
-    //Create tasks, queues, and semaphores
-    rx_task_queue = xQueueCreate(1, sizeof(rx_task_action_t));
-    tx_task_queue = xQueueCreate(1, sizeof(tx_task_action_t));
-
-    ctrl_task_sem = xSemaphoreCreateBinary();
-    stop_receive_sem = xSemaphoreCreateBinary();
-    stop_transmit_sem = xSemaphoreCreateBinary();
-
-    done_sem = xSemaphoreCreateBinary();
-    xTaskCreatePinnedToCore(twai_receive_task, "TWAI_rx", 4096, NULL, RX_TASK_PRIO, NULL, tskNO_AFFINITY);
-    xTaskCreatePinnedToCore(twai_transmit_task, "TWAI_tx", 4096, NULL, TX_TASK_PRIO, NULL, tskNO_AFFINITY);
-    xTaskCreatePinnedToCore(twai_control_task, "TWAI_ctrl", 4096, NULL, CTRL_TSK_PRIO, NULL, tskNO_AFFINITY);
-
-    // install_twai_driver();
-    // uint32_t alerts = {TWAI_ALERT_TX_FAILED, TWAI_ALERT_RX_QUEUE_FULL};
-    // twai_read_alerts(&alerts, pdMS_TO_TICKS(1000));
-
-    xSemaphoreGive(ctrl_task_sem);              //Start control task
-    xSemaphoreTake(done_sem, portMAX_DELAY);    //Wait for completion
-
-    //Cleanup
-    vQueueDelete(rx_task_queue);
-    vQueueDelete(tx_task_queue);
-    vSemaphoreDelete(ctrl_task_sem);
-    vSemaphoreDelete(stop_receive_sem);
-    vSemaphoreDelete(done_sem);
-}
-
-// void control_motor_speed(int16_t* speed){
-//     // Create a task to transmit speed
-//     xTaskCreate(twai_transmit_speed, "TWAI_tx_speed", 4096, speed, TX_TASK_PRIO, NULL);
-// }
-
 static uint8_t motor_data[4][8] = {0};
 
 uint8_t* motorDataHook(uint8_t motor_id){
-    // uint8_t data[8] = {0};
-    // for (int i = 0; i < 8; i++) data[i] = motor_data[i];
-    // return data;
     return motor_data[motor_id - 1]; // Return the data for the requested motor ID
 }
 
@@ -353,13 +183,11 @@ void start_twai_receive_task(void) {
 
 
 void start_twai_receive(){
-    // Control the semaphore to start receiving messages
     ESP_LOGI(TWAI_TAG, "Starting to receive messages...");
-    twai_running = true; // Set the flag to indicate that TWAI is running
+    twai_running = true;
 }
 
 void stop_twai_receive(){
-    // Control the semaphore to stop receiving messages
     ESP_LOGI(TWAI_TAG, "Stopping to receive messages...");
     twai_running = false;
 }

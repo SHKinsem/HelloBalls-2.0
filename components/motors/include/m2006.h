@@ -1,10 +1,13 @@
 #ifndef __M2006_H
 #define __M2006_H
+#ifndef __M2006_H
+#define __M2006_H
 
 
 #include "bldc_motors.h"
 
 /**
+ * @brief Motor data structure for DJI M2006 motors.
  * @brief Motor data structure for DJI M2006 motors.
  * 
  * This structure contains the data received from the motor over CAN bus.
@@ -20,21 +23,28 @@
  * Data[7] = Null byte          Not used
  * 
  */
+#define MAX_ANGLE_BUMP 8191 // Maximum angle bump for M2006 motor
 
 
 class m2006_t : public base_motor_t
 {
 private:
-    _iq gear_ratio = _IQ(1.0);
+    _iq gear_ratio = _IQ(36.0/1.0);
     _iq shaft_angle = _IQ(0.0);
     _iq shaft_speed = _IQ(0.0);
+    int16_t loopCounter = 0;
+    int16_t prev_raw_angle = 0;
 public:
+    m2006_t(uint8_t motor_id) : base_motor_t(motor_id) {
     m2006_t(uint8_t motor_id) : base_motor_t(motor_id) {
         scale_current = _IQdiv(_IQ(10.0), _IQ(10000.0)); // Scaling factor for current
         temperature = -1; // M2006 temperature is not available
+        temperature = -1; // M2006 temperature is not available
         status = 0; // Initialize raw status to 0
+        loopCounter = 0;
     }
 
+    ~m2006_t() {
     ~m2006_t() {
         // Destructor implementation if needed
     }
@@ -46,10 +56,27 @@ public:
         this->raw_current = (uint16_t)((data[4] << 8) | data[5]); // Combine high and low byte for current
         // this->temperature = data[6]; // Temperature byte
         // this->raw_status = data[7]; // Status byte
+        if(raw_angle - prev_raw_angle > MAX_ANGLE_BUMP){
+            loopCounter++;
+        } else if (prev_raw_angle - raw_angle > MAX_ANGLE_BUMP) {
+            loopCounter--;
+        }
+        prev_raw_angle = raw_angle;
     }
+
+    void resetCounter() {loopCounter = 0;}
+    int16_t getCounter() {return loopCounter;}
+    _iq calShaftAngle() {
+        // Calculate the shaft angle based on the raw angle and loop counter
+        _iq angle = _IQmpy(_IQ(raw_angle), scale_angle) + _IQ(360.0) * loopCounter;
+        angle = _IQdiv(angle, gear_ratio); // Divide by gear ratio
+        return angle;
+    }
+    float getShaftAngle() {return _IQtoF(calShaftAngle());}
 
     // char* getMotorInfo() override;
 };
 
 
+#endif // __M2006_H
 #endif // __M2006_H

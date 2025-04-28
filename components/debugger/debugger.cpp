@@ -19,8 +19,8 @@ void motor_displayer(void* arg){
     setGlobalSpeedPtr(motor_ptr[0]->getTargetSpeedPtr());
     setGlobalSpeedPtr2(motor_ptr[1]->getTargetSpeedPtr());
 
-    motor_ptr[0]->setPIDParameters(50.0, 0.01, 0.0001, 0.1, 0.01, 10000.0, -10000.0); // Set PID parameters
-    motor_ptr[1]->setPIDParameters(50.0, 0.01, 0.0001, 0.1, 0.01, 10000.0, -10000.0); // Set PID parameters
+    motor_ptr[0]->setPIDParameters(20.0, 0.007, 0.005, 0.1, 0.1, 10000.0, -10000.0); // Set PID parameters
+    motor_ptr[1]->setPIDParameters(20.0, 0.007, 0.005, 0.1, 0.1, 10000.0, -10000.0); // Set PID parameters
 
     vTaskDelay(pdMS_TO_TICKS(1000)); // Delay for 100 ms
     int counter = 0; // Counter for the run time
