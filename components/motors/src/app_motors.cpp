@@ -19,10 +19,10 @@
 #define ID_DJI_RM_MOTOR         0x200
 
 m3508_t frictionwheels[2] = {m3508_t(1), m3508_t(2)}; // Create instances of m3508 motors for friction wheels
-
-// static int stepper_motor_pos = 0; // Current position of the stepper motor
+m2006_t loaderMotor(3); // Create an instance of m2006 motor for loader motor
 
 base_motor_t* get_motor_ptr(uint8_t motor_id) {
+    if (motor_id == 3) return &loaderMotor;
     return &frictionwheels[motor_id - 1]; 
 }
 
@@ -46,9 +46,14 @@ void twai_receive_task_continuous(void *arg)
             continue;
         }
         int msg_id = rx_msg.identifier % ID_DJI_RM_MOTOR;
-        if(msg_id > 0 && msg_id < 5) {
+        if(msg_id > 0 && msg_id < 3) {
             // for (int i = 0; i < rx_msg.data_length_code; i++) motor_data[msg_id-1][i] = rx_msg.data[i];
             frictionwheels[msg_id - 1].parseData(rx_msg.data); // Parse data for the specific motor
+        } else if(msg_id == 3) {
+            loaderMotor.parseData(rx_msg.data); // Parse data for the loader motor
+        } else if(msg_id == 4) {
+            // Handle DM3519 motor data here if needed
+            // dm3519_motor.parseData(rx_msg.data); // Example for parsing DM3519 motor data
         } else {
             ESP_LOGI(TAG, "Received unknown message with ID %d", msg_id);
         }

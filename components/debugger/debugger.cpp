@@ -26,13 +26,13 @@ void motor_displayer(void* arg){
     int counter = 0; // Counter for the run time
     while (1) {
         if(get_twai_running()) {
-            if (counter < 10) {
+            if (counter < 5){
                 lv_textarea_set_text(ui_MainMenuTextareaTextArea2, motor_ptr[0]->getMotorInfo());
-            }
-            else if (counter > 10 && counter < 20) {
+            } else if (counter >= 5 && counter < 10) {
                 lv_textarea_set_text(ui_MainMenuTextareaTextArea2, motor_ptr[1]->getMotorInfo());
-            }
-            else if (counter > 20) {
+            } else if (counter >= 10 && counter < 20) {
+                lv_textarea_set_text(ui_MainMenuTextareaTextArea2, motor_ptr[2]->getMotorInfo());
+            } else if (counter >= 20) {
                 counter = 0; // Reset the counter
             }
             counter++;
@@ -96,6 +96,7 @@ void motor_task_init(){
     twai_init();
     motor_ptr[0] = get_motor_ptr(1); // Get the pointer to motor 1
     motor_ptr[1] = get_motor_ptr(2);
+    motor_ptr[2] = get_motor_ptr(3);
 
     // Create a task for motor control
     xTaskCreatePinnedToCore(motor_displayer, "Motor displayer Task", 4096, NULL, 3, NULL, tskNO_AFFINITY);

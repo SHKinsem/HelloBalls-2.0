@@ -1,7 +1,5 @@
 #ifndef __M2006_H
 #define __M2006_H
-#ifndef __M2006_H
-#define __M2006_H
 
 
 #include "bldc_motors.h"
@@ -23,7 +21,7 @@
  * Data[7] = Null byte          Not used
  * 
  */
-#define MAX_ANGLE_BUMP 8191 // Maximum angle bump for M2006 motor
+#define MAX_ANGLE_BUMP 7000 // Maximum angle bump for M2006 motor
 
 
 class m2006_t : public base_motor_t
@@ -36,7 +34,6 @@ private:
     int16_t prev_raw_angle = 0;
 public:
     m2006_t(uint8_t motor_id) : base_motor_t(motor_id) {
-    m2006_t(uint8_t motor_id) : base_motor_t(motor_id) {
         scale_current = _IQdiv(_IQ(10.0), _IQ(10000.0)); // Scaling factor for current
         temperature = -1; // M2006 temperature is not available
         temperature = -1; // M2006 temperature is not available
@@ -45,11 +42,10 @@ public:
     }
 
     ~m2006_t() {
-    ~m2006_t() {
         // Destructor implementation if needed
     }
 
-    void parseData(const uint8_t* data) {
+    void parseData(const uint8_t* data) override {
         // Parse the data received from the motor
         this->raw_angle =   (uint16_t)((data[0] << 8) | data[1]); // Combine high and low byte for angle
         this->raw_speed =   (uint16_t)((data[2] << 8) | data[3]); // Combine high and low byte for speed
@@ -57,9 +53,9 @@ public:
         // this->temperature = data[6]; // Temperature byte
         // this->raw_status = data[7]; // Status byte
         if(raw_angle - prev_raw_angle > MAX_ANGLE_BUMP){
-            loopCounter++;
-        } else if (prev_raw_angle - raw_angle > MAX_ANGLE_BUMP) {
             loopCounter--;
+        } else if (prev_raw_angle - raw_angle > MAX_ANGLE_BUMP) {
+            loopCounter++;
         }
         prev_raw_angle = raw_angle;
     }
@@ -68,15 +64,30 @@ public:
     int16_t getCounter() {return loopCounter;}
     _iq calShaftAngle() {
         // Calculate the shaft angle based on the raw angle and loop counter
-        _iq angle = _IQmpy(_IQ(raw_angle), scale_angle) + _IQ(360.0) * loopCounter;
+        _iq angle = _IQmpy(_IQ(raw_angle), scale_angle) + _IQ(360 * loopCounter); 
         angle = _IQdiv(angle, gear_ratio); // Divide by gear ratio
         return angle;
     }
     float getShaftAngle() {return _IQtoF(calShaftAngle());}
 
-    // char* getMotorInfo() override;
+    char* getMotorInfo() override {
+        snprintf(motor_info, sizeof(motor_info),
+            "Motor ID: %1u:\n"
+            "Angle:\n\t%3.2f Degrees\n" 
+            "Shaft:\n\t%5.2f\n"
+            "Speed:\n\t%5d RPM\n"
+            "TargetSpeed:\n\t%5d RPM\n"
+            "Current:\n\t%2.2f Amps\n",
+            this->getMotorId(),
+            this->getAngle(),
+            this->getShaftAngle(), // Added call to getShaftAngle()
+            this->getRawSpeed(),
+            this->getTargetSpeed(),
+            this->getCurrent()
+        );
+        return motor_info;
+    }
 };
 
 
-#endif // __M2006_H
 #endif // __M2006_H

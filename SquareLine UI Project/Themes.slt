@@ -1,7 +1,44 @@
 {
   "deftheme": {
     "name": "Default",
-    "properties": []
+    "properties": [
+      {
+        "nid": 1000676,
+        "strtype": "THEME_COLOR",
+        "strval": "BackGround",
+        "intarray": [
+          62,
+          62,
+          62,
+          255
+        ],
+        "InheritedType": 0
+      },
+      {
+        "nid": 1000677,
+        "strtype": "THEME_COLOR",
+        "strval": "Text",
+        "intarray": [
+          255,
+          255,
+          255,
+          255
+        ],
+        "InheritedType": 0
+      },
+      {
+        "nid": 1000690,
+        "strtype": "THEME_COLOR",
+        "strval": "BackGround2",
+        "intarray": [
+          137,
+          137,
+          137,
+          255
+        ],
+        "InheritedType": 0
+      }
+    ]
   },
   "themes": [],
   "selected_theme": "Default"

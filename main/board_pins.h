@@ -1,5 +1,5 @@
-#define TWAI_RX_PIN 4
-#define TWAI_TX_PIN 5
+#define TWAI_RX_PIN 10
+#define TWAI_TX_PIN 11
 
 #define STEP_PIN 10
 #define DIR_PIN 11
