@@ -26,7 +26,7 @@ void install_twai_driver();
 void uninstall_twai_driver();
 void can_task(void);
 void control_motor_speed(int16_t* speed);
-void twai_transmit_speed(int16_t speed1, int16_t speed2);
+void twai_transmit_speed(int16_t speed1, int16_t speed2, int16_t speed3, int16_t speed4);
 // int getGlobalSpeed();
 uint8_t* motorDataHook(uint8_t motor_id);
 void start_twai_receive_task(void);

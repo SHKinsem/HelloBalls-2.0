@@ -48,7 +48,7 @@ void motor_displayer(void* arg){
 void debugLoggingTask(void *arg) {
     while (1) {
         // Log the current speed of the motor
-        twai_transmit_speed(0, 0); // Transmit the speed to the motor
+        twai_transmit_speed(0, 0, 0, 0); // Transmit the speed to the motor
         if(*get_button_state_ptr()) {
 
             motor_ptr[0]->enable(); // Use the pointer to enable the motor
@@ -60,7 +60,7 @@ void debugLoggingTask(void *arg) {
             for (int counter = 0; counter < MAX_COUNTER; counter++) {
                 if (!get_twai_running()) break;
                 if(counter % 1000 == 0) ESP_LOGI(TAG, "Counter: %d", counter);
-                twai_transmit_speed(motor_ptr[0]->calOutput(), motor_ptr[1]->calOutput()); // Transmit the speed to the motor
+                twai_transmit_speed(motor_ptr[0]->calOutput(), motor_ptr[1]->calOutput(), 0, 0); // Transmit the speed to the motor
                 // ESP_LOGI(TAG, "O: %d, R: %d, T: %d", output, motor_ptr[0]->getRawSpeed(), motor_ptr[0]->getTargetSpeed());
                 xTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(MESSAGE_FREQUENCY)); // Delay until the next period
                 // vTaskDelay(pdMS_TO_TICKS(MESSAGE_FREQUENCY)); // Delay for the message frequency
@@ -83,7 +83,7 @@ void measure_important_function(void) {
     uint64_t start = esp_timer_get_time();
 
     for (int retries = 0; retries < MEASUREMENTS; retries++) {
-        twai_transmit_speed(motor_ptr[0]->getControlOutput(), motor_ptr[1]->getControlOutput()); // Transmit the speed to the motor
+        twai_transmit_speed(motor_ptr[0]->getControlOutput(), motor_ptr[1]->getControlOutput(), 0, 0); // Transmit the speed to the motor
     }
 
     uint64_t end = esp_timer_get_time();

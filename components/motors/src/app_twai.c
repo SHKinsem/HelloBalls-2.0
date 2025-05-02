@@ -103,7 +103,7 @@ static SemaphoreHandle_t done_sem;
 /* --------------------------- Tasks and Functions -------------------------- */
 
 
-void twai_transmit_speed(int16_t speed1, int16_t speed2) {
+void twai_transmit_speed(int16_t speed1, int16_t speed2, int16_t speed3, int16_t speed4) {
     // Convert arg to int16_t
     if(speed1 == 0){
         speed_message.data[0] = 0;
@@ -120,10 +120,10 @@ void twai_transmit_speed(int16_t speed1, int16_t speed2) {
         speed_message.data[1] = speed1 & 0xFF;           // Low byte of motor 1
         speed_message.data[2] = (speed2 >> 8) & 0xFF;    // High byte of motor 2
         speed_message.data[3] = speed2 & 0xFF;           // Low byte of motor 2
-        speed_message.data[4] = (speed1 >> 8) & 0xFF;    // High byte of motor 3
-        speed_message.data[5] = speed1 & 0xFF;           // Low byte of motor 3
-        speed_message.data[6] = (speed2 >> 8) & 0xFF;    // High byte of motor 4
-        speed_message.data[7] = speed2 & 0xFF;           // Low byte of motor 4
+        speed_message.data[4] = (speed3 >> 8) & 0xFF;    // High byte of motor 3
+        speed_message.data[5] = speed3 & 0xFF;           // Low byte of motor 3
+        speed_message.data[6] = (speed4 >> 8) & 0xFF;    // High byte of motor 4
+        speed_message.data[7] = speed4 & 0xFF;           // Low byte of motor 4
     }
     twai_transmit(&speed_message, pdMS_TO_TICKS(10));
 }

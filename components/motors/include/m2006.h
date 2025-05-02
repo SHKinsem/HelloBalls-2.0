@@ -21,7 +21,10 @@
  * Data[7] = Null byte          Not used
  * 
  */
-#define MAX_ANGLE_BUMP 7000 // Maximum angle bump for M2006 motor
+
+// Max RPM: ~16200, 16200/60 = 270 RPS, 270*8192 = 221,340 Counts/second
+// Max Bump = 221,340 Counts/second * 0.01 seconds = 2213 counts
+#define MAX_ANGLE_BUMP 2214 // Maximum angle bump for M2006 motor
 
 
 class m2006_t : public base_motor_t

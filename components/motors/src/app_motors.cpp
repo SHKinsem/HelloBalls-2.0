@@ -5,6 +5,7 @@
 #include "esp_err.h"
 #include "esp_log.h"
 #include "driver/twai.h"
+#include <cstring>
 #include "bldc_motors.h"
 #include "stepper_motors.h"
 #include "m2006.h"
@@ -17,6 +18,18 @@
 
 #define TAG "MOTORS"
 #define ID_DJI_RM_MOTOR         0x200
+
+static twai_message_t speed_message;
+
+// Initialize the message
+void init_speed_message() {
+    // Message type and format settings
+    speed_message.flags = TWAI_MSG_FLAG_SS;  // Single shot mode
+    // Message ID and payload
+    speed_message.identifier = ID_DJI_RM_MOTOR;
+    speed_message.data_length_code = 8;
+    memset(speed_message.data, 0, 8);  // Initialize all data bytes to 0
+}
 
 m3508_t frictionwheels[2] = {m3508_t(1), m3508_t(2)}; // Create instances of m3508 motors for friction wheels
 m2006_t loaderMotor(3); // Create an instance of m2006 motor for loader motor
