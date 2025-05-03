@@ -6,24 +6,38 @@
 #include "freertos/queue.h"
 #include "driver/gpio.h"
 #include "app_twai.h"
+#include "esp_log.h"
 
-static QueueHandle_t gpio_evt_queue = NULL;  // 定义队列句柄
+// Include the servo control interface
+extern void toggle_servo(void); // External function from app_motors.h
 
-// GPIO中断服务函数
+#define TAG "BUTTON"
+
+static QueueHandle_t gpio_evt_queue = NULL;
+
+// GPIO interrupt service routine
 static void IRAM_ATTR gpio_isr_handler(void* arg)
 {
-    uint32_t gpio_num = (uint32_t) arg;  // 获取入口参数
-    xQueueSendFromISR(gpio_evt_queue, &gpio_num, NULL); // 把入口参数值发送到队列
+    uint32_t gpio_num = (uint32_t) arg;
+    xQueueSendFromISR(gpio_evt_queue, &gpio_num, NULL);
 }
 
-// GPIO任务函数
+// GPIO task function
 static void gpio_task_example(void *arg)
 {
-    uint32_t io_num; // 定义变量 表示哪个GPIO
+    uint32_t io_num;
     for(;;) {
-        if(xQueueReceive(gpio_evt_queue, &io_num, portMAX_DELAY)) {  // 死等队列消息
-            printf("GPIO[%"PRIu32"] intr, val: %d\n", io_num, gpio_get_level(io_num)); // 打印相关内容
-            // can_task();
+        if(xQueueReceive(gpio_evt_queue, &io_num, portMAX_DELAY)) {
+            printf("GPIO[%"PRIu32"] intr, val: %d\n", io_num, gpio_get_level(io_num));
+            
+            // If it's GPIO0, toggle the servo position
+            if (io_num == GPIO_NUM_0) {
+                // Wait a moment to debounce
+                vTaskDelay(pdMS_TO_TICKS(50));
+                
+                // Toggle servo position using the C-compatible function
+                toggle_servo();
+            }
         }
     }
 }
@@ -31,20 +45,25 @@ static void gpio_task_example(void *arg)
 void button_init()
 {
     gpio_config_t io0_conf = {
-        .intr_type = GPIO_INTR_NEGEDGE, // 下降沿中断
-        .mode = GPIO_MODE_INPUT, // 输入模式
-        .pin_bit_mask = 1<<GPIO_NUM_0, // 选择GPIO0
-        .pull_down_en = 0, // 禁能内部下拉
-        .pull_up_en = 1 // 使能内部上拉
+        .intr_type = GPIO_INTR_NEGEDGE, // Falling edge interrupt
+        .mode = GPIO_MODE_INPUT,        // Input mode
+        .pin_bit_mask = 1<<GPIO_NUM_0,  // Select GPIO0
+        .pull_down_en = 0,              // Disable internal pull-down
+        .pull_up_en = 1                 // Enable internal pull-up
     };
-    // 根据上面的配置 设置GPIO
+    
+    // Configure GPIO based on the settings above
     gpio_config(&io0_conf);
     
-    // 创建一个队列处理GPIO事件
+    // Create a queue to handle GPIO events
     gpio_evt_queue = xQueueCreate(10, sizeof(uint32_t));
     xTaskCreate(gpio_task_example, "gpio_task_example", 5120, NULL, 10, NULL);
-    // 创建GPIO中断服务
+    
+    // Create GPIO interrupt service
     gpio_install_isr_service(0);
-    // 给GPIO0添加中断处理
+    
+    // Add interrupt handler for GPIO0
     gpio_isr_handler_add(GPIO_NUM_0, gpio_isr_handler, (void*) GPIO_NUM_0);
+    
+    ESP_LOGI(TAG, "Button handler initialized for servo control on GPIO0");
 }

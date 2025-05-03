@@ -5,7 +5,8 @@
 #include "esp_err.h"
 #include "esp_log.h"
 #include "driver/twai.h"
-#include <cstring>
+#include "driver/ledc.h"
+// #include <cstring>
 #include "bldc_motors.h"
 #include "stepper_motors.h"
 #include "m2006.h"
@@ -19,24 +20,122 @@
 #define TAG "MOTORS"
 #define ID_DJI_RM_MOTOR         0x200
 
-static twai_message_t speed_message;
+// Servo control parameters - use different GPIO and timer/channel combination
+#define SERVO_GPIO              11         // Changed from GPIO0 to GPIO18
+#define LEDC_TIMER              LEDC_TIMER_1  // Changed from TIMER_0 to TIMER_1
+#define LEDC_MODE               LEDC_LOW_SPEED_MODE
+#define LEDC_CHANNEL            LEDC_CHANNEL_1  // Changed from CHANNEL_0 to CHANNEL_1
+#define LEDC_DUTY_RES           LEDC_TIMER_13_BIT // Set duty resolution to 13 bits
+#define LEDC_FREQUENCY          50                // PWM frequency in Hz (standard for servo is 50Hz)
+#define SERVO_MIN_PULSEWIDTH    500               // Minimum pulse width in microseconds (0 degrees)
+#define SERVO_MAX_PULSEWIDTH    2500              // Maximum pulse width in microseconds (180 degrees)
+#define SERVO_ANGLE_0           0                 // 0 degree position
+#define SERVO_ANGLE_30          30                // 30 degree position
 
-// Initialize the message
-void init_speed_message() {
-    // Message type and format settings
-    speed_message.flags = TWAI_MSG_FLAG_SS;  // Single shot mode
-    // Message ID and payload
-    speed_message.identifier = ID_DJI_RM_MOTOR;
-    speed_message.data_length_code = 8;
-    memset(speed_message.data, 0, 8);  // Initialize all data bytes to 0
+static bool servo_current_state = false;          // false = 0 degrees, true = 30 degrees
+
+// static twai_message_t speed_message;
+
+// // Initialize the message
+// void init_speed_message() {
+//     // Message type and format settings
+//     speed_message.flags = TWAI_MSG_FLAG_SS;  // Single shot mode
+//     // Message ID and payload
+//     speed_message.identifier = ID_DJI_RM_MOTOR;
+//     speed_message.data_length_code = 8;
+//     memset(speed_message.data, 0, 8);  // Initialize all data bytes to 0
+// }
+
+// Convert angle to duty cycle for servo control
+static uint32_t servo_angle_to_duty(float angle) {
+    // Convert angle to a value between 0-180
+    if (angle < 0) angle = 0;
+    if (angle > 180) angle = 180;
+    
+    // Calculate pulse width based on angle
+    float pulse_width = SERVO_MIN_PULSEWIDTH + (SERVO_MAX_PULSEWIDTH - SERVO_MIN_PULSEWIDTH) * (angle / 180.0);
+    
+    // Convert pulse width to duty cycle
+    uint32_t duty = (uint32_t)((pulse_width / 20000.0) * ((1 << LEDC_DUTY_RES) - 1));
+    return duty;
+}
+
+// Initialize servo on GPIO18
+void servo_init(void) {
+    ESP_LOGI(TAG, "Initializing servo on GPIO%d", SERVO_GPIO);
+    
+    // LEDC timer configuration
+    ledc_timer_config_t ledc_timer = {
+        .speed_mode       = LEDC_MODE,
+        .duty_resolution  = LEDC_DUTY_RES,
+        .timer_num        = LEDC_TIMER,
+        .freq_hz          = LEDC_FREQUENCY,
+        .clk_cfg          = LEDC_AUTO_CLK
+    };
+    ESP_ERROR_CHECK(ledc_timer_config(&ledc_timer));
+    
+    // Channel configuration
+    ledc_channel_config_t ledc_channel = {
+        .gpio_num       = SERVO_GPIO,
+        .speed_mode     = LEDC_MODE,
+        .channel        = LEDC_CHANNEL,
+        .intr_type      = LEDC_INTR_DISABLE,
+        .timer_sel      = LEDC_TIMER,
+        .duty           = 0, // Initial duty cycle set to 0
+        .hpoint         = 0,
+        .flags          = {}
+    };
+    ESP_ERROR_CHECK(ledc_channel_config(&ledc_channel));
+    
+    // Set initial position to 0 degrees
+    servo_rotate(false);
+    ESP_LOGI(TAG, "Servo initialized to 0 degrees position");
+}
+
+// Rotate servo (true = 30 degrees, false = 0 degrees)
+void servo_rotate(bool direction) {
+    float angle = direction ? SERVO_ANGLE_30 : SERVO_ANGLE_0;
+    uint32_t duty = servo_angle_to_duty(angle);
+    
+    ESP_ERROR_CHECK(ledc_set_duty(LEDC_MODE, LEDC_CHANNEL, duty));
+    ESP_ERROR_CHECK(ledc_update_duty(LEDC_MODE, LEDC_CHANNEL));
+    
+    ESP_LOGI(TAG, "Servo rotated to %d degrees", direction ? SERVO_ANGLE_30 : SERVO_ANGLE_0);
+    servo_current_state = direction;
+}
+
+// Get current servo state
+bool get_servo_state(void) {
+    return servo_current_state;
+}
+
+// Toggle servo position - helper function for C code
+void toggle_servo(void) {
+    bool current_state = servo_current_state;
+    servo_rotate(!current_state);
+    ESP_LOGI(TAG, "Servo toggled from %s to %s position", 
+        current_state ? "30°" : "0°", 
+        !current_state ? "30°" : "0°");
 }
 
 m3508_t frictionwheels[2] = {m3508_t(1), m3508_t(2)}; // Create instances of m3508 motors for friction wheels
-m2006_t loaderMotor(3); // Create an instance of m2006 motor for loader motor
+m3508_t wheels[2] = {m3508_t(3), m3508_t(4)}; // Create instances of m3508 motors for wheels
+// m2006_t loaderMotor(3); // Create an instance of m2006 motor for loader motor
 
 base_motor_t* get_motor_ptr(uint8_t motor_id) {
-    if (motor_id == 3) return &loaderMotor;
-    return &frictionwheels[motor_id - 1]; 
+    switch (motor_id) {
+        case 1:
+            return &frictionwheels[0];
+        case 2:
+            return &frictionwheels[1];
+        case 3:
+            return &wheels[0];
+        case 4:
+            return &wheels[1];
+        default:
+            ESP_LOGE(TAG, "Invalid motor ID: %d", motor_id);
+            return NULL; // Invalid motor ID
+    }
 }
 
 uint8_t* motor_data[4]; // Buffer to store motor data
@@ -63,10 +162,12 @@ void twai_receive_task_continuous(void *arg)
             // for (int i = 0; i < rx_msg.data_length_code; i++) motor_data[msg_id-1][i] = rx_msg.data[i];
             frictionwheels[msg_id - 1].parseData(rx_msg.data); // Parse data for the specific motor
         } else if(msg_id == 3) {
-            loaderMotor.parseData(rx_msg.data); // Parse data for the loader motor
+            // loaderMotor.parseData(rx_msg.data); // Parse data for the loader motor
+            wheels[0].parseData(rx_msg.data); // Example for parsing wheel data
         } else if(msg_id == 4) {
             // Handle DM3519 motor data here if needed
             // dm3519_motor.parseData(rx_msg.data); // Example for parsing DM3519 motor data
+            wheels[1].parseData(rx_msg.data); // Example for parsing wheel data
         } else {
             ESP_LOGI(TAG, "Received unknown message with ID %d", msg_id);
         }

@@ -25,6 +25,7 @@
 #include "app_twai.h"
 #include "ui.h"
 // #include "app_motors.h"
+#include "app_motors.h"
 #include "debugger.h"
 #include "serial.h"
 #include "stepper_motors.h"
@@ -45,20 +46,28 @@ void setup(){
         ESP_LOGE(TAG, "Failed to mount SD card");
         ESP_LOGE(TAG, "Entering motor Debug mode");
     }
-    // button_init(); // Initialize button with no callback function
+    
+    // Initialize servo on GPIO0
+    // servo_init();
+    
+    // Initialize button with servo control function
+    // button_init();
+    
     motor_task_init(); // Initialize motor task
 }
 
 extern "C" void app_main(void)
 {
     setup(); // Call the setup function to initialize the system
-    // uart_init();
+    uart_init();
     // stepper_motor_task_init(); // Initialize stepper motor task
 
     vTaskDelay(pdMS_TO_TICKS(5000));
     ESP_LOGI(TAG, "Starting main application...");
     // home_stepper_motor(); // Home the stepper motor
 
+    // ESP_LOGI(TAG, "Servo control initialized. Press GPIO0 button to toggle servo position (0° <-> 30°)");
+    
     // measure_important_function();
     while(1){
         // for(int i = 0; i < 10; i++){
