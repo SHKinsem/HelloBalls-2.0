@@ -45,7 +45,7 @@ protected:
     int16_t target_angle;   // Raw target angle of motor
     _iq temperature;      // Temperature of motor in Celsius
 
-    _iq scale_angle = _IQdiv(_IQ(360.0), _IQ(8191.0)); // Scaling factor for angle
+    _iq scale_angle = _IQdiv(_IQ(360.0), _IQ(8192.0)); // Scaling factor for angle
     _iq scale_current = _IQdiv(_IQ(20.0), _IQ(16384.0)); // Scaling factor for current
 
     PID_CONTROLLER speed_pid = {

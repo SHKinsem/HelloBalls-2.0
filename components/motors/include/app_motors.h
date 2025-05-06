@@ -17,6 +17,20 @@ void bldc_motor_task_init(void);
 void set_friction_wheel_speed(float speed); // In rpm
 void set_wheel_speed(float speed1, float speed2); // In rpm
 
+// Servo control functions - with C linkage for compatibility
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+void servo_init(void); // Initialize servo on GPIO0
+void servo_rotate(bool direction); // Rotate servo (true = 30 degrees, false = 0 degrees)
+bool get_servo_state(void); // Get current servo state
+void toggle_servo(void); // Toggle servo position - helper function for C code
+
+#ifdef __cplusplus
+}
+#endif
+
 void twai_init();
 
 /*
@@ -39,6 +53,11 @@ private:
     TaskHandle_t alert_task_handle;
     uint32_t tx_failed_count;
     
+    // Added variables for tracking message reception
+    TickType_t last_rx_time;          // Timestamp of last received message
+    bool tx_active;                   // Flag to indicate if TX should be active
+    uint32_t rx_timeout_ms;           // Timeout period in ms after which TX will stop if no messages received
+    
     void rx_task(void* arg);
     void tx_task(void* arg);
     void alert_task(void* arg);
@@ -47,18 +66,18 @@ private:
     bool recover_from_error_passive();
     bool recover_from_rx_queue_full();
     void log_alert_flags(uint32_t flags);
+    void updateMotorControlOutput();
 
 public:
-    can_channel_t(uint8_t channel_id);
+    can_channel_t(uint8_t channel_id, gpio_num_t tx_io, gpio_num_t rx_io);
     ~can_channel_t();
     can_channel_t(const can_channel_t&) = delete; // Disable copy constructor
 
-    void reg_motor(base_motor_t* motor, uint8_t motor_id);
+    void reg_motor(base_motor_t* motor);
     base_motor_t** getMotorList();
     void setChannelId(uint8_t channel_id) { this->channel_id = channel_id; }
     uint8_t getChannelId() const { return this->channel_id; }
     void setMotorCount(uint8_t motorCount) { this->motorCount = motorCount; }
-    void updateMotorControlOutput();
 
     void start();
     void stop();

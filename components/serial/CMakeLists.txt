@@ -1,5 +1,7 @@
 idf_component_register( SRCS            "src/serial.c"
-                        REQUIRES        driver
-
-                                        
+                        REQUIRES        driver 
+                                        esp_system
+                                        freertos
+                                        esp_driver_usb_serial_jtag
+                                        esp_timer
                         INCLUDE_DIRS    "include")

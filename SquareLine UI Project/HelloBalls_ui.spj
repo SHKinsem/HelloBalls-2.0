@@ -1085,7 +1085,6 @@
                   {
                     "disabled": false,
                     "nid": 1000376,
-                    "flags": 1048576,
                     "strtype": "_event/EventHandler",
                     "strval": "CHECKED(VALUE_CHANGED)",
                     "childs": [
@@ -1109,7 +1108,6 @@
                       },
                       {
                         "nid": 1000380,
-                        "flags": 1048576,
                         "strtype": "_event/action",
                         "strval": "CALL FUNCTION",
                         "childs": [
@@ -1324,7 +1322,6 @@
                       },
                       {
                         "nid": 1000390,
-                        "flags": 1048576,
                         "strtype": "_event/action",
                         "strval": "CALL FUNCTION",
                         "childs": [
@@ -1363,6 +1360,7 @@
                       },
                       {
                         "nid": 1000593,
+                        "flags": 1048576,
                         "strtype": "_event/action",
                         "strval": "PLAY ANIMATION",
                         "childs": [
@@ -2780,6 +2778,8 @@
                   {
                     "nid": 10520,
                     "strtype": "_style/Bg_Color",
+                    "strval": "BackGround",
+                    "integer": 1000676,
                     "intarray": [
                       62,
                       62,
@@ -2804,6 +2804,120 @@
             "strtype": "SCREEN/Style_scrollbar",
             "strval": "lv.PART.SCROLLBAR, Rectangle, Pad",
             "InheritedType": 11
+          },
+          {
+            "disabled": false,
+            "nid": 1000652,
+            "strtype": "_event/EventHandler",
+            "strval": "GESTURE_LEFT(GESTURE)",
+            "childs": [
+              {
+                "nid": 1000653,
+                "strtype": "_event/name",
+                "strval": "SwitchScreen",
+                "InheritedType": 10
+              },
+              {
+                "nid": 1000654,
+                "strtype": "_event/condition_C",
+                "strval": "",
+                "InheritedType": 10
+              },
+              {
+                "nid": 1000655,
+                "strtype": "_event/condition_P",
+                "strval": "",
+                "InheritedType": 10
+              },
+              {
+                "nid": 1000656,
+                "strtype": "_event/action",
+                "strval": "CHANGE SCREEN",
+                "childs": [
+                  {
+                    "nid": 1000657,
+                    "strtype": "CHANGE SCREEN/Name",
+                    "strval": "CHANGE SCREEN",
+                    "InheritedType": 10
+                  },
+                  {
+                    "nid": 1000658,
+                    "strtype": "CHANGE SCREEN/Call",
+                    "strval": "ChangeScreen( <{Screen_to}>, lv.SCR_LOAD_ANIM.<{Fade_mode}>, <{Speed}>, <{Delay}>)",
+                    "InheritedType": 10
+                  },
+                  {
+                    "nid": 1000659,
+                    "strtype": "CHANGE SCREEN/CallC",
+                    "strval": "_ui_screen_change( &<{Screen_to}>, LV_SCR_LOAD_ANIM_<{Fade_mode}>, <{Speed}>, <{Delay}>, &<{Screen_to}>_screen_init);",
+                    "InheritedType": 10
+                  },
+                  {
+                    "nid": 1000660,
+                    "strtype": "CHANGE SCREEN/Screen_to",
+                    "strval": "GUID82481474-398448S105784102",
+                    "InheritedType": 9
+                  },
+                  {
+                    "nid": 1000661,
+                    "strtype": "CHANGE SCREEN/Fade_mode",
+                    "strval": "MOVE_LEFT",
+                    "InheritedType": 3
+                  },
+                  {
+                    "nid": 1000662,
+                    "strtype": "CHANGE SCREEN/Speed",
+                    "integer": 200,
+                    "InheritedType": 6
+                  },
+                  {
+                    "nid": 1000663,
+                    "strtype": "CHANGE SCREEN/Delay",
+                    "InheritedType": 6
+                  }
+                ],
+                "InheritedType": 10
+              },
+              {
+                "nid": 1000678,
+                "strtype": "_event/action",
+                "strval": "CALL FUNCTION",
+                "childs": [
+                  {
+                    "nid": 1000679,
+                    "strtype": "CALL FUNCTION/Name",
+                    "strval": "CALL FUNCTION",
+                    "InheritedType": 10
+                  },
+                  {
+                    "nid": 1000680,
+                    "strtype": "CALL FUNCTION/Call",
+                    "strval": "<{Function_name}>( event_struct )",
+                    "InheritedType": 10
+                  },
+                  {
+                    "nid": 1000681,
+                    "strtype": "CALL FUNCTION/CallC",
+                    "strval": "<{Function_name}>( e );",
+                    "InheritedType": 10
+                  },
+                  {
+                    "nid": 1000682,
+                    "strtype": "CALL FUNCTION/Function_name",
+                    "strval": "lvgl_start_twai_receive",
+                    "InheritedType": 10
+                  },
+                  {
+                    "nid": 1000683,
+                    "strtype": "CALL FUNCTION/Dont_export_function",
+                    "strval": "True",
+                    "InheritedType": 2
+                  }
+                ],
+                "InheritedType": 10
+              }
+            ],
+            "InheritedType": 4
           }
         ],
         "saved_objtypeKey": "SCREEN"
@@ -2811,8 +2925,2185 @@
       {
         "guid": "GUID82481474-398448S105784102",
         "deepid": -1767992217,
+        "children": [
+          {
+            "guid": "GUID43729905-62087S4774119",
+            "deepid": -910437869,
+            "dont_export": false,
+            "locked": false,
+            "properties": [
+              {
+                "nid": 10,
+                "strtype": "OBJECT/Name",
+                "strval": "Keyboard1",
+                "InheritedType": 10
+              },
+              {
+                "nid": 20,
+                "strtype": "OBJECT/Layout",
+                "InheritedType": 1
+              },
+              {
+                "Flow": 0,
+                "Wrap": false,
+                "Reversed": false,
+                "MainAlignment": 0,
+                "CrossAlignment": 0,
+                "TrackAlignment": 0,
+                "LayoutType": 0,
+                "nid": 30,
+                "strtype": "OBJECT/Layout_type",
+                "strval": "No_layout",
+                "InheritedType": 13
+              },
+              {
+                "nid": 40,
+                "strtype": "OBJECT/Transform",
+                "InheritedType": 1
+              },
+              {
+                "nid": 50,
+                "flags": 17,
+                "strtype": "OBJECT/Position",
+                "intarray": [
+                  0,
+                  210
+                ],
+                "InheritedType": 7
+              },
+              {
+                "nid": 60,
+                "flags": 17,
+                "strtype": "OBJECT/Size",
+                "intarray": [
+                  324,
+                  173
+                ],
+                "InheritedType": 7
+              },
+              {
+                "nid": 70,
+                "strtype": "OBJECT/Align",
+                "strval": "CENTER",
+                "InheritedType": 3
+              },
+              {
+                "nid": 90,
+                "flags": 1048576,
+                "strtype": "OBJECT/Flags",
+                "InheritedType": 1
+              },
+              {
+                "nid": 225,
+                "strtype": "OBJECT/Scrolling",
+                "InheritedType": 1
+              },
+              {
+                "nid": 300,
+                "strtype": "OBJECT/Scrollbar_mode",
+                "strval": "AUTO",
+                "InheritedType": 3
+              },
+              {
+                "nid": 310,
+                "strtype": "OBJECT/Scroll_direction",
+                "strval": "ALL",
+                "InheritedType": 3
+              },
+              {
+                "nid": 314,
+                "strtype": "OBJECT/Scroll_snap_x",
+                "strval": "NONE",
+                "InheritedType": 3
+              },
+              {
+                "nid": 315,
+                "strtype": "OBJECT/Scroll_snap_y",
+                "strval": "NONE",
+                "InheritedType": 3
+              },
+              {
+                "nid": 320,
+                "strtype": "OBJECT/States",
+                "InheritedType": 1
+              },
+              {
+                "part": "lv.PART.MAIN",
+                "childs": [
+                  {
+                    "nid": 10000,
+                    "strtype": "_style/StyleState",
+                    "strval": "DEFAULT",
+                    "childs": [
+                      {
+                        "nid": 10520,
+                        "strtype": "_style/Bg_Color",
+                        "strval": "BackGround",
+                        "integer": 1000676,
+                        "intarray": [
+                          62,
+                          62,
+                          62,
+                          255
+                        ],
+                        "InheritedType": 7
+                      }
+                    ],
+                    "InheritedType": 1
+                  }
+                ],
+                "nid": 1010,
+                "strtype": "KEYBOARD/Style_main",
+                "strval": "lv.PART.MAIN, Rectangle, Pad, Transform",
+                "InheritedType": 11
+              },
+              {
+                "nid": 1020,
+                "strtype": "KEYBOARD/Target_textarea",
+                "strval": "GUID40784735-62095S6784119",
+                "InheritedType": 9
+              },
+              {
+                "nid": 1030,
+                "strtype": "KEYBOARD/Mode",
+                "strval": "NUMBER",
+                "InheritedType": 3
+              },
+              {
+                "part": "lv.PART.ITEMS",
+                "childs": [
+                  {
+                    "nid": 10000,
+                    "strtype": "_style/StyleState",
+                    "strval": "DEFAULT",
+                    "childs": [
+                      {
+                        "nid": 10520,
+                        "strtype": "_style/Bg_Color",
+                        "strval": "BackGround2",
+                        "integer": 1000690,
+                        "intarray": [
+                          137,
+                          137,
+                          137,
+                          255
+                        ],
+                        "InheritedType": 7
+                      },
+                      {
+                        "nid": 10410,
+                        "strtype": "_style/Text_Color",
+                        "strval": "Text",
+                        "integer": 1000677,
+                        "intarray": [
+                          255,
+                          255,
+                          255,
+                          255
+                        ],
+                        "InheritedType": 7
+                      }
+                    ],
+                    "InheritedType": 1
+                  }
+                ],
+                "nid": 1040,
+                "strtype": "KEYBOARD/Style_items",
+                "strval": "lv.PART.ITEMS, Rectangle, Pad, Text",
+                "InheritedType": 11
+              },
+              {
+                "disabled": false,
+                "nid": 1000863,
+                "flags": 1048576,
+                "strtype": "_event/EventHandler",
+                "strval": "KEY_ENTER(KEY)",
+                "childs": [
+                  {
+                    "nid": 1000864,
+                    "strtype": "_event/name",
+                    "strval": "Event3",
+                    "InheritedType": 10
+                  },
+                  {
+                    "nid": 1000865,
+                    "strtype": "_event/condition_C",
+                    "strval": "",
+                    "InheritedType": 10
+                  },
+                  {
+                    "nid": 1000866,
+                    "strtype": "_event/condition_P",
+                    "strval": "",
+                    "InheritedType": 10
+                  },
+                  {
+                    "nid": 1000867,
+                    "strtype": "_event/action",
+                    "strval": "PLAY ANIMATION",
+                    "childs": [
+                      {
+                        "nid": 1000868,
+                        "strtype": "PLAY ANIMATION/Name",
+                        "strval": "PLAY ANIMATION",
+                        "InheritedType": 10
+                      },
+                      {
+                        "nid": 1000869,
+                        "strtype": "PLAY ANIMATION/FunctionName",
+                        "strval": "KeyBoardOut_Animation",
+                        "InheritedType": 10
+                      },
+                      {
+                        "nid": 1000870,
+                        "strtype": "PLAY ANIMATION/Animation",
+                        "strval": "KeyBoardOut",
+                        "InheritedType": 8
+                      },
+                      {
+                        "nid": 1000871,
+                        "strtype": "PLAY ANIMATION/Target",
+                        "strval": "GUID43729905-62087S4774119",
+                        "InheritedType": 9
+                      },
+                      {
+                        "nid": 1000872,
+                        "strtype": "PLAY ANIMATION/Delay",
+                        "InheritedType": 6
+                      },
+                      {
+                        "nid": 1000873,
+                        "strtype": "PLAY ANIMATION/Call",
+                        "strval": "<{FunctionName}>(<{Target}>, <{Delay}>)",
+                        "InheritedType": 10
+                      },
+                      {
+                        "nid": 1000874,
+                        "strtype": "PLAY ANIMATION/CallC",
+                        "strval": "<{FunctionName}>(<{Target}>, <{Delay}>);",
+                        "InheritedType": 10
+                      }
+                    ],
+                    "InheritedType": 10
+                  },
+                  {
+                    "nid": 1000875,
+                    "strtype": "_event/action",
+                    "strval": "PLAY ANIMATION",
+                    "childs": [
+                      {
+                        "nid": 1000876,
+                        "strtype": "PLAY ANIMATION/Name",
+                        "strval": "PLAY ANIMATION",
+                        "InheritedType": 10
+                      },
+                      {
+                        "nid": 1000877,
+                        "strtype": "PLAY ANIMATION/FunctionName",
+                        "strval": "TextAreaMoveBack_Animation",
+                        "InheritedType": 10
+                      },
+                      {
+                        "nid": 1000878,
+                        "strtype": "PLAY ANIMATION/Animation",
+                        "strval": "TextAreaMoveBack",
+                        "InheritedType": 8
+                      },
+                      {
+                        "nid": 1000879,
+                        "strtype": "PLAY ANIMATION/Target",
+                        "strval": "GUID40784735-62095S6784119",
+                        "InheritedType": 9
+                      },
+                      {
+                        "nid": 1000880,
+                        "strtype": "PLAY ANIMATION/Delay",
+                        "InheritedType": 6
+                      },
+                      {
+                        "nid": 1000881,
+                        "strtype": "PLAY ANIMATION/Call",
+                        "strval": "<{FunctionName}>(<{Target}>, <{Delay}>)",
+                        "InheritedType": 10
+                      },
+                      {
+                        "nid": 1000882,
+                        "strtype": "PLAY ANIMATION/CallC",
+                        "strval": "<{FunctionName}>(<{Target}>, <{Delay}>);",
+                        "InheritedType": 10
+                      }
+                    ],
+                    "InheritedType": 10
+                  }
+                ],
+                "InheritedType": 4
+              }
+            ],
+            "saved_objtypeKey": "KEYBOARD",
+            "tree_closed": true
+          },
+          {
+            "guid": "GUID41496516-62113S5724119",
+            "deepid": 1658568038,
+            "children": [
+              {
+                "guid": "GUID40784735-62095S6784119",
+                "deepid": -1622821209,
+                "dont_export": false,
+                "locked": false,
+                "properties": [
+                  {
+                    "nid": 10,
+                    "strtype": "OBJECT/Name",
+                    "strval": "MotorID",
+                    "InheritedType": 10
+                  },
+                  {
+                    "nid": 20,
+                    "strtype": "OBJECT/Layout",
+                    "InheritedType": 1
+                  },
+                  {
+                    "Flow": 0,
+                    "Wrap": false,
+                    "Reversed": false,
+                    "MainAlignment": 0,
+                    "CrossAlignment": 0,
+                    "TrackAlignment": 0,
+                    "LayoutType": 0,
+                    "nid": 30,
+                    "strtype": "OBJECT/Layout_type",
+                    "strval": "No_layout",
+                    "InheritedType": 13
+                  },
+                  {
+                    "nid": 40,
+                    "strtype": "OBJECT/Transform",
+                    "InheritedType": 1
+                  },
+                  {
+                    "nid": 50,
+                    "flags": 17,
+                    "strtype": "OBJECT/Position",
+                    "intarray": [
+                      0,
+                      -40
+                    ],
+                    "InheritedType": 7
+                  },
+                  {
+                    "nid": 60,
+                    "flags": 49,
+                    "strtype": "OBJECT/Size",
+                    "intarray": [
+                      105,
+                      70
+                    ],
+                    "InheritedType": 7
+                  },
+                  {
+                    "nid": 70,
+                    "strtype": "OBJECT/Align",
+                    "strval": "CENTER",
+                    "InheritedType": 3
+                  },
+                  {
+                    "nid": 90,
+                    "flags": 1048576,
+                    "strtype": "OBJECT/Flags",
+                    "InheritedType": 1
+                  },
+                  {
+                    "nid": 225,
+                    "flags": 1048576,
+                    "strtype": "OBJECT/Scrolling",
+                    "InheritedType": 1
+                  },
+                  {
+                    "nid": 240,
+                    "strtype": "OBJECT/Scroll_elastic",
+                    "strval": "False",
+                    "InheritedType": 2
+                  },
+                  {
+                    "nid": 300,
+                    "strtype": "OBJECT/Scrollbar_mode",
+                    "strval": "AUTO",
+                    "InheritedType": 3
+                  },
+                  {
+                    "nid": 310,
+                    "strtype": "OBJECT/Scroll_direction",
+                    "strval": "ALL",
+                    "InheritedType": 3
+                  },
+                  {
+                    "nid": 314,
+                    "strtype": "OBJECT/Scroll_snap_x",
+                    "strval": "NONE",
+                    "InheritedType": 3
+                  },
+                  {
+                    "nid": 315,
+                    "strtype": "OBJECT/Scroll_snap_y",
+                    "strval": "NONE",
+                    "InheritedType": 3
+                  },
+                  {
+                    "nid": 320,
+                    "flags": 1048576,
+                    "strtype": "OBJECT/States",
+                    "InheritedType": 1
+                  },
+                  {
+                    "nid": 330,
+                    "strtype": "OBJECT/Checked",
+                    "strval": "True",
+                    "InheritedType": 2
+                  },
+                  {
+                    "nid": 1010,
+                    "flags": 1048576,
+                    "strtype": "TEXTAREA/TextArea",
+                    "InheritedType": 1
+                  },
+                  {
+                    "nid": 1020,
+                    "strtype": "TEXTAREA/Text",
+                    "strval": "",
+                    "InheritedType": 10
+                  },
+                  {
+                    "nid": 1030,
+                    "strtype": "TEXTAREA/Placeholder",
+                    "strval": "Enter ID",
+                    "InheritedType": 10
+                  },
+                  {
+                    "nid": 1040,
+                    "strtype": "TEXTAREA/One_line_mode",
+                    "strval": "True",
+                    "InheritedType": 2
+                  },
+                  {
+                    "nid": 1050,
+                    "strtype": "TEXTAREA/Password_mode",
+                    "strval": "False",
+                    "InheritedType": 2
+                  },
+                  {
+                    "nid": 1060,
+                    "strtype": "TEXTAREA/Accepted_characters",
+                    "strval": "1,2,3,4,5,6,7,8,9",
+                    "InheritedType": 10
+                  },
+                  {
+                    "nid": 1070,
+                    "strtype": "TEXTAREA/Max_text_length",
+                    "integer": 2,
+                    "InheritedType": 6
+                  },
+                  {
+                    "part": "lv.PART.MAIN",
+                    "childs": [],
+                    "nid": 1080,
+                    "strtype": "TEXTAREA/Style_main",
+                    "strval": "lv.PART.MAIN, Text, Rectangle, Pad, Transform",
+                    "InheritedType": 11
+                  },
+                  {
+                    "part": "lv.PART.SELECTED",
+                    "childs": [],
+                    "nid": 1090,
+                    "strtype": "TEXTAREA/Style_selected",
+                    "strval": "lv.PART.SELECTED, Text, Rectangle",
+                    "InheritedType": 11
+                  },
+                  {
+                    "part": "lv.PART.CURSOR",
+                    "childs": [],
+                    "nid": 1100,
+                    "strtype": "TEXTAREA/Style_cursor",
+                    "strval": "lv.PART.CURSOR, Text, Rectangle",
+                    "InheritedType": 11
+                  },
+                  {
+                    "part": "lv.PART_TEXTAREA.PLACEHOLDER",
+                    "childs": [],
+                    "nid": 1110,
+                    "strtype": "TEXTAREA/Style_placeholder",
+                    "strval": "lv.PART_TEXTAREA.PLACEHOLDER, Text",
+                    "InheritedType": 11
+                  },
+                  {
+                    "disabled": false,
+                    "nid": 1000738,
+                    "strtype": "_event/EventHandler",
+                    "strval": "FOCUSED",
+                    "childs": [
+                      {
+                        "nid": 1000739,
+                        "strtype": "_event/name",
+                        "strval": "Event2",
+                        "InheritedType": 10
+                      },
+                      {
+                        "nid": 1000740,
+                        "strtype": "_event/condition_C",
+                        "strval": "",
+                        "InheritedType": 10
+                      },
+                      {
+                        "nid": 1000741,
+                        "strtype": "_event/condition_P",
+                        "strval": "",
+                        "InheritedType": 10
+                      },
+                      {
+                        "nid": 1000742,
+                        "strtype": "_event/action",
+                        "strval": "PLAY ANIMATION",
+                        "childs": [
+                          {
+                            "nid": 1000743,
+                            "strtype": "PLAY ANIMATION/Name",
+                            "strval": "PLAY ANIMATION",
+                            "InheritedType": 10
+                          },
+                          {
+                            "nid": 1000744,
+                            "strtype": "PLAY ANIMATION/FunctionName",
+                            "strval": "KeyBoardIn_Animation",
+                            "InheritedType": 10
+                          },
+                          {
+                            "nid": 1000745,
+                            "strtype": "PLAY ANIMATION/Animation",
+                            "strval": "KeyBoardIn",
+                            "InheritedType": 8
+                          },
+                          {
+                            "nid": 1000746,
+                            "strtype": "PLAY ANIMATION/Target",
+                            "strval": "GUID43729905-62087S4774119",
+                            "InheritedType": 9
+                          },
+                          {
+                            "nid": 1000747,
+                            "strtype": "PLAY ANIMATION/Delay",
+                            "InheritedType": 6
+                          },
+                          {
+                            "nid": 1000748,
+                            "strtype": "PLAY ANIMATION/Call",
+                            "strval": "<{FunctionName}>(<{Target}>, <{Delay}>)",
+                            "InheritedType": 10
+                          },
+                          {
+                            "nid": 1000749,
+                            "strtype": "PLAY ANIMATION/CallC",
+                            "strval": "<{FunctionName}>(<{Target}>, <{Delay}>);",
+                            "InheritedType": 10
+                          }
+                        ],
+                        "InheritedType": 10
+                      },
+                      {
+                        "nid": 1000820,
+                        "flags": 1048576,
+                        "strtype": "_event/action",
+                        "strval": "PLAY ANIMATION",
+                        "childs": [
+                          {
+                            "nid": 1000821,
+                            "strtype": "PLAY ANIMATION/Name",
+                            "strval": "PLAY ANIMATION",
+                            "InheritedType": 10
+                          },
+                          {
+                            "nid": 1000822,
+                            "strtype": "PLAY ANIMATION/FunctionName",
+                            "strval": "TextAreaMove_Animation",
+                            "InheritedType": 10
+                          },
+                          {
+                            "nid": 1000823,
+                            "strtype": "PLAY ANIMATION/Animation",
+                            "strval": "TextAreaMove",
+                            "InheritedType": 8
+                          },
+                          {
+                            "nid": 1000824,
+                            "strtype": "PLAY ANIMATION/Target",
+                            "strval": "GUID40784735-62095S6784119",
+                            "InheritedType": 9
+                          },
+                          {
+                            "nid": 1000825,
+                            "strtype": "PLAY ANIMATION/Delay",
+                            "InheritedType": 6
+                          },
+                          {
+                            "nid": 1000826,
+                            "strtype": "PLAY ANIMATION/Call",
+                            "strval": "<{FunctionName}>(<{Target}>, <{Delay}>)",
+                            "InheritedType": 10
+                          },
+                          {
+                            "nid": 1000827,
+                            "strtype": "PLAY ANIMATION/CallC",
+                            "strval": "<{FunctionName}>(<{Target}>, <{Delay}>);",
+                            "InheritedType": 10
+                          }
+                        ],
+                        "InheritedType": 10
+                      }
+                    ],
+                    "InheritedType": 4
+                  },
+                  {
+                    "disabled": false,
+                    "nid": 1000883,
+                    "flags": 1048576,
+                    "strtype": "_event/EventHandler",
+                    "strval": "DEFOCUSED",
+                    "childs": [
+                      {
+                        "nid": 1000884,
+                        "strtype": "_event/name",
+                        "strval": "HideKeyBoard",
+                        "InheritedType": 10
+                      },
+                      {
+                        "nid": 1000885,
+                        "strtype": "_event/condition_C",
+                        "strval": "",
+                        "InheritedType": 10
+                      },
+                      {
+                        "nid": 1000886,
+                        "strtype": "_event/condition_P",
+                        "strval": "",
+                        "InheritedType": 10
+                      },
+                      {
+                        "nid": 1000894,
+                        "strtype": "_event/action",
+                        "strval": "PLAY ANIMATION",
+                        "childs": [
+                          {
+                            "nid": 1000895,
+                            "strtype": "PLAY ANIMATION/Name",
+                            "strval": "PLAY ANIMATION",
+                            "InheritedType": 10
+                          },
+                          {
+                            "nid": 1000896,
+                            "strtype": "PLAY ANIMATION/FunctionName",
+                            "strval": "KeyBoardOut_Animation",
+                            "InheritedType": 10
+                          },
+                          {
+                            "nid": 1000897,
+                            "strtype": "PLAY ANIMATION/Animation",
+                            "strval": "KeyBoardOut",
+                            "InheritedType": 8
+                          },
+                          {
+                            "nid": 1000898,
+                            "strtype": "PLAY ANIMATION/Target",
+                            "strval": "GUID43729905-62087S4774119",
+                            "InheritedType": 9
+                          },
+                          {
+                            "nid": 1000899,
+                            "strtype": "PLAY ANIMATION/Delay",
+                            "InheritedType": 6
+                          },
+                          {
+                            "nid": 1000900,
+                            "strtype": "PLAY ANIMATION/Call",
+                            "strval": "<{FunctionName}>(<{Target}>, <{Delay}>)",
+                            "InheritedType": 10
+                          },
+                          {
+                            "nid": 1000901,
+                            "strtype": "PLAY ANIMATION/CallC",
+                            "strval": "<{FunctionName}>(<{Target}>, <{Delay}>);",
+                            "InheritedType": 10
+                          }
+                        ],
+                        "InheritedType": 10
+                      },
+                      {
+                        "nid": 1000902,
+                        "strtype": "_event/action",
+                        "strval": "PLAY ANIMATION",
+                        "childs": [
+                          {
+                            "nid": 1000903,
+                            "strtype": "PLAY ANIMATION/Name",
+                            "strval": "PLAY ANIMATION",
+                            "InheritedType": 10
+                          },
+                          {
+                            "nid": 1000904,
+                            "strtype": "PLAY ANIMATION/FunctionName",
+                            "strval": "TextAreaMoveBack_Animation",
+                            "InheritedType": 10
+                          },
+                          {
+                            "nid": 1000905,
+                            "strtype": "PLAY ANIMATION/Animation",
+                            "strval": "TextAreaMoveBack",
+                            "InheritedType": 8
+                          },
+                          {
+                            "nid": 1000906,
+                            "strtype": "PLAY ANIMATION/Target",
+                            "strval": "GUID40784735-62095S6784119",
+                            "InheritedType": 9
+                          },
+                          {
+                            "nid": 1000907,
+                            "strtype": "PLAY ANIMATION/Delay",
+                            "InheritedType": 6
+                          },
+                          {
+                            "nid": 1000908,
+                            "strtype": "PLAY ANIMATION/Call",
+                            "strval": "<{FunctionName}>(<{Target}>, <{Delay}>)",
+                            "InheritedType": 10
+                          },
+                          {
+                            "nid": 1000909,
+                            "strtype": "PLAY ANIMATION/CallC",
+                            "strval": "<{FunctionName}>(<{Target}>, <{Delay}>);",
+                            "InheritedType": 10
+                          }
+                        ],
+                        "InheritedType": 10
+                      }
+                    ],
+                    "InheritedType": 4
+                  }
+                ],
+                "saved_objtypeKey": "TEXTAREA",
+                "tree_closed": true
+              },
+              {
+                "guid": "GUID531794-62116S22684119",
+                "deepid": -1622821209,
+                "dont_export": false,
+                "locked": false,
+                "properties": [
+                  {
+                    "nid": 10,
+                    "strtype": "OBJECT/Name",
+                    "strval": "MotorID1",
+                    "InheritedType": 10
+                  },
+                  {
+                    "nid": 20,
+                    "strtype": "OBJECT/Layout",
+                    "InheritedType": 1
+                  },
+                  {
+                    "Flow": 0,
+                    "Wrap": false,
+                    "Reversed": false,
+                    "MainAlignment": 0,
+                    "CrossAlignment": 0,
+                    "TrackAlignment": 0,
+                    "LayoutType": 0,
+                    "nid": 30,
+                    "strtype": "OBJECT/Layout_type",
+                    "strval": "No_layout",
+                    "InheritedType": 13
+                  },
+                  {
+                    "nid": 40,
+                    "strtype": "OBJECT/Transform",
+                    "InheritedType": 1
+                  },
+                  {
+                    "nid": 50,
+                    "flags": 17,
+                    "strtype": "OBJECT/Position",
+                    "intarray": [
+                      0,
+                      0
+                    ],
+                    "InheritedType": 7
+                  },
+                  {
+                    "nid": 60,
+                    "flags": 49,
+                    "strtype": "OBJECT/Size",
+                    "intarray": [
+                      105,
+                      70
+                    ],
+                    "InheritedType": 7
+                  },
+                  {
+                    "nid": 70,
+                    "strtype": "OBJECT/Align",
+                    "strval": "CENTER",
+                    "InheritedType": 3
+                  },
+                  {
+                    "nid": 90,
+                    "flags": 1048576,
+                    "strtype": "OBJECT/Flags",
+                    "InheritedType": 1
+                  },
+                  {
+                    "nid": 225,
+                    "flags": 1048576,
+                    "strtype": "OBJECT/Scrolling",
+                    "InheritedType": 1
+                  },
+                  {
+                    "nid": 240,
+                    "strtype": "OBJECT/Scroll_elastic",
+                    "strval": "False",
+                    "InheritedType": 2
+                  },
+                  {
+                    "nid": 300,
+                    "strtype": "OBJECT/Scrollbar_mode",
+                    "strval": "AUTO",
+                    "InheritedType": 3
+                  },
+                  {
+                    "nid": 310,
+                    "strtype": "OBJECT/Scroll_direction",
+                    "strval": "ALL",
+                    "InheritedType": 3
+                  },
+                  {
+                    "nid": 314,
+                    "strtype": "OBJECT/Scroll_snap_x",
+                    "strval": "NONE",
+                    "InheritedType": 3
+                  },
+                  {
+                    "nid": 315,
+                    "strtype": "OBJECT/Scroll_snap_y",
+                    "strval": "NONE",
+                    "InheritedType": 3
+                  },
+                  {
+                    "nid": 320,
+                    "flags": 1048576,
+                    "strtype": "OBJECT/States",
+                    "InheritedType": 1
+                  },
+                  {
+                    "nid": 330,
+                    "strtype": "OBJECT/Checked",
+                    "strval": "True",
+                    "InheritedType": 2
+                  },
+                  {
+                    "nid": 1010,
+                    "flags": 1048576,
+                    "strtype": "TEXTAREA/TextArea",
+                    "InheritedType": 1
+                  },
+                  {
+                    "nid": 1020,
+                    "strtype": "TEXTAREA/Text",
+                    "strval": "",
+                    "InheritedType": 10
+                  },
+                  {
+                    "nid": 1030,
+                    "strtype": "TEXTAREA/Placeholder",
+                    "strval": "Enter ID",
+                    "InheritedType": 10
+                  },
+                  {
+                    "nid": 1040,
+                    "strtype": "TEXTAREA/One_line_mode",
+                    "strval": "True",
+                    "InheritedType": 2
+                  },
+                  {
+                    "nid": 1050,
+                    "strtype": "TEXTAREA/Password_mode",
+                    "strval": "False",
+                    "InheritedType": 2
+                  },
+                  {
+                    "nid": 1060,
+                    "strtype": "TEXTAREA/Accepted_characters",
+                    "strval": "1,2,3,4,5,6,7,8,9",
+                    "InheritedType": 10
+                  },
+                  {
+                    "nid": 1070,
+                    "strtype": "TEXTAREA/Max_text_length",
+                    "integer": 2,
+                    "InheritedType": 6
+                  },
+                  {
+                    "part": "lv.PART.MAIN",
+                    "childs": [],
+                    "nid": 1080,
+                    "strtype": "TEXTAREA/Style_main",
+                    "strval": "lv.PART.MAIN, Text, Rectangle, Pad, Transform",
+                    "InheritedType": 11
+                  },
+                  {
+                    "part": "lv.PART.SELECTED",
+                    "childs": [],
+                    "nid": 1090,
+                    "strtype": "TEXTAREA/Style_selected",
+                    "strval": "lv.PART.SELECTED, Text, Rectangle",
+                    "InheritedType": 11
+                  },
+                  {
+                    "part": "lv.PART.CURSOR",
+                    "childs": [],
+                    "nid": 1100,
+                    "strtype": "TEXTAREA/Style_cursor",
+                    "strval": "lv.PART.CURSOR, Text, Rectangle",
+                    "InheritedType": 11
+                  },
+                  {
+                    "part": "lv.PART_TEXTAREA.PLACEHOLDER",
+                    "childs": [],
+                    "nid": 1110,
+                    "strtype": "TEXTAREA/Style_placeholder",
+                    "strval": "lv.PART_TEXTAREA.PLACEHOLDER, Text",
+                    "InheritedType": 11
+                  },
+                  {
+                    "disabled": false,
+                    "nid": 1000738,
+                    "strtype": "_event/EventHandler",
+                    "strval": "FOCUSED",
+                    "childs": [
+                      {
+                        "nid": 1000739,
+                        "strtype": "_event/name",
+                        "strval": "Event2",
+                        "InheritedType": 10
+                      },
+                      {
+                        "nid": 1000740,
+                        "strtype": "_event/condition_C",
+                        "strval": "",
+                        "InheritedType": 10
+                      },
+                      {
+                        "nid": 1000741,
+                        "strtype": "_event/condition_P",
+                        "strval": "",
+                        "InheritedType": 10
+                      },
+                      {
+                        "nid": 1000742,
+                        "strtype": "_event/action",
+                        "strval": "PLAY ANIMATION",
+                        "childs": [
+                          {
+                            "nid": 1000743,
+                            "strtype": "PLAY ANIMATION/Name",
+                            "strval": "PLAY ANIMATION",
+                            "InheritedType": 10
+                          },
+                          {
+                            "nid": 1000744,
+                            "strtype": "PLAY ANIMATION/FunctionName",
+                            "strval": "KeyBoardIn_Animation",
+                            "InheritedType": 10
+                          },
+                          {
+                            "nid": 1000745,
+                            "strtype": "PLAY ANIMATION/Animation",
+                            "strval": "KeyBoardIn",
+                            "InheritedType": 8
+                          },
+                          {
+                            "nid": 1000746,
+                            "strtype": "PLAY ANIMATION/Target",
+                            "strval": "GUID43729905-62087S4774119",
+                            "InheritedType": 9
+                          },
+                          {
+                            "nid": 1000747,
+                            "strtype": "PLAY ANIMATION/Delay",
+                            "InheritedType": 6
+                          },
+                          {
+                            "nid": 1000748,
+                            "strtype": "PLAY ANIMATION/Call",
+                            "strval": "<{FunctionName}>(<{Target}>, <{Delay}>)",
+                            "InheritedType": 10
+                          },
+                          {
+                            "nid": 1000749,
+                            "strtype": "PLAY ANIMATION/CallC",
+                            "strval": "<{FunctionName}>(<{Target}>, <{Delay}>);",
+                            "InheritedType": 10
+                          }
+                        ],
+                        "InheritedType": 10
+                      },
+                      {
+                        "nid": 1000820,
+                        "flags": 1048576,
+                        "strtype": "_event/action",
+                        "strval": "PLAY ANIMATION",
+                        "childs": [
+                          {
+                            "nid": 1000821,
+                            "strtype": "PLAY ANIMATION/Name",
+                            "strval": "PLAY ANIMATION",
+                            "InheritedType": 10
+                          },
+                          {
+                            "nid": 1000822,
+                            "strtype": "PLAY ANIMATION/FunctionName",
+                            "strval": "TextAreaMove_Animation",
+                            "InheritedType": 10
+                          },
+                          {
+                            "nid": 1000823,
+                            "strtype": "PLAY ANIMATION/Animation",
+                            "strval": "TextAreaMove",
+                            "InheritedType": 8
+                          },
+                          {
+                            "nid": 1000824,
+                            "strtype": "PLAY ANIMATION/Target",
+                            "strval": "GUID531794-62116S22684119",
+                            "InheritedType": 9
+                          },
+                          {
+                            "nid": 1000825,
+                            "strtype": "PLAY ANIMATION/Delay",
+                            "InheritedType": 6
+                          },
+                          {
+                            "nid": 1000826,
+                            "strtype": "PLAY ANIMATION/Call",
+                            "strval": "<{FunctionName}>(<{Target}>, <{Delay}>)",
+                            "InheritedType": 10
+                          },
+                          {
+                            "nid": 1000827,
+                            "strtype": "PLAY ANIMATION/CallC",
+                            "strval": "<{FunctionName}>(<{Target}>, <{Delay}>);",
+                            "InheritedType": 10
+                          }
+                        ],
+                        "InheritedType": 10
+                      }
+                    ],
+                    "InheritedType": 4
+                  },
+                  {
+                    "disabled": false,
+                    "nid": 1000883,
+                    "flags": 1048576,
+                    "strtype": "_event/EventHandler",
+                    "strval": "DEFOCUSED",
+                    "childs": [
+                      {
+                        "nid": 1000884,
+                        "strtype": "_event/name",
+                        "strval": "HideKeyBoard",
+                        "InheritedType": 10
+                      },
+                      {
+                        "nid": 1000885,
+                        "strtype": "_event/condition_C",
+                        "strval": "",
+                        "InheritedType": 10
+                      },
+                      {
+                        "nid": 1000886,
+                        "strtype": "_event/condition_P",
+                        "strval": "",
+                        "InheritedType": 10
+                      },
+                      {
+                        "nid": 1000894,
+                        "strtype": "_event/action",
+                        "strval": "PLAY ANIMATION",
+                        "childs": [
+                          {
+                            "nid": 1000895,
+                            "strtype": "PLAY ANIMATION/Name",
+                            "strval": "PLAY ANIMATION",
+                            "InheritedType": 10
+                          },
+                          {
+                            "nid": 1000896,
+                            "strtype": "PLAY ANIMATION/FunctionName",
+                            "strval": "KeyBoardOut_Animation",
+                            "InheritedType": 10
+                          },
+                          {
+                            "nid": 1000897,
+                            "strtype": "PLAY ANIMATION/Animation",
+                            "strval": "KeyBoardOut",
+                            "InheritedType": 8
+                          },
+                          {
+                            "nid": 1000898,
+                            "strtype": "PLAY ANIMATION/Target",
+                            "strval": "GUID43729905-62087S4774119",
+                            "InheritedType": 9
+                          },
+                          {
+                            "nid": 1000899,
+                            "strtype": "PLAY ANIMATION/Delay",
+                            "InheritedType": 6
+                          },
+                          {
+                            "nid": 1000900,
+                            "strtype": "PLAY ANIMATION/Call",
+                            "strval": "<{FunctionName}>(<{Target}>, <{Delay}>)",
+                            "InheritedType": 10
+                          },
+                          {
+                            "nid": 1000901,
+                            "strtype": "PLAY ANIMATION/CallC",
+                            "strval": "<{FunctionName}>(<{Target}>, <{Delay}>);",
+                            "InheritedType": 10
+                          }
+                        ],
+                        "InheritedType": 10
+                      },
+                      {
+                        "nid": 1000902,
+                        "strtype": "_event/action",
+                        "strval": "PLAY ANIMATION",
+                        "childs": [
+                          {
+                            "nid": 1000903,
+                            "strtype": "PLAY ANIMATION/Name",
+                            "strval": "PLAY ANIMATION",
+                            "InheritedType": 10
+                          },
+                          {
+                            "nid": 1000904,
+                            "strtype": "PLAY ANIMATION/FunctionName",
+                            "strval": "TextAreaMoveBack_Animation",
+                            "InheritedType": 10
+                          },
+                          {
+                            "nid": 1000905,
+                            "strtype": "PLAY ANIMATION/Animation",
+                            "strval": "TextAreaMoveBack",
+                            "InheritedType": 8
+                          },
+                          {
+                            "nid": 1000906,
+                            "strtype": "PLAY ANIMATION/Target",
+                            "strval": "GUID531794-62116S22684119",
+                            "InheritedType": 9
+                          },
+                          {
+                            "nid": 1000907,
+                            "strtype": "PLAY ANIMATION/Delay",
+                            "InheritedType": 6
+                          },
+                          {
+                            "nid": 1000908,
+                            "strtype": "PLAY ANIMATION/Call",
+                            "strval": "<{FunctionName}>(<{Target}>, <{Delay}>)",
+                            "InheritedType": 10
+                          },
+                          {
+                            "nid": 1000909,
+                            "strtype": "PLAY ANIMATION/CallC",
+                            "strval": "<{FunctionName}>(<{Target}>, <{Delay}>);",
+                            "InheritedType": 10
+                          }
+                        ],
+                        "InheritedType": 10
+                      }
+                    ],
+                    "InheritedType": 4
+                  }
+                ],
+                "saved_objtypeKey": "TEXTAREA",
+                "tree_closed": true
+              },
+              {
+                "guid": "GUID6950074-62117S40334119",
+                "deepid": -1622821209,
+                "dont_export": false,
+                "locked": false,
+                "properties": [
+                  {
+                    "nid": 10,
+                    "strtype": "OBJECT/Name",
+                    "strval": "MotorID2",
+                    "InheritedType": 10
+                  },
+                  {
+                    "nid": 20,
+                    "strtype": "OBJECT/Layout",
+                    "InheritedType": 1
+                  },
+                  {
+                    "Flow": 0,
+                    "Wrap": false,
+                    "Reversed": false,
+                    "MainAlignment": 0,
+                    "CrossAlignment": 0,
+                    "TrackAlignment": 0,
+                    "LayoutType": 0,
+                    "nid": 30,
+                    "strtype": "OBJECT/Layout_type",
+                    "strval": "No_layout",
+                    "InheritedType": 13
+                  },
+                  {
+                    "nid": 40,
+                    "strtype": "OBJECT/Transform",
+                    "InheritedType": 1
+                  },
+                  {
+                    "nid": 50,
+                    "flags": 17,
+                    "strtype": "OBJECT/Position",
+                    "intarray": [
+                      0,
+                      40
+                    ],
+                    "InheritedType": 7
+                  },
+                  {
+                    "nid": 60,
+                    "flags": 49,
+                    "strtype": "OBJECT/Size",
+                    "intarray": [
+                      105,
+                      70
+                    ],
+                    "InheritedType": 7
+                  },
+                  {
+                    "nid": 70,
+                    "strtype": "OBJECT/Align",
+                    "strval": "CENTER",
+                    "InheritedType": 3
+                  },
+                  {
+                    "nid": 90,
+                    "flags": 1048576,
+                    "strtype": "OBJECT/Flags",
+                    "InheritedType": 1
+                  },
+                  {
+                    "nid": 225,
+                    "flags": 1048576,
+                    "strtype": "OBJECT/Scrolling",
+                    "InheritedType": 1
+                  },
+                  {
+                    "nid": 240,
+                    "strtype": "OBJECT/Scroll_elastic",
+                    "strval": "False",
+                    "InheritedType": 2
+                  },
+                  {
+                    "nid": 300,
+                    "strtype": "OBJECT/Scrollbar_mode",
+                    "strval": "AUTO",
+                    "InheritedType": 3
+                  },
+                  {
+                    "nid": 310,
+                    "strtype": "OBJECT/Scroll_direction",
+                    "strval": "ALL",
+                    "InheritedType": 3
+                  },
+                  {
+                    "nid": 314,
+                    "strtype": "OBJECT/Scroll_snap_x",
+                    "strval": "NONE",
+                    "InheritedType": 3
+                  },
+                  {
+                    "nid": 315,
+                    "strtype": "OBJECT/Scroll_snap_y",
+                    "strval": "NONE",
+                    "InheritedType": 3
+                  },
+                  {
+                    "nid": 320,
+                    "flags": 1048576,
+                    "strtype": "OBJECT/States",
+                    "InheritedType": 1
+                  },
+                  {
+                    "nid": 330,
+                    "strtype": "OBJECT/Checked",
+                    "strval": "True",
+                    "InheritedType": 2
+                  },
+                  {
+                    "nid": 1010,
+                    "flags": 1048576,
+                    "strtype": "TEXTAREA/TextArea",
+                    "InheritedType": 1
+                  },
+                  {
+                    "nid": 1020,
+                    "strtype": "TEXTAREA/Text",
+                    "strval": "",
+                    "InheritedType": 10
+                  },
+                  {
+                    "nid": 1030,
+                    "strtype": "TEXTAREA/Placeholder",
+                    "strval": "Enter ID",
+                    "InheritedType": 10
+                  },
+                  {
+                    "nid": 1040,
+                    "strtype": "TEXTAREA/One_line_mode",
+                    "strval": "True",
+                    "InheritedType": 2
+                  },
+                  {
+                    "nid": 1050,
+                    "strtype": "TEXTAREA/Password_mode",
+                    "strval": "False",
+                    "InheritedType": 2
+                  },
+                  {
+                    "nid": 1060,
+                    "strtype": "TEXTAREA/Accepted_characters",
+                    "strval": "1,2,3,4,5,6,7,8,9",
+                    "InheritedType": 10
+                  },
+                  {
+                    "nid": 1070,
+                    "strtype": "TEXTAREA/Max_text_length",
+                    "integer": 2,
+                    "InheritedType": 6
+                  },
+                  {
+                    "part": "lv.PART.MAIN",
+                    "childs": [],
+                    "nid": 1080,
+                    "strtype": "TEXTAREA/Style_main",
+                    "strval": "lv.PART.MAIN, Text, Rectangle, Pad, Transform",
+                    "InheritedType": 11
+                  },
+                  {
+                    "part": "lv.PART.SELECTED",
+                    "childs": [],
+                    "nid": 1090,
+                    "strtype": "TEXTAREA/Style_selected",
+                    "strval": "lv.PART.SELECTED, Text, Rectangle",
+                    "InheritedType": 11
+                  },
+                  {
+                    "part": "lv.PART.CURSOR",
+                    "childs": [],
+                    "nid": 1100,
+                    "strtype": "TEXTAREA/Style_cursor",
+                    "strval": "lv.PART.CURSOR, Text, Rectangle",
+                    "InheritedType": 11
+                  },
+                  {
+                    "part": "lv.PART_TEXTAREA.PLACEHOLDER",
+                    "childs": [],
+                    "nid": 1110,
+                    "strtype": "TEXTAREA/Style_placeholder",
+                    "strval": "lv.PART_TEXTAREA.PLACEHOLDER, Text",
+                    "InheritedType": 11
+                  },
+                  {
+                    "disabled": false,
+                    "nid": 1000738,
+                    "strtype": "_event/EventHandler",
+                    "strval": "FOCUSED",
+                    "childs": [
+                      {
+                        "nid": 1000739,
+                        "strtype": "_event/name",
+                        "strval": "Event2",
+                        "InheritedType": 10
+                      },
+                      {
+                        "nid": 1000740,
+                        "strtype": "_event/condition_C",
+                        "strval": "",
+                        "InheritedType": 10
+                      },
+                      {
+                        "nid": 1000741,
+                        "strtype": "_event/condition_P",
+                        "strval": "",
+                        "InheritedType": 10
+                      },
+                      {
+                        "nid": 1000742,
+                        "strtype": "_event/action",
+                        "strval": "PLAY ANIMATION",
+                        "childs": [
+                          {
+                            "nid": 1000743,
+                            "strtype": "PLAY ANIMATION/Name",
+                            "strval": "PLAY ANIMATION",
+                            "InheritedType": 10
+                          },
+                          {
+                            "nid": 1000744,
+                            "strtype": "PLAY ANIMATION/FunctionName",
+                            "strval": "KeyBoardIn_Animation",
+                            "InheritedType": 10
+                          },
+                          {
+                            "nid": 1000745,
+                            "strtype": "PLAY ANIMATION/Animation",
+                            "strval": "KeyBoardIn",
+                            "InheritedType": 8
+                          },
+                          {
+                            "nid": 1000746,
+                            "strtype": "PLAY ANIMATION/Target",
+                            "strval": "GUID43729905-62087S4774119",
+                            "InheritedType": 9
+                          },
+                          {
+                            "nid": 1000747,
+                            "strtype": "PLAY ANIMATION/Delay",
+                            "InheritedType": 6
+                          },
+                          {
+                            "nid": 1000748,
+                            "strtype": "PLAY ANIMATION/Call",
+                            "strval": "<{FunctionName}>(<{Target}>, <{Delay}>)",
+                            "InheritedType": 10
+                          },
+                          {
+                            "nid": 1000749,
+                            "strtype": "PLAY ANIMATION/CallC",
+                            "strval": "<{FunctionName}>(<{Target}>, <{Delay}>);",
+                            "InheritedType": 10
+                          }
+                        ],
+                        "InheritedType": 10
+                      },
+                      {
+                        "nid": 1000820,
+                        "flags": 1048576,
+                        "strtype": "_event/action",
+                        "strval": "PLAY ANIMATION",
+                        "childs": [
+                          {
+                            "nid": 1000821,
+                            "strtype": "PLAY ANIMATION/Name",
+                            "strval": "PLAY ANIMATION",
+                            "InheritedType": 10
+                          },
+                          {
+                            "nid": 1000822,
+                            "strtype": "PLAY ANIMATION/FunctionName",
+                            "strval": "TextAreaMove_Animation",
+                            "InheritedType": 10
+                          },
+                          {
+                            "nid": 1000823,
+                            "strtype": "PLAY ANIMATION/Animation",
+                            "strval": "TextAreaMove",
+                            "InheritedType": 8
+                          },
+                          {
+                            "nid": 1000824,
+                            "strtype": "PLAY ANIMATION/Target",
+                            "strval": "GUID6950074-62117S40334119",
+                            "InheritedType": 9
+                          },
+                          {
+                            "nid": 1000825,
+                            "strtype": "PLAY ANIMATION/Delay",
+                            "InheritedType": 6
+                          },
+                          {
+                            "nid": 1000826,
+                            "strtype": "PLAY ANIMATION/Call",
+                            "strval": "<{FunctionName}>(<{Target}>, <{Delay}>)",
+                            "InheritedType": 10
+                          },
+                          {
+                            "nid": 1000827,
+                            "strtype": "PLAY ANIMATION/CallC",
+                            "strval": "<{FunctionName}>(<{Target}>, <{Delay}>);",
+                            "InheritedType": 10
+                          }
+                        ],
+                        "InheritedType": 10
+                      }
+                    ],
+                    "InheritedType": 4
+                  },
+                  {
+                    "disabled": false,
+                    "nid": 1000883,
+                    "flags": 1048576,
+                    "strtype": "_event/EventHandler",
+                    "strval": "DEFOCUSED",
+                    "childs": [
+                      {
+                        "nid": 1000884,
+                        "strtype": "_event/name",
+                        "strval": "HideKeyBoard",
+                        "InheritedType": 10
+                      },
+                      {
+                        "nid": 1000885,
+                        "strtype": "_event/condition_C",
+                        "strval": "",
+                        "InheritedType": 10
+                      },
+                      {
+                        "nid": 1000886,
+                        "strtype": "_event/condition_P",
+                        "strval": "",
+                        "InheritedType": 10
+                      },
+                      {
+                        "nid": 1000894,
+                        "strtype": "_event/action",
+                        "strval": "PLAY ANIMATION",
+                        "childs": [
+                          {
+                            "nid": 1000895,
+                            "strtype": "PLAY ANIMATION/Name",
+                            "strval": "PLAY ANIMATION",
+                            "InheritedType": 10
+                          },
+                          {
+                            "nid": 1000896,
+                            "strtype": "PLAY ANIMATION/FunctionName",
+                            "strval": "KeyBoardOut_Animation",
+                            "InheritedType": 10
+                          },
+                          {
+                            "nid": 1000897,
+                            "strtype": "PLAY ANIMATION/Animation",
+                            "strval": "KeyBoardOut",
+                            "InheritedType": 8
+                          },
+                          {
+                            "nid": 1000898,
+                            "strtype": "PLAY ANIMATION/Target",
+                            "strval": "GUID43729905-62087S4774119",
+                            "InheritedType": 9
+                          },
+                          {
+                            "nid": 1000899,
+                            "strtype": "PLAY ANIMATION/Delay",
+                            "InheritedType": 6
+                          },
+                          {
+                            "nid": 1000900,
+                            "strtype": "PLAY ANIMATION/Call",
+                            "strval": "<{FunctionName}>(<{Target}>, <{Delay}>)",
+                            "InheritedType": 10
+                          },
+                          {
+                            "nid": 1000901,
+                            "strtype": "PLAY ANIMATION/CallC",
+                            "strval": "<{FunctionName}>(<{Target}>, <{Delay}>);",
+                            "InheritedType": 10
+                          }
+                        ],
+                        "InheritedType": 10
+                      },
+                      {
+                        "nid": 1000902,
+                        "strtype": "_event/action",
+                        "strval": "PLAY ANIMATION",
+                        "childs": [
+                          {
+                            "nid": 1000903,
+                            "strtype": "PLAY ANIMATION/Name",
+                            "strval": "PLAY ANIMATION",
+                            "InheritedType": 10
+                          },
+                          {
+                            "nid": 1000904,
+                            "strtype": "PLAY ANIMATION/FunctionName",
+                            "strval": "TextAreaMoveBack_Animation",
+                            "InheritedType": 10
+                          },
+                          {
+                            "nid": 1000905,
+                            "strtype": "PLAY ANIMATION/Animation",
+                            "strval": "TextAreaMoveBack",
+                            "InheritedType": 8
+                          },
+                          {
+                            "nid": 1000906,
+                            "strtype": "PLAY ANIMATION/Target",
+                            "strval": "GUID6950074-62117S40334119",
+                            "InheritedType": 9
+                          },
+                          {
+                            "nid": 1000907,
+                            "strtype": "PLAY ANIMATION/Delay",
+                            "InheritedType": 6
+                          },
+                          {
+                            "nid": 1000908,
+                            "strtype": "PLAY ANIMATION/Call",
+                            "strval": "<{FunctionName}>(<{Target}>, <{Delay}>)",
+                            "InheritedType": 10
+                          },
+                          {
+                            "nid": 1000909,
+                            "strtype": "PLAY ANIMATION/CallC",
+                            "strval": "<{FunctionName}>(<{Target}>, <{Delay}>);",
+                            "InheritedType": 10
+                          }
+                        ],
+                        "InheritedType": 10
+                      }
+                    ],
+                    "InheritedType": 4
+                  }
+                ],
+                "saved_objtypeKey": "TEXTAREA",
+                "tree_closed": true
+              }
+            ],
+            "dont_export": false,
+            "locked": false,
+            "properties": [
+              {
+                "nid": 10,
+                "strtype": "OBJECT/Name",
+                "strval": "Container3",
+                "InheritedType": 10
+              },
+              {
+                "nid": 20,
+                "strtype": "OBJECT/Layout",
+                "InheritedType": 1
+              },
+              {
+                "Flow": 0,
+                "Wrap": false,
+                "Reversed": false,
+                "MainAlignment": 0,
+                "CrossAlignment": 0,
+                "TrackAlignment": 0,
+                "LayoutType": 0,
+                "nid": 30,
+                "strtype": "OBJECT/Layout_type",
+                "strval": "No_layout",
+                "InheritedType": 13
+              },
+              {
+                "nid": 40,
+                "strtype": "OBJECT/Transform",
+                "InheritedType": 1
+              },
+              {
+                "nid": 50,
+                "flags": 17,
+                "strtype": "OBJECT/Position",
+                "intarray": [
+                  0,
+                  0
+                ],
+                "InheritedType": 7
+              },
+              {
+                "nid": 60,
+                "flags": 17,
+                "strtype": "OBJECT/Size",
+                "intarray": [
+                  135,
+                  200
+                ],
+                "InheritedType": 7
+              },
+              {
+                "nid": 70,
+                "strtype": "OBJECT/Align",
+                "strval": "LEFT_MID",
+                "InheritedType": 3
+              },
+              {
+                "nid": 90,
+                "flags": 1048576,
+                "strtype": "OBJECT/Flags",
+                "InheritedType": 1
+              },
+              {
+                "nid": 110,
+                "strtype": "OBJECT/Clickable",
+                "strval": "False",
+                "InheritedType": 2
+              },
+              {
+                "nid": 225,
+                "flags": 1048576,
+                "strtype": "OBJECT/Scrolling",
+                "InheritedType": 1
+              },
+              {
+                "nid": 230,
+                "strtype": "OBJECT/Scrollable",
+                "strval": "False",
+                "InheritedType": 2
+              },
+              {
+                "nid": 300,
+                "strtype": "OBJECT/Scrollbar_mode",
+                "strval": "AUTO",
+                "InheritedType": 3
+              },
+              {
+                "nid": 310,
+                "strtype": "OBJECT/Scroll_direction",
+                "strval": "ALL",
+                "InheritedType": 3
+              },
+              {
+                "nid": 314,
+                "strtype": "OBJECT/Scroll_snap_x",
+                "strval": "NONE",
+                "InheritedType": 3
+              },
+              {
+                "nid": 315,
+                "strtype": "OBJECT/Scroll_snap_y",
+                "strval": "NONE",
+                "InheritedType": 3
+              },
+              {
+                "nid": 320,
+                "flags": 1048576,
+                "strtype": "OBJECT/States",
+                "InheritedType": 1
+              },
+              {
+                "part": "lv.PART.MAIN",
+                "childs": [],
+                "nid": 1010,
+                "strtype": "CONTAINER/Style_main",
+                "strval": "lv.PART.MAIN, Rectangle, Pad, Text, Transform",
+                "InheritedType": 11
+              },
+              {
+                "part": "lv.PART.SCROLLBAR",
+                "childs": [],
+                "nid": 1020,
+                "strtype": "CONTAINER/Style_scrollbar",
+                "strval": "lv.PART.SCROLLBAR, Rectangle, Pad",
+                "InheritedType": 11
+              }
+            ],
+            "saved_objtypeKey": "CONTAINER"
+          }
+        ],
         "isPage": true,
         "editor_posx": 800,
+        "editor_posy": -400,
+        "dont_export": false,
+        "locked": false,
+        "properties": [
+          {
+            "nid": 10,
+            "strtype": "OBJECT/Name",
+            "strval": "Screen2",
+            "InheritedType": 10
+          },
+          {
+            "nid": 20,
+            "flags": 1048576,
+            "strtype": "OBJECT/Layout",
+            "InheritedType": 1
+          },
+          {
+            "Flow": 0,
+            "Wrap": false,
+            "Reversed": false,
+            "MainAlignment": 0,
+            "CrossAlignment": 0,
+            "TrackAlignment": 0,
+            "LayoutType": 0,
+            "nid": 30,
+            "strtype": "OBJECT/Layout_type",
+            "strval": "No_layout",
+            "InheritedType": 13
+          },
+          {
+            "nid": 40,
+            "strtype": "OBJECT/Transform",
+            "InheritedType": 1
+          },
+          {
+            "nid": 90,
+            "flags": 1048576,
+            "strtype": "OBJECT/Flags",
+            "InheritedType": 1
+          },
+          {
+            "nid": 225,
+            "strtype": "OBJECT/Scrolling",
+            "InheritedType": 1
+          },
+          {
+            "nid": 230,
+            "strtype": "OBJECT/Scrollable",
+            "strval": "False",
+            "InheritedType": 2
+          },
+          {
+            "nid": 300,
+            "strtype": "OBJECT/Scrollbar_mode",
+            "strval": "AUTO",
+            "InheritedType": 3
+          },
+          {
+            "nid": 310,
+            "strtype": "OBJECT/Scroll_direction",
+            "strval": "ALL",
+            "InheritedType": 3
+          },
+          {
+            "nid": 314,
+            "strtype": "OBJECT/Scroll_snap_x",
+            "strval": "NONE",
+            "InheritedType": 3
+          },
+          {
+            "nid": 315,
+            "strtype": "OBJECT/Scroll_snap_y",
+            "strval": "NONE",
+            "InheritedType": 3
+          },
+          {
+            "nid": 320,
+            "flags": 1048576,
+            "strtype": "OBJECT/States",
+            "InheritedType": 1
+          },
+          {
+            "nid": 1010,
+            "strtype": "SCREEN/Screen",
+            "InheritedType": 1
+          },
+          {
+            "nid": 1020,
+            "strtype": "SCREEN/Temporary",
+            "strval": "False",
+            "InheritedType": 2
+          },
+          {
+            "part": "lv.PART.MAIN",
+            "childs": [
+              {
+                "nid": 10000,
+                "strtype": "_style/StyleState",
+                "strval": "DEFAULT",
+                "childs": [
+                  {
+                    "nid": 10520,
+                    "strtype": "_style/Bg_Color",
+                    "strval": "BackGround",
+                    "integer": 1000676,
+                    "intarray": [
+                      62,
+                      62,
+                      62,
+                      255
+                    ],
+                    "InheritedType": 7
+                  }
+                ],
+                "InheritedType": 1
+              }
+            ],
+            "nid": 1040,
+            "strtype": "SCREEN/Style_main",
+            "strval": "lv.PART.MAIN, Rectangle, Pad, Text",
+            "InheritedType": 11
+          },
+          {
+            "part": "lv.PART.SCROLLBAR",
+            "childs": [],
+            "nid": 1050,
+            "strtype": "SCREEN/Style_scrollbar",
+            "strval": "lv.PART.SCROLLBAR, Rectangle, Pad",
+            "InheritedType": 11
+          },
+          {
+            "disabled": false,
+            "nid": 1000664,
+            "strtype": "_event/EventHandler",
+            "strval": "GESTURE_RIGHT(GESTURE)",
+            "childs": [
+              {
+                "nid": 1000665,
+                "strtype": "_event/name",
+                "strval": "SwitchToMain",
+                "InheritedType": 10
+              },
+              {
+                "nid": 1000666,
+                "strtype": "_event/condition_C",
+                "strval": "",
+                "InheritedType": 10
+              },
+              {
+                "nid": 1000667,
+                "strtype": "_event/condition_P",
+                "strval": "",
+                "InheritedType": 10
+              },
+              {
+                "nid": 1000668,
+                "strtype": "_event/action",
+                "strval": "CHANGE SCREEN",
+                "childs": [
+                  {
+                    "nid": 1000669,
+                    "strtype": "CHANGE SCREEN/Name",
+                    "strval": "CHANGE SCREEN",
+                    "InheritedType": 10
+                  },
+                  {
+                    "nid": 1000670,
+                    "strtype": "CHANGE SCREEN/Call",
+                    "strval": "ChangeScreen( <{Screen_to}>, lv.SCR_LOAD_ANIM.<{Fade_mode}>, <{Speed}>, <{Delay}>)",
+                    "InheritedType": 10
+                  },
+                  {
+                    "nid": 1000671,
+                    "strtype": "CHANGE SCREEN/CallC",
+                    "strval": "_ui_screen_change( &<{Screen_to}>, LV_SCR_LOAD_ANIM_<{Fade_mode}>, <{Speed}>, <{Delay}>, &<{Screen_to}>_screen_init);",
+                    "InheritedType": 10
+                  },
+                  {
+                    "nid": 1000672,
+                    "strtype": "CHANGE SCREEN/Screen_to",
+                    "strval": "GUID91205730-398424S7434102",
+                    "InheritedType": 9
+                  },
+                  {
+                    "nid": 1000673,
+                    "strtype": "CHANGE SCREEN/Fade_mode",
+                    "strval": "MOVE_RIGHT",
+                    "InheritedType": 3
+                  },
+                  {
+                    "nid": 1000674,
+                    "strtype": "CHANGE SCREEN/Speed",
+                    "integer": 200,
+                    "InheritedType": 6
+                  },
+                  {
+                    "nid": 1000675,
+                    "strtype": "CHANGE SCREEN/Delay",
+                    "InheritedType": 6
+                  }
+                ],
+                "InheritedType": 10
+              },
+              {
+                "nid": 1000684,
+                "strtype": "_event/action",
+                "strval": "CALL FUNCTION",
+                "childs": [
+                  {
+                    "nid": 1000685,
+                    "strtype": "CALL FUNCTION/Name",
+                    "strval": "CALL FUNCTION",
+                    "InheritedType": 10
+                  },
+                  {
+                    "nid": 1000686,
+                    "strtype": "CALL FUNCTION/Call",
+                    "strval": "<{Function_name}>( event_struct )",
+                    "InheritedType": 10
+                  },
+                  {
+                    "nid": 1000687,
+                    "strtype": "CALL FUNCTION/CallC",
+                    "strval": "<{Function_name}>( e );",
+                    "InheritedType": 10
+                  },
+                  {
+                    "nid": 1000688,
+                    "strtype": "CALL FUNCTION/Function_name",
+                    "strval": "lvgl_stop_twai_receive",
+                    "InheritedType": 10
+                  },
+                  {
+                    "nid": 1000689,
+                    "strtype": "CALL FUNCTION/Dont_export_function",
+                    "strval": "True",
+                    "InheritedType": 2
+                  }
+                ],
+                "InheritedType": 10
+              }
+            ],
+            "InheritedType": 4
+          }
+        ],
+        "saved_objtypeKey": "SCREEN"
+      },
+      {
+        "guid": "GUID14926137-62118S1434119",
+        "deepid": 1649788705,
+        "children": [
+          {
+            "guid": "GUID21038204-62120S63664119",
+            "deepid": 380321304,
+            "dont_export": false,
+            "locked": false,
+            "properties": [
+              {
+                "nid": 10,
+                "strtype": "OBJECT/Name",
+                "strval": "Keyboard2",
+                "InheritedType": 10
+              },
+              {
+                "nid": 20,
+                "strtype": "OBJECT/Layout",
+                "InheritedType": 1
+              },
+              {
+                "Flow": 0,
+                "Wrap": false,
+                "Reversed": false,
+                "MainAlignment": 0,
+                "CrossAlignment": 0,
+                "TrackAlignment": 0,
+                "LayoutType": 0,
+                "nid": 30,
+                "strtype": "OBJECT/Layout_type",
+                "strval": "No_layout",
+                "InheritedType": 13
+              },
+              {
+                "nid": 40,
+                "strtype": "OBJECT/Transform",
+                "InheritedType": 1
+              },
+              {
+                "nid": 50,
+                "flags": 17,
+                "strtype": "OBJECT/Position",
+                "intarray": [
+                  40,
+                  0
+                ],
+                "InheritedType": 7
+              },
+              {
+                "nid": 60,
+                "flags": 17,
+                "strtype": "OBJECT/Size",
+                "intarray": [
+                  225,
+                  228
+                ],
+                "InheritedType": 7
+              },
+              {
+                "nid": 70,
+                "strtype": "OBJECT/Align",
+                "strval": "CENTER",
+                "InheritedType": 3
+              },
+              {
+                "nid": 90,
+                "flags": 1048576,
+                "strtype": "OBJECT/Flags",
+                "InheritedType": 1
+              },
+              {
+                "nid": 225,
+                "flags": 1048576,
+                "strtype": "OBJECT/Scrolling",
+                "InheritedType": 1
+              },
+              {
+                "nid": 300,
+                "strtype": "OBJECT/Scrollbar_mode",
+                "strval": "AUTO",
+                "InheritedType": 3
+              },
+              {
+                "nid": 310,
+                "strtype": "OBJECT/Scroll_direction",
+                "strval": "ALL",
+                "InheritedType": 3
+              },
+              {
+                "nid": 314,
+                "strtype": "OBJECT/Scroll_snap_x",
+                "strval": "NONE",
+                "InheritedType": 3
+              },
+              {
+                "nid": 315,
+                "strtype": "OBJECT/Scroll_snap_y",
+                "strval": "NONE",
+                "InheritedType": 3
+              },
+              {
+                "nid": 320,
+                "flags": 1048576,
+                "strtype": "OBJECT/States",
+                "InheritedType": 1
+              },
+              {
+                "part": "lv.PART.MAIN",
+                "childs": [],
+                "nid": 1010,
+                "strtype": "KEYBOARD/Style_main",
+                "strval": "lv.PART.MAIN, Rectangle, Pad, Transform",
+                "InheritedType": 11
+              },
+              {
+                "nid": 1020,
+                "strtype": "KEYBOARD/Target_textarea",
+                "strval": "-",
+                "InheritedType": 9
+              },
+              {
+                "nid": 1030,
+                "strtype": "KEYBOARD/Mode",
+                "strval": "NUMBER",
+                "InheritedType": 3
+              },
+              {
+                "part": "lv.PART.ITEMS",
+                "childs": [],
+                "nid": 1040,
+                "strtype": "KEYBOARD/Style_items",
+                "strval": "lv.PART.ITEMS, Rectangle, Pad, Text",
+                "InheritedType": 11
+              }
+            ],
+            "saved_objtypeKey": "KEYBOARD"
+          }
+        ],
+        "isPage": true,
+        "editor_posx": 1200,
         "editor_posy": -400,
         "dont_export": true,
         "locked": false,
@@ -2820,7 +5111,7 @@
           {
             "nid": 10,
             "strtype": "OBJECT/Name",
-            "strval": "Screen2",
+            "strval": "Screen1",
             "InheritedType": 10
           },
           {
@@ -4025,6 +6316,804 @@
         }
       ],
       "saved_objtypeKey": "ELOANIMATION"
+    },
+    {
+      "propertyAnimations": [
+        {
+          "Path": 2,
+          "KeyFrames": [
+            {
+              "Value": 210,
+              "Time": 0.0,
+              "InheritedType": 1
+            },
+            {
+              "Value": 40,
+              "Time": 400.0,
+              "InheritedType": 1
+            }
+          ],
+          "TimeReference": 0,
+          "ValueReference": 0,
+          "EarlyApply": false,
+          "ImageSet": "",
+          "PlaybackTime": 0,
+          "PlaybackDelay": 0,
+          "LoopCount": 0,
+          "LoopDelay": 0,
+          "LoopInfinite": false,
+          "guid": "GUID92121157-62093S159664119",
+          "deepid": -1413620733,
+          "dont_export": false,
+          "locked": false,
+          "properties": [
+            {
+              "nid": 1000718,
+              "strtype": "PROPERTYANIMATION/Name",
+              "strval": "Move Y",
+              "InheritedType": 10
+            },
+            {
+              "nid": 1000719,
+              "strtype": "PROPERTYANIMATION/VariableName",
+              "strval": "PropertyAnimation_0",
+              "InheritedType": 10
+            },
+            {
+              "nid": 1000720,
+              "strtype": "PROPERTYANIMATION/PropertyFunction",
+              "strval": "anim_callback_set_y",
+              "InheritedType": 10
+            },
+            {
+              "nid": 1000721,
+              "strtype": "PROPERTYANIMATION/StartValue",
+              "integer": 210,
+              "InheritedType": 6
+            },
+            {
+              "nid": 1000722,
+              "strtype": "PROPERTYANIMATION/EndValue",
+              "integer": 40,
+              "InheritedType": 6
+            },
+            {
+              "nid": 1000723,
+              "strtype": "PROPERTYANIMATION/AbsoluteReference",
+              "strval": "True",
+              "InheritedType": 2
+            },
+            {
+              "nid": 1000724,
+              "strtype": "PROPERTYANIMATION/Delay",
+              "InheritedType": 6
+            },
+            {
+              "nid": 1000725,
+              "strtype": "PROPERTYANIMATION/Duration",
+              "integer": 400,
+              "InheritedType": 6
+            },
+            {
+              "nid": 1000726,
+              "strtype": "PROPERTYANIMATION/Path",
+              "strval": "ease_out",
+              "InheritedType": 3
+            },
+            {
+              "nid": 1000727,
+              "strtype": "PROPERTYANIMATION/FullAnimationDuration",
+              "integer": 400,
+              "InheritedType": 6
+            },
+            {
+              "nid": 1000728,
+              "strtype": "PROPERTYANIMATION/LoopCount",
+              "InheritedType": 6
+            },
+            {
+              "nid": 1000729,
+              "strtype": "PROPERTYANIMATION/Forward",
+              "strval": "True",
+              "InheritedType": 2
+            },
+            {
+              "nid": 1000730,
+              "strtype": "PROPERTYANIMATION/Backward",
+              "strval": "False",
+              "InheritedType": 2
+            },
+            {
+              "nid": 1000731,
+              "strtype": "PROPERTYANIMATION/EarlyApply",
+              "strval": "False",
+              "InheritedType": 2
+            },
+            {
+              "nid": 1000732,
+              "strtype": "PROPERTYANIMATION/PropertyGetter",
+              "strval": "anim_callback_get_y",
+              "InheritedType": 10
+            },
+            {
+              "nid": 1000733,
+              "strtype": "PROPERTYANIMATION/LoopDelay",
+              "InheritedType": 6
+            },
+            {
+              "nid": 1000734,
+              "strtype": "PROPERTYANIMATION/PlaybackDelay",
+              "InheritedType": 6
+            },
+            {
+              "nid": 1000735,
+              "strtype": "PROPERTYANIMATION/PlaybackTime",
+              "InheritedType": 6
+            },
+            {
+              "nid": 1000736,
+              "strtype": "PROPERTYANIMATION/LoopInfinite",
+              "strval": "False",
+              "InheritedType": 2
+            },
+            {
+              "nid": 1000737,
+              "strtype": "PROPERTYANIMATION/ImageSet",
+              "strval": "",
+              "InheritedType": 14
+            }
+          ],
+          "saved_objtypeKey": "PROPERTYANIMATION",
+          "InheritedType": 1
+        }
+      ],
+      "guid": "GUID76170435-62089S6854119",
+      "deepid": 1302135088,
+      "dont_export": false,
+      "locked": false,
+      "properties": [
+        {
+          "nid": 1000691,
+          "strtype": "ELOANIMATION/Name",
+          "strval": "KeyBoardIn",
+          "InheritedType": 10
+        },
+        {
+          "nid": 1000692,
+          "strtype": "ELOANIMATION/FunctionName",
+          "strval": "KeyBoardIn_Animation",
+          "InheritedType": 10
+        },
+        {
+          "nid": 1000693,
+          "strtype": "ELOANIMATION/AnimationTargetObjectType",
+          "strval": "BASIC",
+          "InheritedType": 10
+        },
+        {
+          "nid": 1000694,
+          "strtype": "ELOANIMATION/PlayType",
+          "strval": "Forward",
+          "InheritedType": 3
+        },
+        {
+          "nid": 1000695,
+          "strtype": "ELOANIMATION/Loop",
+          "strval": "False",
+          "InheritedType": 2
+        },
+        {
+          "nid": 1000696,
+          "strtype": "ELOANIMATION/TestTarget",
+          "strval": "GUID40784735-62095S6784119",
+          "InheritedType": 10
+        },
+        {
+          "nid": 1000697,
+          "strtype": "ELOANIMATION/TargetTypeFilter",
+          "strval": "",
+          "InheritedType": 10
+        }
+      ],
+      "saved_objtypeKey": "ELOANIMATION"
+    },
+    {
+      "propertyAnimations": [
+        {
+          "Path": 2,
+          "KeyFrames": [
+            {
+              "Value": 40,
+              "Time": 0.0,
+              "InheritedType": 1
+            },
+            {
+              "Value": 210,
+              "Time": 400.0,
+              "InheritedType": 1
+            }
+          ],
+          "TimeReference": 0,
+          "ValueReference": 1,
+          "EarlyApply": false,
+          "ImageSet": "",
+          "PlaybackTime": 0,
+          "PlaybackDelay": 0,
+          "LoopCount": 0,
+          "LoopDelay": 0,
+          "LoopInfinite": false,
+          "guid": "GUID88460752-62099S57614119",
+          "deepid": -1697534768,
+          "dont_export": false,
+          "locked": false,
+          "properties": [
+            {
+              "nid": 1000757,
+              "strtype": "PROPERTYANIMATION/Name",
+              "strval": "Move Y",
+              "InheritedType": 10
+            },
+            {
+              "nid": 1000758,
+              "strtype": "PROPERTYANIMATION/VariableName",
+              "strval": "PropertyAnimation_0",
+              "InheritedType": 10
+            },
+            {
+              "nid": 1000759,
+              "strtype": "PROPERTYANIMATION/PropertyFunction",
+              "strval": "anim_callback_set_y",
+              "InheritedType": 10
+            },
+            {
+              "nid": 1000760,
+              "strtype": "PROPERTYANIMATION/StartValue",
+              "integer": 40,
+              "InheritedType": 6
+            },
+            {
+              "nid": 1000761,
+              "strtype": "PROPERTYANIMATION/EndValue",
+              "integer": 210,
+              "InheritedType": 6
+            },
+            {
+              "nid": 1000762,
+              "strtype": "PROPERTYANIMATION/AbsoluteReference",
+              "strval": "False",
+              "InheritedType": 2
+            },
+            {
+              "nid": 1000763,
+              "strtype": "PROPERTYANIMATION/Delay",
+              "InheritedType": 6
+            },
+            {
+              "nid": 1000764,
+              "strtype": "PROPERTYANIMATION/Duration",
+              "integer": 400,
+              "InheritedType": 6
+            },
+            {
+              "nid": 1000765,
+              "strtype": "PROPERTYANIMATION/Path",
+              "strval": "ease_out",
+              "InheritedType": 3
+            },
+            {
+              "nid": 1000766,
+              "strtype": "PROPERTYANIMATION/FullAnimationDuration",
+              "integer": 400,
+              "InheritedType": 6
+            },
+            {
+              "nid": 1000767,
+              "strtype": "PROPERTYANIMATION/LoopCount",
+              "InheritedType": 6
+            },
+            {
+              "nid": 1000768,
+              "strtype": "PROPERTYANIMATION/Forward",
+              "strval": "True",
+              "InheritedType": 2
+            },
+            {
+              "nid": 1000769,
+              "strtype": "PROPERTYANIMATION/Backward",
+              "strval": "False",
+              "InheritedType": 2
+            },
+            {
+              "nid": 1000770,
+              "strtype": "PROPERTYANIMATION/EarlyApply",
+              "strval": "False",
+              "InheritedType": 2
+            },
+            {
+              "nid": 1000771,
+              "strtype": "PROPERTYANIMATION/PropertyGetter",
+              "strval": "anim_callback_get_y",
+              "InheritedType": 10
+            },
+            {
+              "nid": 1000772,
+              "strtype": "PROPERTYANIMATION/LoopDelay",
+              "InheritedType": 6
+            },
+            {
+              "nid": 1000773,
+              "strtype": "PROPERTYANIMATION/PlaybackDelay",
+              "InheritedType": 6
+            },
+            {
+              "nid": 1000774,
+              "strtype": "PROPERTYANIMATION/PlaybackTime",
+              "InheritedType": 6
+            },
+            {
+              "nid": 1000775,
+              "strtype": "PROPERTYANIMATION/LoopInfinite",
+              "strval": "False",
+              "InheritedType": 2
+            },
+            {
+              "nid": 1000776,
+              "strtype": "PROPERTYANIMATION/ImageSet",
+              "strval": "",
+              "InheritedType": 14
+            }
+          ],
+          "saved_objtypeKey": "PROPERTYANIMATION",
+          "InheritedType": 1
+        }
+      ],
+      "guid": "GUID49440006-62097S7834119",
+      "deepid": -1391192390,
+      "dont_export": false,
+      "locked": false,
+      "properties": [
+        {
+          "nid": 1000750,
+          "strtype": "ELOANIMATION/Name",
+          "strval": "KeyBoardOut",
+          "InheritedType": 10
+        },
+        {
+          "nid": 1000751,
+          "strtype": "ELOANIMATION/FunctionName",
+          "strval": "KeyBoardOut_Animation",
+          "InheritedType": 10
+        },
+        {
+          "nid": 1000752,
+          "strtype": "ELOANIMATION/AnimationTargetObjectType",
+          "strval": "BASIC",
+          "InheritedType": 10
+        },
+        {
+          "nid": 1000753,
+          "strtype": "ELOANIMATION/PlayType",
+          "strval": "Forward",
+          "InheritedType": 3
+        },
+        {
+          "nid": 1000754,
+          "strtype": "ELOANIMATION/Loop",
+          "strval": "False",
+          "InheritedType": 2
+        },
+        {
+          "nid": 1000755,
+          "strtype": "ELOANIMATION/TestTarget",
+          "strval": "GUID40784735-62095S6784119",
+          "InheritedType": 10
+        },
+        {
+          "nid": 1000756,
+          "strtype": "ELOANIMATION/TargetTypeFilter",
+          "strval": "",
+          "InheritedType": 10
+        }
+      ],
+      "saved_objtypeKey": "ELOANIMATION"
+    },
+    {
+      "propertyAnimations": [
+        {
+          "Path": 2,
+          "KeyFrames": [
+            {
+              "Value": 0,
+              "Time": 0.0,
+              "InheritedType": 1
+            },
+            {
+              "Value": -80,
+              "Time": 200.0,
+              "InheritedType": 1
+            }
+          ],
+          "TimeReference": 0,
+          "ValueReference": 0,
+          "EarlyApply": false,
+          "ImageSet": "",
+          "PlaybackTime": 0,
+          "PlaybackDelay": 0,
+          "LoopCount": 0,
+          "LoopDelay": 0,
+          "LoopInfinite": false,
+          "guid": "GUID33910812-62103S14584119",
+          "deepid": 373053718,
+          "dont_export": false,
+          "locked": false,
+          "properties": [
+            {
+              "nid": 1000800,
+              "strtype": "PROPERTYANIMATION/Name",
+              "strval": "Move Y",
+              "InheritedType": 10
+            },
+            {
+              "nid": 1000801,
+              "strtype": "PROPERTYANIMATION/VariableName",
+              "strval": "PropertyAnimation_0",
+              "InheritedType": 10
+            },
+            {
+              "nid": 1000802,
+              "strtype": "PROPERTYANIMATION/PropertyFunction",
+              "strval": "anim_callback_set_y",
+              "InheritedType": 10
+            },
+            {
+              "nid": 1000803,
+              "strtype": "PROPERTYANIMATION/StartValue",
+              "InheritedType": 6
+            },
+            {
+              "nid": 1000804,
+              "strtype": "PROPERTYANIMATION/EndValue",
+              "integer": -80,
+              "InheritedType": 6
+            },
+            {
+              "nid": 1000805,
+              "strtype": "PROPERTYANIMATION/AbsoluteReference",
+              "strval": "True",
+              "InheritedType": 2
+            },
+            {
+              "nid": 1000806,
+              "strtype": "PROPERTYANIMATION/Delay",
+              "InheritedType": 6
+            },
+            {
+              "nid": 1000807,
+              "strtype": "PROPERTYANIMATION/Duration",
+              "integer": 200,
+              "InheritedType": 6
+            },
+            {
+              "nid": 1000808,
+              "strtype": "PROPERTYANIMATION/Path",
+              "strval": "ease_out",
+              "InheritedType": 3
+            },
+            {
+              "nid": 1000809,
+              "strtype": "PROPERTYANIMATION/FullAnimationDuration",
+              "integer": 200,
+              "InheritedType": 6
+            },
+            {
+              "nid": 1000810,
+              "strtype": "PROPERTYANIMATION/LoopCount",
+              "InheritedType": 6
+            },
+            {
+              "nid": 1000811,
+              "strtype": "PROPERTYANIMATION/Forward",
+              "strval": "True",
+              "InheritedType": 2
+            },
+            {
+              "nid": 1000812,
+              "strtype": "PROPERTYANIMATION/Backward",
+              "strval": "False",
+              "InheritedType": 2
+            },
+            {
+              "nid": 1000813,
+              "strtype": "PROPERTYANIMATION/EarlyApply",
+              "strval": "False",
+              "InheritedType": 2
+            },
+            {
+              "nid": 1000814,
+              "strtype": "PROPERTYANIMATION/PropertyGetter",
+              "strval": "anim_callback_get_y",
+              "InheritedType": 10
+            },
+            {
+              "nid": 1000815,
+              "strtype": "PROPERTYANIMATION/LoopDelay",
+              "InheritedType": 6
+            },
+            {
+              "nid": 1000816,
+              "strtype": "PROPERTYANIMATION/PlaybackDelay",
+              "InheritedType": 6
+            },
+            {
+              "nid": 1000817,
+              "strtype": "PROPERTYANIMATION/PlaybackTime",
+              "InheritedType": 6
+            },
+            {
+              "nid": 1000818,
+              "strtype": "PROPERTYANIMATION/LoopInfinite",
+              "strval": "False",
+              "InheritedType": 2
+            },
+            {
+              "nid": 1000819,
+              "strtype": "PROPERTYANIMATION/ImageSet",
+              "strval": "",
+              "InheritedType": 14
+            }
+          ],
+          "saved_objtypeKey": "PROPERTYANIMATION",
+          "InheritedType": 1
+        }
+      ],
+      "guid": "GUID5179862-62101S1194119",
+      "deepid": 1185071910,
+      "dont_export": false,
+      "locked": false,
+      "properties": [
+        {
+          "nid": 1000793,
+          "strtype": "ELOANIMATION/Name",
+          "strval": "TextAreaMove",
+          "InheritedType": 10
+        },
+        {
+          "nid": 1000794,
+          "strtype": "ELOANIMATION/FunctionName",
+          "strval": "TextAreaMove_Animation",
+          "InheritedType": 10
+        },
+        {
+          "nid": 1000795,
+          "strtype": "ELOANIMATION/AnimationTargetObjectType",
+          "strval": "BASIC",
+          "InheritedType": 10
+        },
+        {
+          "nid": 1000796,
+          "strtype": "ELOANIMATION/PlayType",
+          "strval": "Forward",
+          "InheritedType": 3
+        },
+        {
+          "nid": 1000797,
+          "strtype": "ELOANIMATION/Loop",
+          "strval": "False",
+          "InheritedType": 2
+        },
+        {
+          "nid": 1000798,
+          "strtype": "ELOANIMATION/TestTarget",
+          "strval": "GUID40784735-62095S6784119",
+          "InheritedType": 10
+        },
+        {
+          "nid": 1000799,
+          "strtype": "ELOANIMATION/TargetTypeFilter",
+          "strval": "",
+          "InheritedType": 10
+        }
+      ],
+      "saved_objtypeKey": "ELOANIMATION"
+    },
+    {
+      "propertyAnimations": [
+        {
+          "Path": 2,
+          "KeyFrames": [
+            {
+              "Value": -80,
+              "Time": 0.0,
+              "InheritedType": 1
+            },
+            {
+              "Value": 0,
+              "Time": 400.0,
+              "InheritedType": 1
+            }
+          ],
+          "TimeReference": 0,
+          "ValueReference": 0,
+          "EarlyApply": false,
+          "ImageSet": "",
+          "PlaybackTime": 0,
+          "PlaybackDelay": 0,
+          "LoopCount": 0,
+          "LoopDelay": 0,
+          "LoopInfinite": false,
+          "guid": "GUID78190388-62107S84384119",
+          "deepid": -1242437230,
+          "dont_export": false,
+          "locked": false,
+          "properties": [
+            {
+              "nid": 1000835,
+              "strtype": "PROPERTYANIMATION/Name",
+              "strval": "Move Y",
+              "InheritedType": 10
+            },
+            {
+              "nid": 1000836,
+              "strtype": "PROPERTYANIMATION/VariableName",
+              "strval": "PropertyAnimation_0",
+              "InheritedType": 10
+            },
+            {
+              "nid": 1000837,
+              "strtype": "PROPERTYANIMATION/PropertyFunction",
+              "strval": "anim_callback_set_y",
+              "InheritedType": 10
+            },
+            {
+              "nid": 1000838,
+              "strtype": "PROPERTYANIMATION/StartValue",
+              "integer": -80,
+              "InheritedType": 6
+            },
+            {
+              "nid": 1000839,
+              "strtype": "PROPERTYANIMATION/EndValue",
+              "InheritedType": 6
+            },
+            {
+              "nid": 1000840,
+              "strtype": "PROPERTYANIMATION/AbsoluteReference",
+              "strval": "True",
+              "InheritedType": 2
+            },
+            {
+              "nid": 1000841,
+              "strtype": "PROPERTYANIMATION/Delay",
+              "InheritedType": 6
+            },
+            {
+              "nid": 1000842,
+              "strtype": "PROPERTYANIMATION/Duration",
+              "integer": 400,
+              "InheritedType": 6
+            },
+            {
+              "nid": 1000843,
+              "strtype": "PROPERTYANIMATION/Path",
+              "strval": "ease_out",
+              "InheritedType": 3
+            },
+            {
+              "nid": 1000844,
+              "strtype": "PROPERTYANIMATION/FullAnimationDuration",
+              "integer": 400,
+              "InheritedType": 6
+            },
+            {
+              "nid": 1000845,
+              "strtype": "PROPERTYANIMATION/LoopCount",
+              "InheritedType": 6
+            },
+            {
+              "nid": 1000846,
+              "strtype": "PROPERTYANIMATION/Forward",
+              "strval": "True",
+              "InheritedType": 2
+            },
+            {
+              "nid": 1000847,
+              "strtype": "PROPERTYANIMATION/Backward",
+              "strval": "False",
+              "InheritedType": 2
+            },
+            {
+              "nid": 1000848,
+              "strtype": "PROPERTYANIMATION/EarlyApply",
+              "strval": "False",
+              "InheritedType": 2
+            },
+            {
+              "nid": 1000849,
+              "strtype": "PROPERTYANIMATION/PropertyGetter",
+              "strval": "anim_callback_get_y",
+              "InheritedType": 10
+            },
+            {
+              "nid": 1000850,
+              "strtype": "PROPERTYANIMATION/LoopDelay",
+              "InheritedType": 6
+            },
+            {
+              "nid": 1000851,
+              "strtype": "PROPERTYANIMATION/PlaybackDelay",
+              "InheritedType": 6
+            },
+            {
+              "nid": 1000852,
+              "strtype": "PROPERTYANIMATION/PlaybackTime",
+              "InheritedType": 6
+            },
+            {
+              "nid": 1000853,
+              "strtype": "PROPERTYANIMATION/LoopInfinite",
+              "strval": "False",
+              "InheritedType": 2
+            },
+            {
+              "nid": 1000854,
+              "strtype": "PROPERTYANIMATION/ImageSet",
+              "strval": "",
+              "InheritedType": 14
+            }
+          ],
+          "saved_objtypeKey": "PROPERTYANIMATION",
+          "InheritedType": 1
+        }
+      ],
+      "guid": "GUID96049998-62105S4684119",
+      "deepid": -322771564,
+      "dont_export": false,
+      "locked": false,
+      "properties": [
+        {
+          "nid": 1000828,
+          "strtype": "ELOANIMATION/Name",
+          "strval": "TextAreaMoveBack",
+          "InheritedType": 10
+        },
+        {
+          "nid": 1000829,
+          "strtype": "ELOANIMATION/FunctionName",
+          "strval": "TextAreaMoveBack_Animation",
+          "InheritedType": 10
+        },
+        {
+          "nid": 1000830,
+          "strtype": "ELOANIMATION/AnimationTargetObjectType",
+          "strval": "BASIC",
+          "InheritedType": 10
+        },
+        {
+          "nid": 1000831,
+          "strtype": "ELOANIMATION/PlayType",
+          "strval": "Forward",
+          "InheritedType": 3
+        },
+        {
+          "nid": 1000832,
+          "strtype": "ELOANIMATION/Loop",
+          "strval": "False",
+          "InheritedType": 2
+        },
+        {
+          "nid": 1000833,
+          "strtype": "ELOANIMATION/TestTarget",
+          "strval": "GUID40784735-62095S6784119",
+          "InheritedType": 10
+        },
+        {
+          "nid": 1000834,
+          "strtype": "ELOANIMATION/TargetTypeFilter",
+          "strval": "",
+          "InheritedType": 10
+        }
+      ],
+      "saved_objtypeKey": "ELOANIMATION"
     }
   ],
   "selected_theme": "Default",
@@ -4055,7 +7144,7 @@
     "uiExportFolderPath": "H:\\temp\\twai_motors_network\\main\\ui",
     "projectExportFolderPath": "",
     "custom_variable_prefix": "uic",
-    "backup_cnt": 13,
+    "backup_cnt": 14,
     "autosave_cnt": 0,
     "group_color_cnt": 1,
     "lvgl_version": "8.3.11",
@@ -4072,7 +7161,7 @@
     "drive_fatfs_path": "",
     "naming": "_ScreenWidgetName",
     "naming_force_lowercase": false,
-    "nidcnt": 1000652,
+    "nidcnt": 1000910,
     "BitDepth": 16,
     "Name": "SquareLine_Project"
   }

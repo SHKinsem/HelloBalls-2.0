@@ -3,4 +3,5 @@ idf_component_register( SRCS            "debugger.cpp"
                                         motors
                                         szp_bsp
                                         buttons
+                                        serial
                         INCLUDE_DIRS    "." "../../main/ui")

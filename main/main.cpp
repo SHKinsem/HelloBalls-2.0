@@ -25,6 +25,7 @@
 #include "app_twai.h"
 #include "ui.h"
 // #include "app_motors.h"
+#include "app_motors.h"
 #include "debugger.h"
 #include "serial.h"
 #include "stepper_motors.h"
@@ -45,30 +46,33 @@ void setup(){
         ESP_LOGE(TAG, "Failed to mount SD card");
         ESP_LOGE(TAG, "Entering motor Debug mode");
     }
-    // button_init(); // Initialize button with no callback function
-    // start_twai_receive_task();
-    // motor_task_init(); // Initialize motor task
+    
+    // Initialize servo on GPIO0
+    // servo_init();
+    
+    // Initialize button with servo control function
+    // button_init();
+    
+    motor_task_init(); // Initialize motor task
 }
+
+can_channel_t can_channel(0, TWAI_TX_PIN, TWAI_RX_PIN); // Create a CAN channel instance
 
 extern "C" void app_main(void)
 {
-    setup(); // Call the setup function to initialize the system
+    // setup(); // Call the setup function to initialize the system
     // uart_init();
-    stepper_motor_task_init(); // Initialize stepper motor task
+    dm3519_t test_motor(1); // Create an instance of the motor
+    test_motor.setPIDParameters(20.0, 0.007, 0.005, 0.1, 0.1, 5000.0, -5000.0); // Set PID parameters
+    can_channel.reg_motor(&test_motor); // Register the motor with the CAN channel
+    can_channel.start(); // Start the CAN channel
+    test_motor.setTargetSpeed(1000); // Set target speed
 
-    vTaskDelay(pdMS_TO_TICKS(5000));
-    ESP_LOGI(TAG, "Starting main application...");
-    home_stepper_motor(); // Home the stepper motor
-
-    // measure_important_function();
     while(1){
-        for(int i = 0; i < 10; i++){
-            int32_t pos = i * 1000; // Set position to move to
-            set_stepper_pos(pos); // Move stepper to the specified position
-            vTaskDelay(pdMS_TO_TICKS(1000)); // Delay for 100 milliseconds
-        }
-        vTaskDelay(pdMS_TO_TICKS(100));
+        test_motor.enable(); // Enable the motor
+        vTaskDelay(pdMS_TO_TICKS(1000));
+        test_motor.disable(); // Disable the motor
+        vTaskDelay(pdMS_TO_TICKS(1000));
     }
 
-    // uninstall_twai_driver();
 }

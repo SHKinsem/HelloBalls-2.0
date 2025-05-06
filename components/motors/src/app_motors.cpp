@@ -6,6 +6,8 @@
 #include "esp_log.h"
 #include "driver/twai.h"
 #include <cstring>  // For strcat function
+#include "driver/ledc.h"
+// #include <cstring>
 #include "bldc_motors.h"
 #include "stepper_motors.h"
 #include "m2006.h"
@@ -19,12 +21,122 @@
 #define TAG "MOTORS"
 #define ID_DJI_RM_MOTOR         0x200
 
-m3508_t frictionwheels[2] = {m3508_t(1), m3508_t(2)}; // Create instances of m3508 motors for friction wheels
+// Servo control parameters - use different GPIO and timer/channel combination
+#define SERVO_GPIO              11         // Changed from GPIO0 to GPIO18
+#define LEDC_TIMER              LEDC_TIMER_1  // Changed from TIMER_0 to TIMER_1
+#define LEDC_MODE               LEDC_LOW_SPEED_MODE
+#define LEDC_CHANNEL            LEDC_CHANNEL_1  // Changed from CHANNEL_0 to CHANNEL_1
+#define LEDC_DUTY_RES           LEDC_TIMER_13_BIT // Set duty resolution to 13 bits
+#define LEDC_FREQUENCY          50                // PWM frequency in Hz (standard for servo is 50Hz)
+#define SERVO_MIN_PULSEWIDTH    500               // Minimum pulse width in microseconds (0 degrees)
+#define SERVO_MAX_PULSEWIDTH    2500              // Maximum pulse width in microseconds (180 degrees)
+#define SERVO_ANGLE_0           0                 // 0 degree position
+#define SERVO_ANGLE_30          30                // 30 degree position
 
-// static int stepper_motor_pos = 0; // Current position of the stepper motor
+static bool servo_current_state = false;          // false = 0 degrees, true = 30 degrees
+
+// static twai_message_t speed_message;
+
+// // Initialize the message
+// void init_speed_message() {
+//     // Message type and format settings
+//     speed_message.flags = TWAI_MSG_FLAG_SS;  // Single shot mode
+//     // Message ID and payload
+//     speed_message.identifier = ID_DJI_RM_MOTOR;
+//     speed_message.data_length_code = 8;
+//     memset(speed_message.data, 0, 8);  // Initialize all data bytes to 0
+// }
+
+// Convert angle to duty cycle for servo control
+static uint32_t servo_angle_to_duty(float angle) {
+    // Convert angle to a value between 0-180
+    if (angle < 0) angle = 0;
+    if (angle > 180) angle = 180;
+    
+    // Calculate pulse width based on angle
+    float pulse_width = SERVO_MIN_PULSEWIDTH + (SERVO_MAX_PULSEWIDTH - SERVO_MIN_PULSEWIDTH) * (angle / 180.0);
+    
+    // Convert pulse width to duty cycle
+    uint32_t duty = (uint32_t)((pulse_width / 20000.0) * ((1 << LEDC_DUTY_RES) - 1));
+    return duty;
+}
+
+// Initialize servo on GPIO18
+void servo_init(void) {
+    ESP_LOGI(TAG, "Initializing servo on GPIO%d", SERVO_GPIO);
+    
+    // LEDC timer configuration
+    ledc_timer_config_t ledc_timer = {
+        .speed_mode       = LEDC_MODE,
+        .duty_resolution  = LEDC_DUTY_RES,
+        .timer_num        = LEDC_TIMER,
+        .freq_hz          = LEDC_FREQUENCY,
+        .clk_cfg          = LEDC_AUTO_CLK
+    };
+    ESP_ERROR_CHECK(ledc_timer_config(&ledc_timer));
+    
+    // Channel configuration
+    ledc_channel_config_t ledc_channel = {
+        .gpio_num       = SERVO_GPIO,
+        .speed_mode     = LEDC_MODE,
+        .channel        = LEDC_CHANNEL,
+        .intr_type      = LEDC_INTR_DISABLE,
+        .timer_sel      = LEDC_TIMER,
+        .duty           = 0, // Initial duty cycle set to 0
+        .hpoint         = 0,
+        .flags          = {}
+    };
+    ESP_ERROR_CHECK(ledc_channel_config(&ledc_channel));
+    
+    // Set initial position to 0 degrees
+    servo_rotate(false);
+    ESP_LOGI(TAG, "Servo initialized to 0 degrees position");
+}
+
+// Rotate servo (true = 30 degrees, false = 0 degrees)
+void servo_rotate(bool direction) {
+    float angle = direction ? SERVO_ANGLE_30 : SERVO_ANGLE_0;
+    uint32_t duty = servo_angle_to_duty(angle);
+    
+    ESP_ERROR_CHECK(ledc_set_duty(LEDC_MODE, LEDC_CHANNEL, duty));
+    ESP_ERROR_CHECK(ledc_update_duty(LEDC_MODE, LEDC_CHANNEL));
+    
+    ESP_LOGI(TAG, "Servo rotated to %d degrees", direction ? SERVO_ANGLE_30 : SERVO_ANGLE_0);
+    servo_current_state = direction;
+}
+
+// Get current servo state
+bool get_servo_state(void) {
+    return servo_current_state;
+}
+
+// Toggle servo position - helper function for C code
+void toggle_servo(void) {
+    bool current_state = servo_current_state;
+    servo_rotate(!current_state);
+    ESP_LOGI(TAG, "Servo toggled from %s to %s position", 
+        current_state ? "30°" : "0°", 
+        !current_state ? "30°" : "0°");
+}
+
+m3508_t frictionwheels[2] = {m3508_t(1), m3508_t(2)}; // Create instances of m3508 motors for friction wheels
+m3508_t wheels[2] = {m3508_t(3), m3508_t(4)}; // Create instances of m3508 motors for wheels
+// m2006_t loaderMotor(3); // Create an instance of m2006 motor for loader motor
 
 base_motor_t* get_motor_ptr(uint8_t motor_id) {
-    return &frictionwheels[motor_id - 1]; 
+    switch (motor_id) {
+        case 1:
+            return &frictionwheels[0];
+        case 2:
+            return &frictionwheels[1];
+        case 3:
+            return &wheels[0];
+        case 4:
+            return &wheels[1];
+        default:
+            ESP_LOGE(TAG, "Invalid motor ID: %d", motor_id);
+            return NULL; // Invalid motor ID
+    }
 }
 
 uint8_t* motor_data[4]; // Buffer to store motor data
@@ -47,9 +159,16 @@ void twai_receive_task_continuous(void *arg)
             continue;
         }
         int msg_id = rx_msg.identifier % ID_DJI_RM_MOTOR;
-        if(msg_id > 0 && msg_id < 5) {
+        if(msg_id > 0 && msg_id < 3) {
             // for (int i = 0; i < rx_msg.data_length_code; i++) motor_data[msg_id-1][i] = rx_msg.data[i];
             frictionwheels[msg_id - 1].parseData(rx_msg.data); // Parse data for the specific motor
+        } else if(msg_id == 3) {
+            // loaderMotor.parseData(rx_msg.data); // Parse data for the loader motor
+            wheels[0].parseData(rx_msg.data); // Example for parsing wheel data
+        } else if(msg_id == 4) {
+            // Handle DM3519 motor data here if needed
+            // dm3519_motor.parseData(rx_msg.data); // Example for parsing DM3519 motor data
+            wheels[1].parseData(rx_msg.data); // Example for parsing wheel data
         } else {
             ESP_LOGI(TAG, "Received unknown message with ID %d", msg_id);
         }
@@ -66,11 +185,15 @@ void twai_init(){
     xTaskCreatePinnedToCore(twai_receive_task_continuous, "TWAI_rx_continuous", 4096, NULL, 1, NULL, tskNO_AFFINITY);
 }
 
-can_channel_t::can_channel_t(uint8_t channel_id):
+can_channel_t::can_channel_t(uint8_t channel_id, gpio_num_t tx_io, gpio_num_t rx_io):
     channel_id(channel_id), 
     motorCount(0), 
     motors(nullptr), 
-    twai_running(false) {
+    twai_running(false),
+    tx_failed_count(0),
+    last_rx_time(0),
+    tx_active(false),
+    rx_timeout_ms(2000) { // 2 seconds timeout by default
 
     t_config = TWAI_TIMING_CONFIG_1MBITS(); // 1 Mbps
 
@@ -78,8 +201,8 @@ can_channel_t::can_channel_t(uint8_t channel_id):
 
     g_config.controller_id = 0,             
     g_config.mode = TWAI_MODE_NORMAL;
-    g_config.tx_io = TWAI_TX_PIN;
-    g_config.rx_io = TWAI_RX_PIN;       
+    g_config.tx_io = tx_io;
+    g_config.rx_io = rx_io;       
     g_config.clkout_io = TWAI_IO_UNUSED; 
     g_config.bus_off_io = TWAI_IO_UNUSED;  
     g_config.tx_queue_len = 5;
@@ -111,10 +234,11 @@ can_channel_t::~can_channel_t() {
     stop(); // Make sure to stop all tasks and the TWAI driver
 }
 
-void can_channel_t::reg_motor(base_motor_t* motor, uint8_t motor_id) {
-    if (motorCount < 8 && motor_id < 8) { // Assuming a maximum of 8 motors per channel
-        motors[motor_id] = motor;   // Register the motor at the specified ID, else overwrite the existing one
+void can_channel_t::reg_motor(base_motor_t* motor) {
+    if (motorCount < 8 && motor->getMotorId() < 8) { // Assuming a maximum of 8 motors per channel
+        motors[motor->getMotorId() - 1] = motor;   // Register the motor at the specified ID, else overwrite the existing one
         motorCount++;
+        ESP_LOGI(TAG, "Motor %d registered on channel %d", motor->getMotorId(), channel_id);
     } else {
         ESP_LOGE(TAG, "Reg failed");
     }
@@ -130,11 +254,24 @@ void can_channel_t::rx_task(void* arg) {
         }
         esp_err_t status = twai_receive_v2(twai_handle, &rx_msg, pdMS_TO_TICKS(1000));
         if (status != ESP_OK) {
-            ESP_LOGE(TAG, "Error receiving message: %s", esp_err_to_name(status));
+            // Check if we've exceeded the RX timeout and need to stop TX
+            if (tx_active && (xTaskGetTickCount() - last_rx_time) > pdMS_TO_TICKS(rx_timeout_ms)) {
+                tx_active = false;
+                ESP_LOGI(TAG, "No RX messages for %lu ms, stopping TX on channel %d", rx_timeout_ms, channel_id);
+            }
             continue;
         }
 
-        int msg_id = rx_msg.identifier % ID_DJI_RM_MOTOR;
+        // Update last reception time whenever we receive a valid message
+        last_rx_time = xTaskGetTickCount();
+        
+        // If TX is not active, activate it now that we've received a message
+        if (!tx_active) {
+            tx_active = true;
+            ESP_LOGI(TAG, "RX message received, enabling TX on channel %d", channel_id);
+        }
+
+        int msg_id = rx_msg.identifier % 0x200;
         if(motors[msg_id - 1]) {
             motors[msg_id - 1]->parseData(rx_msg.data);
         } else {
@@ -148,11 +285,20 @@ void can_channel_t::tx_task(void* arg) {
     TickType_t xLastWakeTime = xTaskGetTickCount(); // Get the current tick count
 
     while (true) {
-
+        // Skip if TWAI driver is not running
         if(!twai_running) {
             vTaskDelay(pdMS_TO_TICKS(1000));
             continue;
         }
+
+        // Skip transmission if tx_active is false (no recent RX messages)
+        if(!tx_active) {
+            vTaskDelay(pdMS_TO_TICKS(100)); // Check more frequently than the main delay
+            continue;
+        }
+
+        // Update motor control outputs
+        updateMotorControlOutput(); // Update the control outputs for all motors
 
         for(int i = 0; i < 8; i++) {
             int msg_index = i / 4;     // 0 for motors 0-3, 1 for motors 4-7
@@ -177,7 +323,6 @@ void can_channel_t::tx_task(void* arg) {
 
 void can_channel_t::alert_task(void* arg) {
     uint32_t alerts;
-    bool recovery_needed = false;
     
     while (true) {
         if (!twai_running) {
@@ -187,24 +332,41 @@ void can_channel_t::alert_task(void* arg) {
         
         // Wait for alerts with a timeout
         esp_err_t res = twai_read_alerts_v2(twai_handle, &alerts, pdMS_TO_TICKS(1000));
-        if (res == ESP_OK) {
-            // Log and handle alerts
-            log_alert_flags(alerts);
-            recovery_needed = handle_twai_alert(alerts);
+        if (res == ESP_OK && alerts) {
+            // Only attempt recovery for critical errors
+            if (alerts & (TWAI_ALERT_BUS_OFF | TWAI_ALERT_ERR_PASS)) {
+                ESP_LOGW(TAG, "TWAI channel %d critical error detected, attempting recovery", channel_id);
+                
+                // Simple recovery: stop and restart the driver
+                stop();
+                vTaskDelay(pdMS_TO_TICKS(500));
+                start();
+                ESP_LOGI(TAG, "TWAI channel %d restarted after error", channel_id);
+            }
             
-            if (recovery_needed) {
-                ESP_LOGW(TAG, "TWAI channel %d requires recovery, attempting...", channel_id);
-                // If recovery failed, we might need to stop and restart the driver
-                if (!recover_from_bus_off() && !recover_from_error_passive()) {
-                    ESP_LOGE(TAG, "TWAI channel %d recovery failed, restarting driver", channel_id);
-                    stop();
-                    vTaskDelay(pdMS_TO_TICKS(100));
-                    start();
+            // Clear RX queue if full
+            if (alerts & TWAI_ALERT_RX_QUEUE_FULL) {
+                ESP_LOGW(TAG, "TWAI Alert: Receive queue full - channel %d", channel_id);
+                twai_message_t msg;
+                int cleared = 0;
+                while (twai_receive_v2(twai_handle, &msg, 0) == ESP_OK && cleared < 20) {
+                    cleared++;
+                }
+                ESP_LOGI(TAG, "Cleared %d messages from RX queue", cleared);
+            }
+            
+            // Handle TX failures with brief pause
+            if (alerts & TWAI_ALERT_TX_FAILED) {
+                static uint32_t tx_failed_count = 0;
+                if (++tx_failed_count > 10) {
+                    vTaskDelay(pdMS_TO_TICKS(50));
+                    tx_failed_count = 0;
                 }
             }
-        } else if (res != ESP_ERR_TIMEOUT) {
+        } 
+        else if (res != ESP_ERR_TIMEOUT && res != ESP_OK) {
             ESP_LOGE(TAG, "Error reading TWAI alerts: %s", esp_err_to_name(res));
-            vTaskDelay(pdMS_TO_TICKS(100)); // Avoid tight loop on error
+            vTaskDelay(pdMS_TO_TICKS(1000));
         }
     }
     
@@ -214,89 +376,26 @@ void can_channel_t::alert_task(void* arg) {
 bool can_channel_t::handle_twai_alert(uint32_t alerts) {
     bool recovery_needed = false;
 
-    // Handle bus off condition - most serious error
+    // Only check for the most critical errors that require recovery
     if (alerts & TWAI_ALERT_BUS_OFF) {
         ESP_LOGE(TAG, "TWAI Alert: Bus Off condition - channel %d", channel_id);
         recovery_needed = true;
     }
     
-    // Handle error passive condition
     if (alerts & TWAI_ALERT_ERR_PASS) {
         ESP_LOGW(TAG, "TWAI Alert: Error Passive state - channel %d", channel_id);
         recovery_needed = true;
     }
     
-    // Handle bus error condition (CAN errors detected)
+    // Report bus errors but don't trigger recovery
     if (alerts & TWAI_ALERT_BUS_ERROR) {
         ESP_LOGW(TAG, "TWAI Alert: Bus errors detected - channel %d", channel_id);
-        // Count is incremented by ISR already
-    }
-
-    // Handle above error warning limit (TEC or REC exceeded warning threshold)
-    if (alerts & TWAI_ALERT_ABOVE_ERR_WARN) {
-        ESP_LOGW(TAG, "TWAI Alert: Error counter above warning limit - channel %d", channel_id);
-        // This is a warning that error counters are increasing
-    }
-
-    // Handle receive queue full condition
-    if (alerts & TWAI_ALERT_RX_QUEUE_FULL) {
-        ESP_LOGW(TAG, "TWAI Alert: Receive queue full - channel %d", channel_id);
-        recover_from_rx_queue_full();
     }
     
-    // Handle RX FIFO overrun condition
-    if (alerts & TWAI_ALERT_RX_FIFO_OVERRUN) {
-        ESP_LOGW(TAG, "TWAI Alert: RX FIFO overrun - channel %d", channel_id);
-        // This is handled internally by the TWAI driver already
-    }
-    
-    // Handle TX failed condition
-    if (alerts & TWAI_ALERT_TX_FAILED) {
-        ESP_LOGW(TAG, "TWAI Alert: TX Failed - channel %d", channel_id);
-        // If TX keeps failing, it might be worth initiating a brief transmit pause
-        if (++tx_failed_count > 10) { // Threshold to consider action
-            vTaskDelay(pdMS_TO_TICKS(50)); // Brief pause in transmission
-            tx_failed_count = 0;
-            ESP_LOGI(TAG, "TX failures threshold reached, brief transmit pause initiated");
-        }
-    }
-
-    // Handle arbitration lost condition
-    if (alerts & TWAI_ALERT_ARB_LOST) {
-        ESP_LOGW(TAG, "TWAI Alert: Arbitration lost - channel %d", channel_id);
-        // Normal in multi-master systems, just information
-    }
-
-    // Handle recovery completion
-    if (alerts & TWAI_ALERT_BUS_RECOVERED) {
-        ESP_LOGI(TAG, "TWAI Alert: Bus recovered successfully - channel %d", channel_id);
-        // Bus has recovered, we can clear any recovery flags
+    // Clear recovery needed flag if we've recovered
+    if (alerts & (TWAI_ALERT_BUS_RECOVERED | TWAI_ALERT_ERR_ACTIVE)) {
+        ESP_LOGI(TAG, "TWAI channel %d recovered from error state", channel_id);
         recovery_needed = false;
-    }
-    
-    // Handle recovery in progress notification
-    if (alerts & TWAI_ALERT_RECOVERY_IN_PROGRESS) {
-        ESP_LOGI(TAG, "TWAI Alert: Recovery in progress - channel %d", channel_id);
-        // Recovery is already happening, no additional action needed
-    }
-
-    // Return to error active state (normal operation)
-    if (alerts & TWAI_ALERT_ERR_ACTIVE) {
-        ESP_LOGI(TAG, "TWAI Alert: Returned to error active state - channel %d", channel_id);
-        // Error counters have decreased below thresholds, normal operation resumed
-        recovery_needed = false;
-    }
-
-    // Below error warning limit notification
-    if (alerts & TWAI_ALERT_BELOW_ERR_WARN) {
-        ESP_LOGI(TAG, "TWAI Alert: Error counters below warning limit - channel %d", channel_id);
-        // Error counters are at a good level
-    }
-
-    // Peripheral reset notification
-    if (alerts & TWAI_ALERT_PERIPH_RESET) {
-        ESP_LOGW(TAG, "TWAI Alert: Peripheral reset occurred - channel %d", channel_id);
-        // The peripheral was reset automatically due to some error condition
     }
 
     return recovery_needed;
@@ -305,32 +404,19 @@ bool can_channel_t::handle_twai_alert(uint32_t alerts) {
 bool can_channel_t::recover_from_bus_off() {
     ESP_LOGI(TAG, "Attempting to recover from Bus Off state - channel %d", channel_id);
     
-    // According to CAN specification, a node in Bus Off state must:
-    // 1. Stop transmitting
-    // 2. Wait for 128 occurrences of 11 consecutive recessive bits
-    
-    // ESP-IDF handles this automatically in the driver, but we need to:
-    // 1. Stop current activity
-    // 2. Reset the controller
-    // 3. Restart the driver
-    
-    // First stop the driver
+    // Simple recovery by cycling the TWAI driver
     esp_err_t status = twai_stop_v2(twai_handle);
     if (status != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to stop TWAI driver during recovery: %s", esp_err_to_name(status));
         return false;
     }
     
-    vTaskDelay(pdMS_TO_TICKS(100)); // Allow some time for the bus to stabilize
+    vTaskDelay(pdMS_TO_TICKS(100));
     
-    // Restart the driver
     status = twai_start_v2(twai_handle);
     if (status != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to restart TWAI driver during recovery: %s", esp_err_to_name(status));
         return false;
     }
     
-    ESP_LOGI(TAG, "TWAI channel %d recovered from Bus Off state", channel_id);
     return true;
 }
 
@@ -406,6 +492,15 @@ void can_channel_t::log_alert_flags(uint32_t flags) {
     ESP_LOGD(TAG, "TWAI channel %d alerts: %s", channel_id, alert_str);
 }
 
+void can_channel_t::updateMotorControlOutput(){
+    // Update the control output for each motor in the channel
+    for (int i = 0; i < 8; i++) {
+        if (motors[i]) {
+            motors[i]->calOutput();
+        }
+    }
+}
+
 void can_channel_t::start() {
     // Install TWAI driver if not already installed
     esp_err_t status = twai_start_v2(twai_handle);
@@ -416,6 +511,10 @@ void can_channel_t::start() {
     
     // Set flag to true before starting tasks
     twai_running = true;
+    
+    // Initialize our reception tracking variables
+    last_rx_time = xTaskGetTickCount();
+    tx_active = false;  // Start with TX inactive until we receive the first message
     
     // Create RX task
     xTaskCreatePinnedToCore(

@@ -31,13 +31,31 @@ public:
         // Destructor implementation if needed
     }
 
-    void parseData(const uint8_t* data) {
+    void parseData(const uint8_t* data) override {
         // Parse the data received from the motor
         this->raw_angle =   (uint16_t)((data[0] << 8) | data[1]); // Combine high and low byte for angle
         this->raw_speed =   (uint16_t)((data[2] << 8) | data[3]); // Combine high and low byte for speed
         this->raw_current = (uint16_t)((data[4] << 8) | data[5]); // Combine high and low byte for current
         this->temperature = _IQ(data[6]); // Temperature byte
         this->status = data[7]; // Status byte
+    }
+
+    char* getMotorInfo() override {
+        snprintf(motor_info, sizeof(motor_info),
+            "Motor ID: %1u:\n"
+            "Angle:\n\t%3.2f Degrees\n" 
+            // "Shaft:\n\t%5.2f\n"
+            "Speed:\n\t%5d RPM\n"
+            "TargetSpeed:\n\t%5d RPM\n"
+            "Current:\n\t%2.2f Amps\n",
+            this->getMotorId(),
+            this->getAngle(),
+            // this->getShaftAngle(), // Added call to getShaftAngle()
+            this->getRawSpeed(),
+            this->getTargetSpeed(),
+            this->getCurrent()
+        );
+        return motor_info;
     }
 };
 #endif // __M3508_H
