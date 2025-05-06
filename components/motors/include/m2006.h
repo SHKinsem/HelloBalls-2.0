@@ -32,7 +32,7 @@ public:
     m2006_t(uint8_t motor_id) : base_motor_t(motor_id) {
         scale_current = _IQdiv(_IQ(10.0), _IQ(10000.0)); // Scaling factor for current
         temperature = -1; // M2006 temperature is not available
-        status = 0; // Initialize raw status to 0
+        status = 0;
     }
 
     ~m2006_t() {
