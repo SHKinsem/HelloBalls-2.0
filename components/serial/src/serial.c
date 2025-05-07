@@ -1,3 +1,4 @@
+#include "serial.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_system.h"
@@ -21,37 +22,21 @@ static const int RX_BUF_SIZE = 1024;
 #define TXD_PIN (GPIO_NUM_4)
 #define RXD_PIN (GPIO_NUM_5)
 
-// Define message structure for receiving data
-typedef struct {
-    uint8_t machine_state;
-    int16_t wheel1_speed;
-    int16_t wheel2_speed;
-} rx_message_t;
+static task_state_t task_state = IDLE; // Initialize task state to IDLE
 
-// Define message structure for transmitting data
-typedef struct {
-    uint8_t machine_state;
-    int32_t wheel1_distance;
-    int32_t wheel2_distance;
-    float imu_x;
-    float imu_y;
-    float imu_z;
-    float imu_yaw;
-} tx_message_t;
+
 
 // Global variables for message data
 static rx_message_t rx_msg = {0, 0, 0};
 static tx_message_t tx_msg = {0, 0, 0, 0.0, 0.0, 0.0, 0.0};
 
-enum TASK_STATE {
-    RECEIVING,
-    SENDING,
-    IDLE,
-} task_state;
-
 // Function to get pointer to RX data for external access
 rx_message_t* get_rx_message(void) {
     return &rx_msg;
+}
+
+task_state_t* getTaskState(void) {
+    return &task_state;
 }
 
 // Function to set TX data from external source
@@ -148,7 +133,7 @@ static void rx_task(void *arg)
     
     while (1) {
         // Read from UART
-        const int rxBytes = uart_read_bytes(UART_NUM_0, data, RX_BUF_SIZE, 0); // Non-blocking
+        const int rxBytes = uart_read_bytes(UART_NUM_0, data, RX_BUF_SIZE, pdMS_TO_TICKS(20)); // Non-blocking
         
         if (rxBytes > 0) {
             data[rxBytes] = 0; // Null terminate for safe printing
@@ -187,9 +172,8 @@ static void rx_task(void *arg)
                     if (parsed >= 3) {
                         rx_msg.wheel2_speed = (int16_t)wheel2;
                     }
-                    
-                    ESP_LOGI(RX_TASK_TAG, "ASCII Parsed: State=%u, Wheel1=%d, Wheel2=%d", 
-                            rx_msg.machine_state, rx_msg.wheel1_speed, rx_msg.wheel2_speed);
+                    // ESP_LOGI(RX_TASK_TAG, "ASCII Parsed: State=%u, Wheel1=%d, Wheel2=%d", 
+                    //         rx_msg.machine_state, rx_msg.wheel1_speed, rx_msg.wheel2_speed);
                 }
             }
             else if (rxBytes >= 5) { // Binary format: Machine state (1 byte) + wheel1_speed (2 bytes) + wheel2_speed (2 bytes)
@@ -222,7 +206,7 @@ static void rx_task(void *arg)
         }
         else if(receiveCount < 20) {
             receiveCount++;
-            vTaskDelay(pdMS_TO_TICKS(20)); // Keep 50Hz timing
+            // vTaskDelay(pdMS_TO_TICKS(20)); // Keep 50Hz timing
         }
 
         if (receiveCount >= 20) {
@@ -231,13 +215,13 @@ static void rx_task(void *arg)
                 ESP_LOGI(RX_TASK_TAG, "No data received for 100ms");
                 ESP_LOGI(RX_TASK_TAG, "Task state changed to IDLE");
             }
-            vTaskDelay(pdMS_TO_TICKS(100)); // Wait for 100ms before checking again
+            // vTaskDelay(pdMS_TO_TICKS(100)); // Wait for 100ms before checking again
             continue;
         }
         
         // For non-idle states, maintain the 50Hz timing
         if (receiveCount < 20) {
-            vTaskDelay(pdMS_TO_TICKS(20));
+            // vTaskDelay(pdMS_TO_TICKS(20));
         }
     }
     free(data);

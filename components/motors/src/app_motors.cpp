@@ -33,18 +33,6 @@
 
 static bool servo_current_state = false;          // false = 0 degrees, true = 30 degrees
 
-// static twai_message_t speed_message;
-
-// // Initialize the message
-// void init_speed_message() {
-//     // Message type and format settings
-//     speed_message.flags = TWAI_MSG_FLAG_SS;  // Single shot mode
-//     // Message ID and payload
-//     speed_message.identifier = ID_DJI_RM_MOTOR;
-//     speed_message.data_length_code = 8;
-//     memset(speed_message.data, 0, 8);  // Initialize all data bytes to 0
-// }
-
 // Convert angle to duty cycle for servo control
 static uint32_t servo_angle_to_duty(float angle) {
     // Convert angle to a value between 0-180
@@ -87,20 +75,15 @@ void servo_init(void) {
     ESP_ERROR_CHECK(ledc_channel_config(&ledc_channel));
     
     // Set initial position to 0 degrees
-    servo_rotate(false);
+    set_servo_position(0);
     ESP_LOGI(TAG, "Servo initialized to 0 degrees position");
 }
 
-// Rotate servo (true = 30 degrees, false = 0 degrees)
-void servo_rotate(bool direction) {
-    float angle = direction ? SERVO_ANGLE_30 : SERVO_ANGLE_0;
+
+void set_servo_position(float angle) {
     uint32_t duty = servo_angle_to_duty(angle);
-    
     ESP_ERROR_CHECK(ledc_set_duty(LEDC_MODE, LEDC_CHANNEL, duty));
     ESP_ERROR_CHECK(ledc_update_duty(LEDC_MODE, LEDC_CHANNEL));
-    
-    ESP_LOGI(TAG, "Servo rotated to %d degrees", direction ? SERVO_ANGLE_30 : SERVO_ANGLE_0);
-    servo_current_state = direction;
 }
 
 // Get current servo state
@@ -110,11 +93,7 @@ bool get_servo_state(void) {
 
 // Toggle servo position - helper function for C code
 void toggle_servo(void) {
-    bool current_state = servo_current_state;
-    servo_rotate(!current_state);
-    ESP_LOGI(TAG, "Servo toggled from %s to %s position", 
-        current_state ? "30°" : "0°", 
-        !current_state ? "30°" : "0°");
+
 }
 
 m3508_t frictionwheels[2] = {m3508_t(1), m3508_t(2)}; // Create instances of m3508 motors for friction wheels

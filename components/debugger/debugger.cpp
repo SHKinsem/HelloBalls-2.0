@@ -14,6 +14,10 @@ int16_t output = 0;
 
 base_motor_t* motor_ptr[4] = {nullptr, nullptr, nullptr, nullptr}; // Array of motor pointers
 
+can_channel_t can_channel(0, TWAI_TX_PIN, TWAI_RX_PIN); // Create a CAN channel instance
+dm3519_t test_motor(1); // Create an instance of the motor
+
+
 
 void motor_displayer(void* arg){
     // Create a task for motor control
@@ -99,113 +103,25 @@ void measure_important_function(void) {
 
 void serialWheelControlTask(void *arg) {
     ESP_LOGI(TAG, "Serial wheel control task started");
-    
-    // Wait a bit to ensure all systems are initialized
-    vTaskDelay(pdMS_TO_TICKS(1000));
-    
-    // Define task frequency - 1000Hz (1ms period)
-    const TickType_t xFrequency = pdMS_TO_TICKS(1); // 1ms = 1000Hz
-    TickType_t xLastWakeTime = xTaskGetTickCount();
-    
-    // Variables for serial connection monitoring
-    bool prev_had_connection = false;
-    bool current_has_connection = false;
-    const uint32_t CONNECTION_TIMEOUT_MS = 1000; // 1 second timeout
-    
     // Setup for serial activity detection
     rx_message_t* rx_msg = get_rx_message();
-    uint32_t last_update_time = xTaskGetTickCount();
-    uint32_t message_counter = 0;
-    
-    // Variable to track last received serial message
-    uint8_t last_signal_counter = rx_msg->machine_state;
+    task_state_t* task_state = getTaskState(); // Get the task state pointer
     
     while (1) {
-        // Check if we have fresh serial data
-        if (last_signal_counter != rx_msg->machine_state) {
-            // Update our record of the last signal counter
-            last_signal_counter = rx_msg->machine_state;
-            
-            // Fresh data detected
-            last_update_time = xTaskGetTickCount();
-            current_has_connection = true;
-            
-            // Log reception of new speed command periodically
-            if (message_counter++ % 500 == 0) {
-                ESP_LOGI(TAG, "New speed command: W1=%d, W2=%d, Signal=0x%02X", 
-                    rx_msg->wheel1_speed, rx_msg->wheel2_speed, rx_msg->machine_state);
-            }
-        } else {
-            // Check if we've exceeded the timeout
-            uint32_t elapsed = xTaskGetTickCount() - last_update_time;
-            current_has_connection = (elapsed < pdMS_TO_TICKS(CONNECTION_TIMEOUT_MS));
-        }
-        
-        // Get outputs
-        int16_t output1 = 0;
-        int16_t output2 = 0;
-        
-        if (get_twai_running()) {
-            if (current_has_connection) {
-                // Connection is active - enable motors and apply wheel speeds from serial
-                motor_ptr[0]->enable();
-                motor_ptr[1]->enable();
-                motor_ptr[0]->setTargetSpeed(rx_msg->wheel1_speed);
-                motor_ptr[1]->setTargetSpeed(rx_msg->wheel2_speed);
-                
-                // Log on connection state change
-                if (!prev_had_connection) {
-                    ESP_LOGI(TAG, "Serial connection restored, resuming normal operation");
-                }
-            } else {
-                // Connection lost, disable the motors
-                motor_ptr[0]->disable();
-                motor_ptr[1]->disable();
-                
-                // Log on connection state change
-                if (prev_had_connection) {
-                    ESP_LOGI(TAG, "Serial connection lost, disabling motors");
-                }
-            }
-            
-            // Always calculate and send control outputs regardless of connection state
-            output1 = motor_ptr[0]->calOutput();
-            output2 = motor_ptr[1]->calOutput();
-            
-            // Send TWAI message with calculated outputs - always at 1000Hz
-            twai_transmit_speed(output1, output2, 0, 0);
-            
-            // Log status periodically (once per second)
-            static uint32_t counter = 0;
-            if (counter++ % 1000 == 0) {
-                ESP_LOGI(TAG, "Serial wheels: T1=%d, T2=%d, O1=%d, O2=%d, Connected=%d", 
-                    motor_ptr[0]->getTargetSpeed(), motor_ptr[1]->getTargetSpeed(),
-                    output1, output2, current_has_connection);
-            }
-        }
-        
-        // Remember connection state for next iteration
-        prev_had_connection = current_has_connection;
-        
-        // Precise timing for 1000Hz frequency
-        xTaskDelayUntil(&xLastWakeTime, xFrequency);
+        if (*task_state == RECEIVING) { test_motor.enable(); } // Enable the motor if receiving data
+        else { test_motor.disable(); } // Disable the motor if not receiving data
+
+        test_motor.setTargetSpeed(rx_msg->wheel1_speed); // Set the target speed for the motor
+        vTaskDelay(pdMS_TO_TICKS(100));
+
     }
 }
 
 void motor_task_init(){
-    twai_init();
-    for(int i = 0; i < 4; i++) {
-        motor_ptr[i] = get_motor_ptr(i + 1); // Initialize all motor pointers to null
-    }
+    can_channel.reg_motor(&test_motor); // Register the motor with the CAN channel
 
-    // Create a task for motor control
-    xTaskCreatePinnedToCore(motor_displayer, "Motor displayer Task", 4096, NULL, 3, NULL, tskNO_AFFINITY);
-    vTaskDelay(pdMS_TO_TICKS(100)); // Delay for 100 ms
-    xTaskCreatePinnedToCore(debugLoggingTask, "Debug Logging Task", 4096, NULL, configMAX_PRIORITIES - 4, NULL, 0);
-    
+    can_channel.start(); // Start the CAN channel
+    test_motor.setPIDParameters(20.0, 0.007, 0.005, 0.1, 0.1, 5000.0, -5000.0); // Set PID parameters
     // Create the new serial wheel control task
     xTaskCreatePinnedToCore(serialWheelControlTask, "Serial Wheel Control", 4096, NULL, configMAX_PRIORITIES - 3, NULL, 0);
-    
-    // Start TWAI to enable communications
-    start_twai_receive();
 }

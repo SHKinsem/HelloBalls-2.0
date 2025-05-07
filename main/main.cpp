@@ -56,22 +56,15 @@ void setup(){
     motor_task_init(); // Initialize motor task
 }
 
-can_channel_t can_channel(0, TWAI_TX_PIN, TWAI_RX_PIN); // Create a CAN channel instance
 
 extern "C" void app_main(void)
 {
-    // setup(); // Call the setup function to initialize the system
-    // uart_init();
-    dm3519_t test_motor(1); // Create an instance of the motor
-    test_motor.setPIDParameters(20.0, 0.007, 0.005, 0.1, 0.1, 5000.0, -5000.0); // Set PID parameters
-    can_channel.reg_motor(&test_motor); // Register the motor with the CAN channel
-    can_channel.start(); // Start the CAN channel
-    test_motor.setTargetSpeed(1000); // Set target speed
+    // setup(); // Call setup function to initialize components
 
+    uart_init(); // Initialize UART communication
+    motor_task_init(); // Initialize motor task
+    
     while(1){
-        test_motor.enable(); // Enable the motor
-        vTaskDelay(pdMS_TO_TICKS(1000));
-        test_motor.disable(); // Disable the motor
         vTaskDelay(pdMS_TO_TICKS(1000));
     }
 

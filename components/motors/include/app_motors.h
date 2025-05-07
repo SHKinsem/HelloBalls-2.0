@@ -22,7 +22,7 @@ extern "C" {
 #endif
 
 void servo_init(void); // Initialize servo on GPIO0
-void servo_rotate(bool direction); // Rotate servo (true = 30 degrees, false = 0 degrees)
+void set_servo_position(float angle); // Set servo position to a specific angle
 bool get_servo_state(void); // Get current servo state
 void toggle_servo(void); // Toggle servo position - helper function for C code
 
