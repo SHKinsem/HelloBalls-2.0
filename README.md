@@ -6,7 +6,8 @@ This is the same project form HelloBalls but now implemented with ESP-IDF.
 
 ## Key change:  
 * ESP32S3 is used  
-* Added stepper library from FastAccelStepper  
+* Use stepper library from FastAccelStepper
+* Support servo control
 * Adpated from TWAI example to acheive bldc motor control
 * Supported C620 with M3508, C610 with M2006, and DM3519 from damiao
 * Uses polymorphism programming
