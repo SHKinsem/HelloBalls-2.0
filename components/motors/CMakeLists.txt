@@ -3,6 +3,7 @@ idf_component_register(  SRCS           "src/app_twai"
                                         "src/stepper_motors.cpp"
                                         "src/bldc_motors.cpp"
                                         "src/dm3519.cpp"
+                                        "src/can_channel.cpp"
                          REQUIRES       driver 
                                         freertos
                                         iqmath

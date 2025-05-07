@@ -1,10 +1,6 @@
 #ifndef __DM3519_H
 #define __DM3519_H
 
-#include "bldc_motors.h"
-
-#ifdef USE_DM3519
-
 #include <string>
 #include "m3508.h"
 #include "driver/twai.h"
@@ -92,7 +88,5 @@ public:
     char* getMotorInfo() override;
 };
 
-
-#endif
 
 #endif // __DM3519_H

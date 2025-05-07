@@ -1,7 +1,5 @@
 #include "dm3519.h"
 
-#ifdef USE_DM3519
-
 std::string dm3519_error_code_to_string(DM3519_ERROR_CODE code)
 {
     switch (code)
@@ -52,5 +50,3 @@ char* dm3519_t::getMotorInfo(){
     );
     return motor_info;
 }
-
-#endif

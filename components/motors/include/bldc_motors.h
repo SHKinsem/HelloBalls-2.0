@@ -4,12 +4,8 @@
 
 // #include <stdio.h>
 #include <stdint.h>
-#include "pid.h"    // PID Contorller from TI
-// #include "IQmathLib.h"
+#include "pid.h"
 #include "driver/twai.h"
-
-
-#define USE_DM3519
 
 /**
  * @brief Motor data structure for DJI RM motors.
