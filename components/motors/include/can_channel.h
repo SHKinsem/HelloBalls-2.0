@@ -50,6 +50,7 @@ public:
     void setChannelId(uint8_t channel_id) { this->channel_id = channel_id; }
     uint8_t getChannelId() const { return this->channel_id; }
     void setMotorCount(uint8_t motorCount) { this->motorCount = motorCount; }
+    void sendMessage(twai_message_t* msg);
 
     void start();
     void stop();

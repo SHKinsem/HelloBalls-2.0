@@ -15,6 +15,7 @@ base_motor_t::base_motor_t(uint8_t motor_id){
     this->target_speed = 0;
     this->target_angle = 0;
     this->temperature = 0;
+    this->can_channel = nullptr; // Initialize can_channel to nullptr
 
     // Initialize PID parameters
     speed_pid.param.Kp = _IQ(10.0);     // Proportional gain

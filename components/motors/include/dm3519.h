@@ -85,6 +85,8 @@ public:
         return const_cast<twai_message_t*>(&clr_err_msg);
     }
 
+    void clearError();
+
     char* getMotorInfo() override;
 };
 

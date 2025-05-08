@@ -24,6 +24,8 @@
  * 
  */
 
+class can_channel_t; // Forward declaration of can_channel_t class
+
 class base_motor_t
 {
 
@@ -43,6 +45,8 @@ protected:
 
     _iq scale_angle = _IQdiv(_IQ(360.0), _IQ(8192.0)); // Scaling factor for angle
     _iq scale_current = _IQdiv(_IQ(20.0), _IQ(16384.0)); // Scaling factor for current
+
+    can_channel_t* can_channel;
 
     PID_CONTROLLER speed_pid = {
         PID_TERM_DEFAULTS,
@@ -80,6 +84,8 @@ public:
     void setRawSpeed(int16_t raw_speed)         {this->raw_speed = raw_speed;} // Set raw speed of motor
     void setRawCurrent(int16_t current)         {this->raw_current = current;} // Set raw current of motor
     void setTargetSpeed(int16_t target_speed)   {this->target_speed = target_speed;}
+
+    void setCanChannel(can_channel_t* can_channel) {this->can_channel = can_channel;} // Set the CAN channel for the motor
 
     char motor_info[256];
 

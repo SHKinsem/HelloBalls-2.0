@@ -58,6 +58,7 @@ can_channel_t::~can_channel_t() {
 void can_channel_t::reg_motor(base_motor_t* motor) {
     if (motorCount < 8 && motor->getMotorId() < 8) { // Assuming a maximum of 8 motors per channel
         motors[motor->getMotorId() - 1] = motor;   // Register the motor at the specified ID, else overwrite the existing one
+        motor->setCanChannel(this); // Set the CAN channel for the motor
         motorCount++;
         ESP_LOGI(TAG, "Motor %d registered on channel %d", motor->getMotorId(), channel_id);
     } else {
@@ -320,6 +321,10 @@ void can_channel_t::updateMotorControlOutput(){
             motors[i]->calOutput();
         }
     }
+}
+
+void can_channel_t::sendMessage(twai_message_t* msg){
+    twai_transmit_v2(twai_handle, msg, pdMS_TO_TICKS(5)); // Transmit the first message
 }
 
 void can_channel_t::start() {

@@ -1,4 +1,5 @@
 #include "dm3519.h"
+#include "can_channel.h"
 
 std::string dm3519_error_code_to_string(DM3519_ERROR_CODE code)
 {
@@ -28,6 +29,13 @@ std::string dm3519_error_code_to_string(DM3519_ERROR_CODE code)
             return "Overload";
         default:
             return "Unknown";
+    }
+}
+
+void dm3519_t::clearError() {
+    // Clear the error by sending the clear error message
+    if (this->can_channel != nullptr) {
+        this->can_channel->sendMessage(&clr_err_msg);
     }
 }
 
