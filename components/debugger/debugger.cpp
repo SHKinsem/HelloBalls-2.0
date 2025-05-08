@@ -29,7 +29,7 @@ void motor_displayer(void* arg){
     setGlobalSpeedPtr(motor_ptr[0]->getTargetSpeedPtr());
     setGlobalSpeedPtr2(motor_ptr[1]->getTargetSpeedPtr());
 
-    motor_ptr[0]->setPIDParameters(20.0, 0.007, 0.005, 0.1, 0.1, 10000.0, -10000.0); // Set PID parameters
+    motor_ptr[0]->setPIDParameters(20.0, 0.01, 0.005, 0.1, 0.1, 10000.0, -10000.0); // Set PID parameters
     motor_ptr[1]->setPIDParameters(20.0, 0.007, 0.005, 0.1, 0.1, 10000.0, -10000.0); // Set PID parameters
 
     vTaskDelay(pdMS_TO_TICKS(1000)); // Delay for 100 ms
@@ -108,29 +108,29 @@ void motorStateHelper(bool state) {
 void serialWheelControlTask(void *arg) {
     ESP_LOGI(TAG, "Serial wheel control task started");
     // Setup for serial activity detection
-    // rx_message_t* rx_msg = get_rx_message_ptr();
+    rx_message_t* rx_msg = get_rx_message_ptr();
     task_state_t* task_state = getTaskState(); // Get the task state pointer
     
     while (1) {
-        rx_message_t msg = get_rx_message();
-        rx_message_t* rx_msg = &msg; // Get the received message
         if (*task_state == RECEIVING) { motorStateHelper(true); } // Enable the motor if receiving data
         else { motorStateHelper(false); } // Disable the motor if not receiving data
 
-        wheelMotor_1.setTargetSpeed(rx_msg->wheel1_speed); // Set the target speed for the motor
-        wheelMotor_2.setTargetSpeed(-rx_msg->wheel2_speed); // Set the target speed for the motor
-
-        if(rx_msg->machine_state == 0) {
-            frictionWheel_1.setTargetSpeed(0); // Stop the motor if machine state is 0
-            frictionWheel_2.setTargetSpeed(0); // Stop the motor if machine state is 0
-        } else if (rx_msg->machine_state == 1) {
+         // Get the machine state from the received message in advance
+         // Avoid the state change during the task execution
+        uint8_t machine_state = rx_msg->machine_state;
+        wheelMotor_1.setTargetSpeed(rx_msg->wheel1_speed);
+        wheelMotor_2.setTargetSpeed(-rx_msg->wheel2_speed);        
+        if(machine_state == 0) {
+            frictionWheel_1.setTargetSpeed(0);
+            frictionWheel_2.setTargetSpeed(0);
+        } else if (machine_state == 1) {
             frictionWheel_1.setTargetSpeed(1000);
             frictionWheel_2.setTargetSpeed(-1000);
-        } else if (rx_msg->machine_state == 2) {
+        } else if (machine_state == 2) {
             frictionWheel_1.setTargetSpeed(-1000);
             frictionWheel_2.setTargetSpeed(1000);
         }
-        vTaskDelay(pdMS_TO_TICKS(100));
+        vTaskDelay(pdMS_TO_TICKS(20));
 
     }
 }
@@ -144,8 +144,8 @@ void motor_task_init(){
 
     frictionWheel_1.setPIDParameters(20.0, 0.007, 0.005, 0.1, 0.1, 5000.0, -5000.0); // Set PID parameters
     frictionWheel_2.setPIDParameters(20.0, 0.007, 0.005, 0.1, 0.1, 5000.0, -5000.0); // Set PID parameters
-    wheelMotor_1.setPIDParameters(20.0, 0.007, 0.005, 0.1, 0.1, 1000.0, -1000.0); // Set PID parameters
-    wheelMotor_2.setPIDParameters(20.0, 0.007, 0.005, 0.1, 0.1, 1000.0, -1000.0); // Set PID parameters
+    wheelMotor_1.setPIDParameters(40.0, 0.02, 0.005, 0.1, 0.1, 2000.0, -2000.0); // Set PID parameters
+    wheelMotor_2.setPIDParameters(40.0, 0.02, 0.005, 0.1, 0.1, 2000.0, -2000.0); // Set PID parameters
 
     vTaskDelay(pdMS_TO_TICKS(100)); // Delay for 100 ms
 
