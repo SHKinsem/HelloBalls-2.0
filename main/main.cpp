@@ -30,8 +30,7 @@
 #include "serial.h"
 #include "stepper_motors.h"
 
-
-void setup(){
+void szp_setup(){
     bsp_i2c_init();  // I2C initialization
     pca9557_init();  // IO expander initialization
     bsp_lvgl_start(); // Lvgl initialization
@@ -46,23 +45,20 @@ void setup(){
         ESP_LOGE(TAG, "Failed to mount SD card");
         ESP_LOGE(TAG, "Entering motor Debug mode");
     }
-    
-    // Initialize servo on GPIO0
-    // servo_init();
-    
-    // Initialize button with servo control function
-    // button_init();
-    
+}
+
+void setup(){
+    // szp_setup(); // Call the setup function to initialize components
+    uart_init(); // Initialize UART communication
     motor_task_init(); // Initialize motor task
+    // servo_init();
+    // button_init();
 }
 
 
 extern "C" void app_main(void)
 {
-    // setup(); // Call setup function to initialize components
-
-    uart_init(); // Initialize UART communication
-    motor_task_init(); // Initialize motor task
+    setup();
     
     while(1){
         vTaskDelay(pdMS_TO_TICKS(1000));
