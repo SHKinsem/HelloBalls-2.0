@@ -31,8 +31,12 @@ static rx_message_t rx_msg = {0, 0, 0};
 static tx_message_t tx_msg = {0, 0, 0, 0.0, 0.0, 0.0, 0.0};
 
 // Function to get pointer to RX data for external access
-rx_message_t* get_rx_message(void) {
+rx_message_t* get_rx_message_ptr(void) {
     return &rx_msg;
+}
+
+rx_message_t get_rx_message(void) {
+    return rx_msg;
 }
 
 task_state_t* getTaskState(void) {

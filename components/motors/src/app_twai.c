@@ -90,15 +90,6 @@ static void update_can_message(twai_message_t *msg, int16_t motor1_speed, int16_
     msg->data[7] = motor4_speed & 0xFF;           // Low byte of motor 4
 }
 
-static QueueHandle_t tx_task_queue;
-static QueueHandle_t rx_task_queue;
-
-static SemaphoreHandle_t stop_receive_sem;
-static SemaphoreHandle_t stop_transmit_sem;
-
-static SemaphoreHandle_t ctrl_task_sem;
-static SemaphoreHandle_t done_sem;
-
 
 /* --------------------------- Tasks and Functions -------------------------- */
 
