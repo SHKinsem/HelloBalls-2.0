@@ -31,8 +31,6 @@
 #define SERVO_ANGLE_0           0                 // 0 degree position
 #define SERVO_ANGLE_30          30                // 30 degree position
 
-static bool servo_current_state = false;          // false = 0 degrees, true = 30 degrees
-
 // Convert angle to duty cycle for servo control
 static uint32_t servo_angle_to_duty(float angle) {
     // Convert angle to a value between 0-180
@@ -86,10 +84,6 @@ void set_servo_position(float angle) {
     ESP_ERROR_CHECK(ledc_update_duty(LEDC_MODE, LEDC_CHANNEL));
 }
 
-// Get current servo state
-bool get_servo_state(void) {
-    return servo_current_state;
-}
 
 // Toggle servo position - helper function for C code
 void toggle_servo(void) {

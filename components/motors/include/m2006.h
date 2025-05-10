@@ -22,19 +22,20 @@
  * 
  */
 
-// Max RPM: ~16200, 16200/60 = 270 RPS, 270*8192 = 221,340 Counts/second
-// Max Bump = 221,340 Counts/second * 0.01 seconds = 2213 counts
-#define MAX_ANGLE_BUMP 2214 // Maximum angle bump for M2006 motor
+
 
 
 class m2006_t : public base_motor_t
 {
-private:
+protected:
     _iq gear_ratio = _IQ(36.0/1.0);
     _iq shaft_angle = _IQ(0.0);
     _iq shaft_speed = _IQ(0.0);
     int16_t loopCounter = 0;
     int16_t prev_raw_angle = 0;
+    int16_t maxBump = 2214;
+    // Max RPM: ~16200, 16200/60 = 270 RPS, 270*8192 = 221,340 Counts/second
+    // Max Bump = 221,340 Counts/second * 0.01 seconds = 2213 counts
 public:
     m2006_t(uint8_t motor_id) : base_motor_t(motor_id) {
         scale_current = _IQdiv(_IQ(10.0), _IQ(10000.0)); // Scaling factor for current
@@ -55,9 +56,9 @@ public:
         this->raw_current = (uint16_t)((data[4] << 8) | data[5]); // Combine high and low byte for current
         // this->temperature = data[6]; // Temperature byte
         // this->raw_status = data[7]; // Status byte
-        if(raw_angle - prev_raw_angle > MAX_ANGLE_BUMP){
+        if(raw_angle - prev_raw_angle > maxBump){
             loopCounter--;
-        } else if (prev_raw_angle - raw_angle > MAX_ANGLE_BUMP) {
+        } else if (prev_raw_angle - raw_angle > maxBump) {
             loopCounter++;
         }
         prev_raw_angle = raw_angle;

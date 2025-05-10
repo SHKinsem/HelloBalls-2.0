@@ -31,8 +31,12 @@ static rx_message_t rx_msg = {0, 0, 0};
 static tx_message_t tx_msg = {0, 0, 0, 0.0, 0.0, 0.0, 0.0};
 
 // Function to get pointer to RX data for external access
-rx_message_t* get_rx_message(void) {
+rx_message_t* get_rx_message_ptr(void) {
     return &rx_msg;
+}
+
+rx_message_t get_rx_message(void) {
+    return rx_msg;
 }
 
 task_state_t* getTaskState(void) {
@@ -137,8 +141,8 @@ static void rx_task(void *arg)
         
         if (rxBytes > 0) {
             data[rxBytes] = 0; // Null terminate for safe printing
-            ESP_LOGI(RX_TASK_TAG, "Read %d bytes (UART)", rxBytes);
-            ESP_LOG_BUFFER_HEXDUMP(RX_TASK_TAG, data, rxBytes, ESP_LOG_INFO);
+            // ESP_LOGI(RX_TASK_TAG, "Read %d bytes (UART)", rxBytes);
+            // ESP_LOG_BUFFER_HEXDUMP(RX_TASK_TAG, data, rxBytes, ESP_LOG_INFO);
             
             // Check if it's ASCII text format (contains spaces or commas)
             bool is_ascii_format = false;
@@ -172,8 +176,8 @@ static void rx_task(void *arg)
                     if (parsed >= 3) {
                         rx_msg.wheel2_speed = (int16_t)wheel2;
                     }
-                    // ESP_LOGI(RX_TASK_TAG, "ASCII Parsed: State=%u, Wheel1=%d, Wheel2=%d", 
-                    //         rx_msg.machine_state, rx_msg.wheel1_speed, rx_msg.wheel2_speed);
+                    ESP_LOGI(RX_TASK_TAG, "ASCII Parsed: State=%u, Wheel1=%d, Wheel2=%d", 
+                            rx_msg.machine_state, rx_msg.wheel1_speed, rx_msg.wheel2_speed);
                 }
             }
             else if (rxBytes >= 5) { // Binary format: Machine state (1 byte) + wheel1_speed (2 bytes) + wheel2_speed (2 bytes)

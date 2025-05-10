@@ -35,7 +35,8 @@ typedef struct {
 void uart_init(void);
 
 // Get a pointer to the received message data
-rx_message_t* get_rx_message(void);
+rx_message_t* get_rx_message_ptr(void);
+rx_message_t get_rx_message(void);
 
 task_state_t* getTaskState(void);
 
