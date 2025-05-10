@@ -29,6 +29,7 @@
 #include "debugger.h"
 #include "serial.h"
 #include "stepper_motors.h"
+#include "leds.h"
 
 
 void setup(){
@@ -61,9 +62,9 @@ extern "C" void app_main(void)
 {
     // setup(); // Call setup function to initialize components
 
-    uart_init(); // Initialize UART communication
-    motor_task_init(); // Initialize motor task
-    
+    // uart_init(); // Initialize UART communication
+    // motor_task_init(); // Initialize motor task
+    led_example(); // Initialize LED example
     while(1){
         vTaskDelay(pdMS_TO_TICKS(1000));
     }

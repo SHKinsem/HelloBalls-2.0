@@ -25,3 +25,4 @@ dependencies:
   #   # All dependencies of `main` are public by default.
   #   public: true
   # espressif/esp-dsp: '*'
+  espressif/led_strip: ^3.0.1

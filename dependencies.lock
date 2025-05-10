@@ -10,13 +10,13 @@ dependencies:
   chmorgan/esp-audio-player:
     component_hash: c8ac1998e9af863bc41b57e592f88d1a5791a0f891485122336ddabbf7a65033
     dependencies:
-    - name: idf
-      require: private
-      version: '>=5.0'
     - name: chmorgan/esp-libhelix-mp3
       registry_url: https://components.espressif.com
       require: private
       version: '>=1.0.0,<2.0.0'
+    - name: idf
+      require: private
+      version: '>=5.0'
     source:
       registry_url: https://components.espressif.com/
       type: service
@@ -99,6 +99,16 @@ dependencies:
       registry_url: https://components.espressif.com/
       type: service
     version: 1.11.0
+  espressif/led_strip:
+    component_hash: b578eb926d9f6402fd45398b53c9bd5d1b7a15c1b2974d25aa3088e6c79b0b4c
+    dependencies:
+    - name: idf
+      require: private
+      version: '>=5.0'
+    source:
+      registry_url: https://components.espressif.com/
+      type: service
+    version: 3.0.1
   idf:
     source:
       type: idf
@@ -118,8 +128,9 @@ direct_dependencies:
 - espressif/esp_lcd_touch_ft5x06
 - espressif/esp_lvgl_port
 - espressif/iqmath
+- espressif/led_strip
 - idf
 - lvgl/lvgl
-manifest_hash: 7441c88a33c770fb8bb5943fd246f9383e8a9fc1a232b6c6f5e9fab93ebb8ff9
+manifest_hash: 4dbdcbb56d9a6dbdbc552fd59fececbd75676f83b1bf4aa3c2a8bcb4bf718072
 target: esp32s3
 version: 2.0.0
