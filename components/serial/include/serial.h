@@ -18,6 +18,7 @@ typedef struct {
     uint8_t machine_state;
     int16_t wheel1_speed;
     int16_t wheel2_speed;
+    int16_t servo_angle;
 } rx_message_t;
 
 // Define message structure for transmitting data

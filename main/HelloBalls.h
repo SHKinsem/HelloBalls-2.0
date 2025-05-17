@@ -4,7 +4,7 @@
 
 typedef enum {
     STARTING,
-    IDLE,
+    MACHINE_IDLE,
     STANDBY,
     SEARCHING_BALL,
     SEARCHING_HUMAN,

@@ -49,21 +49,27 @@ void szp_setup(){
 }
 
 void setup(){
+    led_init(); // Initialize LED strip
+    update_led_state_noHandle(STARTING); // Set initial LED state
+    
     // szp_setup(); // Call the setup function to initialize components
-    uart_init(); // Initialize UART communication
     motor_task_init(); // Initialize motor task
-    // servo_init();
-    // button_init();
+    servo_init();
+    button_init();
+    update_led_state_noHandle(MACHINE_IDLE); // Set LED state to IDLE
+
+    uart_init();
+
 }
 
 
 extern "C" void app_main(void)
 {
-    // setup(); // Call setup function to initialize components
+    setup(); // Call setup function to initialize components
 
     // uart_init(); // Initialize UART communication
     // motor_task_init(); // Initialize motor task
-    led_example(); // Initialize LED example
+    // led_example(); // Initialize LED example
     while(1){
         vTaskDelay(pdMS_TO_TICKS(1000));
     }

@@ -6,6 +6,7 @@
 #include "driver/uart.h"
 #include "string.h"
 #include "driver/gpio.h"
+#include "leds.h"
 
 /*
     RX message format:
@@ -17,7 +18,7 @@
     Frequency: 50 Hz
 */
 
-static const int RX_BUF_SIZE = 1024;
+static const int RX_BUF_SIZE = 128;
 
 #define TXD_PIN (GPIO_NUM_4)
 #define RXD_PIN (GPIO_NUM_5)
@@ -61,7 +62,7 @@ static void uart_init_port(void)
     const uart_config_t uart_config = {
         .baud_rate = 115200,
         .data_bits = UART_DATA_8_BITS,
-        .parity = UART_PARITY_DISABLE,
+        .parity = UART_PARITY_ODD,
         .stop_bits = UART_STOP_BITS_1,
         .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
         .source_clk = UART_SCLK_DEFAULT,
@@ -141,10 +142,7 @@ static void rx_task(void *arg)
         
         if (rxBytes > 0) {
             data[rxBytes] = 0; // Null terminate for safe printing
-            // ESP_LOGI(RX_TASK_TAG, "Read %d bytes (UART)", rxBytes);
-            // ESP_LOG_BUFFER_HEXDUMP(RX_TASK_TAG, data, rxBytes, ESP_LOG_INFO);
-            
-            // Check if it's ASCII text format (contains spaces or commas)
+
             bool is_ascii_format = false;
             for (int i = 0; i < rxBytes; i++) {
                 if (data[i] == ' ' || data[i] == ',') {
@@ -155,58 +153,39 @@ static void rx_task(void *arg)
             
             if (is_ascii_format) {
                 // ASCII text parsing (format: "machine_state,wheel1_speed,wheel2_speed" or "machine_state wheel1_speed wheel2_speed")
-                int state = 0, wheel1 = 0, wheel2 = 0;
+                int state = 0, wheel1 = 0, wheel2 = 0, servoAngle = 0;
                 int parsed = 0;
                 
-                if (strchr((char*)data, ',') != NULL) {
-                    // Parse comma-separated format
-                    parsed = sscanf((char*)data, "%d,%d,%d", &state, &wheel1, &wheel2);
-                } else {
-                    // Parse space-separated format
-                    parsed = sscanf((char*)data, "%d %d %d", &state, &wheel1, &wheel2);
-                }
+                if (strchr((char*)data, ',') != NULL) 
+                    parsed = sscanf((char*)data, "%d,%d,%d,%d", &state, &wheel1, &wheel2, &servoAngle);
                 
                 if (parsed >= 1) {
                     rx_msg.machine_state = (uint8_t)state;
-                    
-                    if (parsed >= 2) {
-                        rx_msg.wheel1_speed = (int16_t)wheel1;
-                    }
-                    
-                    if (parsed >= 3) {
-                        rx_msg.wheel2_speed = (int16_t)wheel2;
-                    }
-                    ESP_LOGI(RX_TASK_TAG, "ASCII Parsed: State=%u, Wheel1=%d, Wheel2=%d", 
-                            rx_msg.machine_state, rx_msg.wheel1_speed, rx_msg.wheel2_speed);
+                    if (parsed >= 2) rx_msg.wheel1_speed = (int16_t)wheel1;
+                    if (parsed >= 3) rx_msg.wheel2_speed = (int16_t)wheel2;
+                    if (parsed >= 4) rx_msg.servo_angle = (int16_t)servoAngle;
+                    ESP_LOGI(RX_TASK_TAG, "ASCII Parsed: State=%u, Wheel1=%d, Wheel2=%d, Servo=%d", 
+                            rx_msg.machine_state, rx_msg.wheel1_speed, rx_msg.wheel2_speed, rx_msg.servo_angle);
                 }
             }
-            else if (rxBytes >= 5) { // Binary format: Machine state (1 byte) + wheel1_speed (2 bytes) + wheel2_speed (2 bytes)
-                // Original binary parsing
-                rx_msg.machine_state = data[0];
-                
-                // Parse wheel1_speed (2 bytes) - big endian format
-                rx_msg.wheel1_speed = (data[1] << 8) | data[2];
-                
-                // Parse wheel2_speed (2 bytes) - big endian format
-                rx_msg.wheel2_speed = (data[3] << 8) | data[4];
+            else if (rxBytes >= 7) {
+                rx_msg.machine_state =  data[0];
+                rx_msg.wheel1_speed =   (data[1] << 8) | data[2];
+                rx_msg.wheel2_speed =   (data[3] << 8) | data[4];
+                rx_msg.servo_angle =    (data[5] << 8) | data[6];
                 
                 ESP_LOGI(RX_TASK_TAG, "Binary Parsed: State=%u, Wheel1=%d, Wheel2=%d", 
                         rx_msg.machine_state, rx_msg.wheel1_speed, rx_msg.wheel2_speed);
             }
-            
             // Echo back the received data through UART to confirm reception
             sendUartData(RX_TASK_TAG, data, rxBytes);
-            
             receiveCount = 0; // Reset the receive count on successful read
-            
-            // Update rx_msg.machine_state to mark when new data was received
-            // This helps external tasks detect new data even if actual state value doesn't change
-            rx_msg.machine_state = (rx_msg.machine_state & 0x0F) | ((xTaskGetTickCount() & 0x0F) << 4);
-            
+
             if (task_state == IDLE) {
                 task_state = RECEIVING;
                 ESP_LOGI(RX_TASK_TAG, "Task state changed to RECEIVING");
             }
+            update_led_state_noHandle(SEARCHING_BALL); // Update LED state to RECEIVING
         }
         else if(receiveCount < 20) {
             receiveCount++;
@@ -220,6 +199,7 @@ static void rx_task(void *arg)
                 ESP_LOGI(RX_TASK_TAG, "Task state changed to IDLE");
             }
             // vTaskDelay(pdMS_TO_TICKS(100)); // Wait for 100ms before checking again
+            update_led_state_noHandle(ERROR); // Update LED state to IDLE
             continue;
         }
         
@@ -237,8 +217,6 @@ void uart_init(void)
     
     // Initialize UART
     uart_init_port();
-    
-    // Create tasks with slightly more stack space to avoid potential overflows
     xTaskCreate(rx_task, "uart_rx_task", 1024 * 4, NULL, 3, NULL);
     // xTaskCreate(tx_task, "uart_tx_task", 1024 * 4, NULL, 3, NULL);
 }

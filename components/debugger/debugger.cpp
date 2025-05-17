@@ -144,9 +144,9 @@ void motor_task_init(){
 
     frictionWheel_1.setPIDParameters(20.0, 0.007, 0.005, 0.1, 0.1, 5000.0, -5000.0); // Set PID parameters
     frictionWheel_2.setPIDParameters(20.0, 0.007, 0.005, 0.1, 0.1, 5000.0, -5000.0); // Set PID parameters
-    wheelMotor_1.setPIDParameters(40.0, 0.02, 0.005, 0.1, 0.1, 2000.0, -2000.0); // Set PID parameters
-    wheelMotor_2.setPIDParameters(40.0, 0.02, 0.005, 0.1, 0.1, 2000.0, -2000.0); // Set PID parameters
-
+    wheelMotor_1.setPIDParameters(30.0, 0.02, 0.1, 0.1, 0.1, 2000.0, -2000.0); // Set PID parameters
+    wheelMotor_2.setPIDParameters(30.0, 0.02, 0.1, 0.1, 0.1, 2000.0, -2000.0); // Set PID parameters
+ 
     vTaskDelay(pdMS_TO_TICKS(100)); // Delay for 100 ms
 
     can_channel.start(); // Start the CAN channel

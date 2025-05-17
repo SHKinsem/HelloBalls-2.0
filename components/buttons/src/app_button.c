@@ -33,7 +33,7 @@ static void gpio_task_example(void *arg)
             // If it's GPIO0, toggle the servo position
             if (io_num == GPIO_NUM_0) {
                 // Wait a moment to debounce
-                vTaskDelay(pdMS_TO_TICKS(50));
+                vTaskDelay(pdMS_TO_TICKS(100));
                 
                 // Toggle servo position using the C-compatible function
                 toggle_servo();

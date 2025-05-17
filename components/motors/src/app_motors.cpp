@@ -20,7 +20,7 @@
 #define ID_DJI_RM_MOTOR         0x200
 
 // Servo control parameters - use different GPIO and timer/channel combination
-#define SERVO_GPIO              11         // Changed from GPIO0 to GPIO18
+#define SERVO_GPIO              SERVO_PIN         // Changed from GPIO0 to GPIO18
 #define LEDC_TIMER              LEDC_TIMER_1  // Changed from TIMER_0 to TIMER_1
 #define LEDC_MODE               LEDC_LOW_SPEED_MODE
 #define LEDC_CHANNEL            LEDC_CHANNEL_1  // Changed from CHANNEL_0 to CHANNEL_1
@@ -73,7 +73,7 @@ void servo_init(void) {
     ESP_ERROR_CHECK(ledc_channel_config(&ledc_channel));
     
     // Set initial position to 0 degrees
-    set_servo_position(0);
+    set_servo_position(60);
     ESP_LOGI(TAG, "Servo initialized to 0 degrees position");
 }
 
@@ -84,10 +84,15 @@ void set_servo_position(float angle) {
     ESP_ERROR_CHECK(ledc_update_duty(LEDC_MODE, LEDC_CHANNEL));
 }
 
-
+bool servo_state = true;
 // Toggle servo position - helper function for C code
 void toggle_servo(void) {
-
+    if(servo_state) {
+        set_servo_position(20);
+    } else {
+        set_servo_position(60);
+    }
+    servo_state = !servo_state;
 }
 
 m3508_t frictionwheels[2] = {m3508_t(1), m3508_t(2)}; // Create instances of m3508 motors for friction wheels
