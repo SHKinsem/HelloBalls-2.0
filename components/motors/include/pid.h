@@ -103,5 +103,6 @@ v.data.v1 = _IQmpy(v.param.Kp,                                    \
 (v.data.up + v.data.ui + v.data.ud));                             \
 v.term.Out= _IQsat(v.data.v1, v.param.Umax, v.param.Umin);        \
 v.data.w1 = (v.term.Out == v.data.v1) ? _IQ(1.0) : _IQ(0.0);      \
- 
+
+
 #endif // __PID_H__

@@ -24,6 +24,54 @@
  * 
  */
 
+template <typename T>
+class controller_t
+{
+private:
+    PID_CONTROLLER pid_loop;
+    controller_t* nextController;
+    _iq* fbk;
+
+public:
+    controller_t(T* fbk) {
+        this->fbk = _iQ(fbk);
+        this->nextController = nullptr;
+        pid_loop = {
+            PID_TERM_DEFAULTS,
+            PID_PARAM_DEFAULTS,
+            PID_DATA_DEFAULTS
+        };
+    }
+
+    ~controller_t() = default;
+
+    template <typename U>
+    void setNextController(controller_t<U>* nextController) {
+        this->nextController = nextController;
+    }
+
+    void setPIDParameters(float Kp, float Ki, float Kd, float Kr, float Km, float Umax, float Umin) {
+        pid_loop.param.Kp = _IQ(Kp);
+        pid_loop.param.Ki = _IQ(Ki);
+        pid_loop.param.Kd = _IQ(Kd);
+        pid_loop.param.Kr = _IQ(Kr);
+        pid_loop.param.Km = _IQ(Km);
+        pid_loop.param.Umax = _IQ(Umax);
+        pid_loop.param.Umin = _IQ(Umin);
+    }
+
+    template <typename U>
+    _iq calOutput(T ref) {
+        pid_loop.term.Ref = _IQ(ref);
+        pid_loop.term.Fbk = *fbk;
+        PID_MACRO(pid_loop);
+        if(nextController){
+            return nextController->calOutput(pid_loop.term.Out);
+        }
+        return pid_loop.term.Out;
+    }
+};
+
 class can_channel_t; // Forward declaration of can_channel_t class
 
 class base_motor_t
@@ -69,7 +117,10 @@ public:
 
     uint8_t getMotorId() const          {return this->motor_id;}    
     int16_t getRawAngle() const         {return this->raw_angle;}
+
     int16_t getRawSpeed() const         {return this->raw_speed;}
+    int16_t* getRawSpeedPtr()           {return &this->raw_speed;}
+
     int16_t getRawCurrent() const       {return this->raw_current;}
     int16_t getTargetSpeed() const      {return this->target_speed;}
     int8_t getStatus() const            {return this->status;}

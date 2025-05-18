@@ -29,6 +29,8 @@ private:
     TickType_t last_rx_time;          // Timestamp of last received message
     bool tx_active;                   // Flag to indicate if TX should be active
     uint32_t rx_timeout_ms;           // Timeout period in ms after which TX will stop if no messages received
+
+    bool stop_flag; // Flag to indicate if the TWAI driver should stop
     
     void rx_task(void* arg);
     void tx_task(void* arg);
@@ -53,6 +55,8 @@ public:
     void sendMessage(twai_message_t* msg);
 
     void start();
+    void resume();
+    void pause();
     void stop();
 
 };

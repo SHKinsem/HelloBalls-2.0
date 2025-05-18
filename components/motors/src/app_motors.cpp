@@ -15,21 +15,9 @@
 #include "app_twai.h"
 #include "app_motors.h"
 #include "esp_task_wdt.h"
+#include "serial.h"
 
 #define TAG "MOTORS"
-#define ID_DJI_RM_MOTOR         0x200
-
-// Servo control parameters - use different GPIO and timer/channel combination
-#define SERVO_GPIO              SERVO_PIN         // Changed from GPIO0 to GPIO18
-#define LEDC_TIMER              LEDC_TIMER_1  // Changed from TIMER_0 to TIMER_1
-#define LEDC_MODE               LEDC_LOW_SPEED_MODE
-#define LEDC_CHANNEL            LEDC_CHANNEL_1  // Changed from CHANNEL_0 to CHANNEL_1
-#define LEDC_DUTY_RES           LEDC_TIMER_13_BIT // Set duty resolution to 13 bits
-#define LEDC_FREQUENCY          50                // PWM frequency in Hz (standard for servo is 50Hz)
-#define SERVO_MIN_PULSEWIDTH    500               // Minimum pulse width in microseconds (0 degrees)
-#define SERVO_MAX_PULSEWIDTH    2500              // Maximum pulse width in microseconds (180 degrees)
-#define SERVO_ANGLE_0           0                 // 0 degree position
-#define SERVO_ANGLE_30          30                // 30 degree position
 
 // Convert angle to duty cycle for servo control
 static uint32_t servo_angle_to_duty(float angle) {
@@ -95,70 +83,72 @@ void toggle_servo(void) {
     servo_state = !servo_state;
 }
 
-m3508_t frictionwheels[2] = {m3508_t(1), m3508_t(2)}; // Create instances of m3508 motors for friction wheels
-m3508_t wheels[2] = {m3508_t(3), m3508_t(4)}; // Create instances of m3508 motors for wheels
-// m2006_t loaderMotor(3); // Create an instance of m2006 motor for loader motor
+can_channel_t can_channel(0, TWAI_TX_PIN, TWAI_RX_PIN); // Create a CAN channel instance
+dm3519_t test_motor(1); // Create an instance of the motor
 
-base_motor_t* get_motor_ptr(uint8_t motor_id) {
-    switch (motor_id) {
-        case 1:
-            return &frictionwheels[0];
-        case 2:
-            return &frictionwheels[1];
-        case 3:
-            return &wheels[0];
-        case 4:
-            return &wheels[1];
-        default:
-            ESP_LOGE(TAG, "Invalid motor ID: %d", motor_id);
-            return NULL; // Invalid motor ID
+m3508_t frictionWheel_1(1);
+m3508_t frictionWheel_2(2);
+m3508_t wheelMotor_1(3);
+m3508_t wheelMotor_2(4);
+m2006_t loaderMotor(6);
+
+void motorStateHelper(bool state) {
+    if (state) {
+        frictionWheel_1.enable(); // Enable the motor
+        frictionWheel_2.enable(); // Enable the motor
+        wheelMotor_1.enable(); // Enable the motor
+        wheelMotor_2.enable(); // Enable the motor
+    } else {
+        frictionWheel_1.disable();
+        frictionWheel_2.disable();
+        wheelMotor_1.disable();
+        wheelMotor_2.disable();
     }
 }
 
-uint8_t* motor_data[4]; // Buffer to store motor data
+void serialWheelControlTask(void *arg) {
+    ESP_LOGI(TAG, "Serial wheel control task started");
+    // Setup for serial activity detection
+    rx_message_t* rx_msg = get_rx_message_ptr();
+    task_state_t* task_state = getTaskState(); // Get the task state pointer
+    
+    while (1) {
+        if (*task_state == RECEIVING) { motorStateHelper(true); } // Enable the motor if receiving data
+        else { motorStateHelper(false); } // Disable the motor if not receiving data
 
-void twai_receive_task_continuous(void *arg)
-{
-    twai_message_t rx_msg;
-
-    while (true) {
-        if(!get_twai_running()) {
-            vTaskDelay(pdMS_TO_TICKS(1000));
-            // ESP_LOGI(TAG, "TWAI driver not running, waiting...");
-            continue;
+         // Get the machine state from the received message in advance
+         // Avoid the state change during the task execution
+        uint8_t machine_state = rx_msg->machine_state;
+        wheelMotor_1.setTargetSpeed(rx_msg->wheel1_speed);
+        wheelMotor_2.setTargetSpeed(-rx_msg->wheel2_speed);        
+        if(machine_state == 0) {
+            frictionWheel_1.setTargetSpeed(0);
+            frictionWheel_2.setTargetSpeed(0);
+        } else if (machine_state == 1) {
+            frictionWheel_1.setTargetSpeed(1000);
+            frictionWheel_2.setTargetSpeed(-1000);
+        } else if (machine_state == 2) {
+            frictionWheel_1.setTargetSpeed(-1000);
+            frictionWheel_2.setTargetSpeed(1000);
         }
-
-        //Receive data messages from slave
-        esp_err_t status = twai_receive(&rx_msg, pdMS_TO_TICKS(1000));
-        if (status != ESP_OK) {
-            ESP_LOGE(TAG, "Error receiving message: %s", esp_err_to_name(status));
-            continue;
-        }
-        int msg_id = rx_msg.identifier % ID_DJI_RM_MOTOR;
-        if(msg_id > 0 && msg_id < 3) {
-            // for (int i = 0; i < rx_msg.data_length_code; i++) motor_data[msg_id-1][i] = rx_msg.data[i];
-            frictionwheels[msg_id - 1].parseData(rx_msg.data); // Parse data for the specific motor
-        } else if(msg_id == 3) {
-            // loaderMotor.parseData(rx_msg.data); // Parse data for the loader motor
-            wheels[0].parseData(rx_msg.data); // Example for parsing wheel data
-        } else if(msg_id == 4) {
-            // Handle DM3519 motor data here if needed
-            // dm3519_motor.parseData(rx_msg.data); // Example for parsing DM3519 motor data
-            wheels[1].parseData(rx_msg.data); // Example for parsing wheel data
-        } else {
-            ESP_LOGI(TAG, "Received unknown message with ID %d", msg_id);
-        }
-        // esp_task_wdt_reset(); // Reset the watchdog timer
+        vTaskDelay(pdMS_TO_TICKS(5));
     }
-    ESP_LOGI(TAG, "TWAI receive task self-deleting...");
-    vTaskDelete(NULL);
 }
 
+void motor_task_init(){
+    can_channel.reg_motor(&test_motor);
+    can_channel.reg_motor(&frictionWheel_1);
+    can_channel.reg_motor(&frictionWheel_2);
+    can_channel.reg_motor(&wheelMotor_1);
+    can_channel.reg_motor(&wheelMotor_2);
 
-void twai_init(){
-    twai_start();
-    stop_twai_receive();    // Stop receiving messages by default
-    xTaskCreatePinnedToCore(twai_receive_task_continuous, "TWAI_rx_continuous", 4096, NULL, 1, NULL, tskNO_AFFINITY);
+    frictionWheel_1.setPIDParameters(20.0, 0.007, 0.005, 0.1, 0.1, 5000.0, -5000.0); // Set PID parameters
+    frictionWheel_2.setPIDParameters(20.0, 0.007, 0.005, 0.1, 0.1, 5000.0, -5000.0); // Set PID parameters
+    wheelMotor_1.setPIDParameters(30.0, 0.02, 0.1, 0.1, 0.1, 5000.0, -5000.0); // Set PID parameters
+    wheelMotor_2.setPIDParameters(30.0, 0.02, 0.1, 0.1, 0.1, 5000.0, -5000.0); // Set PID parameters
+
+    can_channel.start(); // Start the CAN channel
+    // Create the new serial wheel control task
+
+    xTaskCreatePinnedToCore(serialWheelControlTask, "Serial Wheel Control", 4096, NULL, configMAX_PRIORITIES - 3, NULL, 0);
 }
-
-

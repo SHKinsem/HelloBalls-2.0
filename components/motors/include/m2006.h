@@ -23,8 +23,6 @@
  */
 
 
-
-
 class m2006_t : public base_motor_t
 {
 protected:
@@ -39,7 +37,6 @@ protected:
 public:
     m2006_t(uint8_t motor_id) : base_motor_t(motor_id) {
         scale_current = _IQdiv(_IQ(10.0), _IQ(10000.0)); // Scaling factor for current
-        temperature = -1; // M2006 temperature is not available
         temperature = -1; // M2006 temperature is not available
         status = 0; // Initialize raw status to 0
         loopCounter = 0;
@@ -69,10 +66,12 @@ public:
     _iq calShaftAngle() {
         // Calculate the shaft angle based on the raw angle and loop counter
         _iq angle = _IQmpy(_IQ(raw_angle), scale_angle) + _IQ(360 * loopCounter); 
-        angle = _IQdiv(angle, gear_ratio); // Divide by gear ratio
-        return angle;
+        this->shaft_angle = _IQdiv(angle, gear_ratio); // Divide by gear ratio
+        return this->shaft_angle;
     }
-    float getShaftAngle() {return _IQtoF(calShaftAngle());}
+
+    float getShaftAngle()       {return _IQtoF(calShaftAngle());}
+    _iq* getShaftAnglePtr()     {return &this->shaft_angle;}
 
     char* getMotorInfo() override {
         snprintf(motor_info, sizeof(motor_info),
@@ -84,7 +83,7 @@ public:
             "Current:\n\t%2.2f Amps\n",
             this->getMotorId(),
             this->getAngle(),
-            this->getShaftAngle(), // Added call to getShaftAngle()
+            this->getShaftAngle(),
             this->getRawSpeed(),
             this->getTargetSpeed(),
             this->getCurrent()

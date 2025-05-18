@@ -106,7 +106,7 @@ void can_channel_t::rx_task(void* arg) {
 void can_channel_t::tx_task(void* arg) {
     TickType_t xLastWakeTime = xTaskGetTickCount(); // Get the current tick count
 
-    while (true) {
+    while (!stop_flag) {
         // Skip if TWAI driver is not running
         if(!twai_running) {
             vTaskDelay(pdMS_TO_TICKS(1000));
@@ -146,7 +146,7 @@ void can_channel_t::tx_task(void* arg) {
 void can_channel_t::alert_task(void* arg) {
     uint32_t alerts;
     
-    while (true) {
+    while (!stop_flag) {
         if (!twai_running) {
             vTaskDelay(pdMS_TO_TICKS(1000));
             continue;
@@ -378,10 +378,12 @@ void can_channel_t::start() {
     ESP_LOGI(TAG, "TWAI channel %d started successfully", channel_id);
 }
 
+
+
 void can_channel_t::stop() {
     // Set flag to false to signal tasks to stop
     twai_running = false;
-    
+    stop_flag = true; // Set stop flag to true
     // Stop TWAI driver
     esp_err_t status = twai_stop_v2(twai_handle);
     if (status != ESP_OK) {
