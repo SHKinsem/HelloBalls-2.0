@@ -61,7 +61,7 @@ void servo_init(void) {
     ESP_ERROR_CHECK(ledc_channel_config(&ledc_channel));
     
     // Set initial position to 0 degrees
-    set_servo_position(60);
+    set_servo_position(66);
     ESP_LOGI(TAG, "Servo initialized to 0 degrees position");
 }
 
@@ -78,7 +78,7 @@ void toggle_servo(void) {
     if(servo_state) {
         set_servo_position(20);
     } else {
-        set_servo_position(60);
+        set_servo_position(66);
     }
     servo_state = !servo_state;
 }
