@@ -413,7 +413,7 @@ void bsp_lvgl_start(void)
     disp = bsp_display_lcd_init();
 
     /* 初始化触摸屏 并添加LVGL接口 */
-    disp_indev = bsp_display_indev_init(disp);
+    // disp_indev = bsp_display_indev_init(disp);
 
     /* 打开液晶屏背光 */
     bsp_display_backlight_on();

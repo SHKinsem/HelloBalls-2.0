@@ -31,18 +31,20 @@
 #include "stepper_motors.h"
 #include "leds.h"
 
+t_sQMI8658 qmi8658_data; // QMI8658 data structure
+
 void szp_setup(){
     bsp_i2c_init();  // I2C initialization
     pca9557_init();  // IO expander initialization
-    bsp_lvgl_start(); // Lvgl initialization
-    install_twai_driver();
-    
+    qmi8658_init(); // QMI8658 initialization
+
     if(bsp_sdcard_mount() == ESP_OK) {
         ESP_LOGI(TAG, "SD card mounted successfully");
         // bsp_codec_init(); // Codec initialization
         // mp3_player_init();
     } else {
-        ui_init(); // Initialize UI without SD card
+        // bsp_lvgl_start(); // Lvgl initialization
+        // ui_init(); // Initialize UI without SD card
         ESP_LOGE(TAG, "Failed to mount SD card");
         ESP_LOGE(TAG, "Entering motor Debug mode");
     }
@@ -51,7 +53,6 @@ void szp_setup(){
 void setup(){
     led_init(); // Initialize LED strip
     update_led_state_noHandle(STARTING); // Set initial LED state
-    
     // szp_setup(); // Call the setup function to initialize components
     motor_task_init(); // Initialize motor task
     servo_init();
@@ -67,11 +68,10 @@ extern "C" void app_main(void)
 {
     setup(); // Call setup function to initialize components
 
-    // uart_init(); // Initialize UART communication
-    // motor_task_init(); // Initialize motor task
-    // led_example(); // Initialize LED example
     while(1){
-        vTaskDelay(pdMS_TO_TICKS(1000));
+        // qmi8658_fetch_angleFromAcc(&qmi8658_data); // Fetch angle data from QMI8658
+        // ESP_LOGI(TAG, "AngleX: %f, AngleY: %f, AngleZ: %f", qmi8658_data.AngleX, qmi8658_data.AngleY, qmi8658_data.AngleZ); // Log angle data
+        vTaskDelay(pdMS_TO_TICKS(10));
     }
 
 }
