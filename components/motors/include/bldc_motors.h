@@ -102,6 +102,8 @@ protected:
         PID_DATA_DEFAULTS
     };
 
+    PID_CONTROLLER* angle_pid;
+
     int16_t controlOutput;
 
 public:
@@ -114,6 +116,7 @@ public:
     void disable()                  {this->enabled = false; }   // Disable the motor
     
     void setMotorId(uint8_t motor_id)   {this->motor_id = motor_id;}
+    void initAnglePID();
 
     uint8_t getMotorId() const          {return this->motor_id;}    
     int16_t getRawAngle() const         {return this->raw_angle;}
@@ -135,6 +138,7 @@ public:
     void setRawSpeed(int16_t raw_speed)         {this->raw_speed = raw_speed;} // Set raw speed of motor
     void setRawCurrent(int16_t current)         {this->raw_current = current;} // Set raw current of motor
     void setTargetSpeed(int16_t target_speed)   {this->target_speed = target_speed;}
+    void setTargetAngle(int16_t target_angle)   {this->target_angle = target_angle;} // Set target angle of motor
 
     void setCanChannel(can_channel_t* can_channel) {this->can_channel = can_channel;} // Set the CAN channel for the motor
 
