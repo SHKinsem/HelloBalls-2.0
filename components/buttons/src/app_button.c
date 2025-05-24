@@ -56,7 +56,7 @@ void button_init()
     gpio_config(&io0_conf);
     
     // Create a queue to handle GPIO events
-    gpio_evt_queue = xQueueCreate(10, sizeof(uint32_t));
+    gpio_evt_queue = xQueueCreate(1, sizeof(uint32_t));
     xTaskCreate(gpio_task_example, "gpio_task_example", 5120, NULL, 10, NULL);
     
     // Create GPIO interrupt service

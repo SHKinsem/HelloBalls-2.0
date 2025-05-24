@@ -8,10 +8,10 @@
 #define ID_DJI_RM_MOTOR         0x200
 
 // Servo control parameters - use different GPIO and timer/channel combination
-#define SERVO_GPIO              SERVO_PIN         // Changed from GPIO0 to GPIO18
-#define LEDC_TIMER              LEDC_TIMER_1  // Changed from TIMER_0 to TIMER_1
+#define LEDC_TIMER              LEDC_TIMER_1
 #define LEDC_MODE               LEDC_LOW_SPEED_MODE
-#define LEDC_CHANNEL            LEDC_CHANNEL_1  // Changed from CHANNEL_0 to CHANNEL_1
+#define CHANNEL_SERVO_1         LEDC_CHANNEL_1
+#define CHANNEL_SERVO_2         LEDC_CHANNEL_2
 #define LEDC_DUTY_RES           LEDC_TIMER_13_BIT // Set duty resolution to 13 bits
 #define LEDC_FREQUENCY          50                // PWM frequency in Hz (standard for servo is 50Hz)
 #define SERVO_MIN_PULSEWIDTH    500               // Minimum pulse width in microseconds (0 degrees)
