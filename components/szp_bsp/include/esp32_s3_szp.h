@@ -136,6 +136,7 @@ typedef struct{
 }t_sQMI8658;
 
 void qmi8658_init(void);  // QMI8658初始化
+void qmi8658_Read_AccAndGry(t_sQMI8658 *p);
 void qmi8658_fetch_angleFromAcc(t_sQMI8658 *p);  // 获取倾角
 
 /***************************  姿态传感器 QMI8658 ↑  ****************************/

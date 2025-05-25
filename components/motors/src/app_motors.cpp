@@ -210,15 +210,15 @@ void serialWheelControlTask(void *arg) {
     ESP_LOGI(TAG, "Serial wheel control task started");
     // Setup for serial activity detection
     rx_message_t* rx_msg = get_rx_message_ptr();
-    task_state_t* task_state = getTaskState(); // Get the task state pointer
+    serial_state_t* task_state = getTaskState(); // Get the task state pointer
     
     while (1) {
-        if (*task_state == RECEIVING) { motorStateHelper(true); } // Enable the motor if receiving data
+        if (*task_state == SERIAL_RECEIVING) { motorStateHelper(true); } // Enable the motor if receiving data
         else { motorStateHelper(false); } // Disable the motor if not receiving data
 
          // Get the machine state from the received message in advance
          // Avoid the state change during the task execution
-        uint8_t machine_state = rx_msg->machine_state;
+        uint8_t machine_state = rx_msg->host_state; // Get the machine state from the received message
         wheelMotor_1.setTargetSpeed(rx_msg->wheel1_speed);
         wheelMotor_2.setTargetSpeed(-rx_msg->wheel2_speed);        
         if(machine_state == 0) {
