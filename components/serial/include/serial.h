@@ -51,6 +51,10 @@ typedef struct {
 // Initialize UART communication
 void uart_init(void);
 
+// Semaphore indicating message reception
+extern SemaphoreHandle_t serial_rx_semaphore;
+extern SemaphoreHandle_t state_change_semaphore; // Semaphore for state change synchronization
+
 // Get a pointer to the received message data
 rx_message_t* get_rx_message_ptr(void);
 rx_message_t get_rx_message(void);

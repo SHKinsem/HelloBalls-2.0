@@ -108,11 +108,9 @@ public:
     void initAnglePID(){
         if(!shaft_angle_ptr) shaft_angle_ptr = new float(0);
         if(controller) delete controller;
-
         // Initialize a new controller with cumulative angle feedback
         controller = new controller_t<float>(shaft_angle_ptr); 
         controller->setPIDParameters(10.0, 0.0, 0.0, 1.0, 0.0, 500.0, -500.0);
-        // controller->setReverseFeedback(true);
     }
 
     int16_t& calOutput() override {

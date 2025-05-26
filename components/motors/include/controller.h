@@ -1,3 +1,5 @@
+#pragma once
+
 #include <stdint.h>
 #include "pid.h"
 // #include "driver/twai.h"
@@ -11,8 +13,8 @@ protected:
     PID_CONTROLLER pid_loop;
     bool reverse_fbk = false; // Flag to reverse feedback if needed
     _iq error; // For debugging purposes, can be removed if not needed
-    base_controller_t* nextController;
 public:
+    base_controller_t* nextController;
 
     int16_t debug; // For debugging purposes, can be removed if not needed
 
@@ -71,10 +73,15 @@ public:
         return current; // Return the last controller in the chain
     }
 
+    base_controller_t* getNextController() {
+        return nextController; // Return the next controller in the chain
+    }
+
     void setNextController(base_controller_t* nextController) {
         base_controller_t* tail = getTailController(); // Get the last controller in the chain
         tail->nextController = nextController; // Set the next controller in the chain
     }
+    
 
 };
 
@@ -89,12 +96,12 @@ public:
         this->nextController = nullptr;
     }
 
-    ~controller_t() override {
+    ~controller_t() {
         // Destructor to clean up resources if needed
         base_controller_t* next = nextController;
         while (next != nullptr) {
             base_controller_t* temp = next;
-            next = next->nextController; // Move to the next controller
+            next = next->nextController; // Get the next controller in the chain
             delete temp; // Delete the current controller
         }
     }

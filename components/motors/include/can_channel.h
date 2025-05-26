@@ -1,3 +1,5 @@
+#pragma once
+
 #include "bldc_motors.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"

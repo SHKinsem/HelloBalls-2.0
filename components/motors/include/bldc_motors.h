@@ -1,3 +1,5 @@
+#pragma once
+
 #ifndef __BLDC_MOTORS_H
 #define __BLDC_MOTORS_H
 

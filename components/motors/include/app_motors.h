@@ -1,3 +1,5 @@
+#pragma once
+
 #ifndef __APP_MOTORS_H
 #define __APP_MOTORS_H
 
@@ -7,28 +9,23 @@
 
 #define ID_DJI_RM_MOTOR         0x200
 
-// Servo control parameters - use different GPIO and timer/channel combination
-#define LEDC_TIMER              LEDC_TIMER_1
-#define LEDC_MODE               LEDC_LOW_SPEED_MODE
-#define CHANNEL_SERVO_1         LEDC_CHANNEL_1
-#define CHANNEL_SERVO_2         LEDC_CHANNEL_2
-#define LEDC_DUTY_RES           LEDC_TIMER_13_BIT // Set duty resolution to 13 bits
-#define LEDC_FREQUENCY          50                // PWM frequency in Hz (standard for servo is 50Hz)
-#define SERVO_MIN_PULSEWIDTH    500               // Minimum pulse width in microseconds (0 degrees)
-#define SERVO_MAX_PULSEWIDTH    2500              // Maximum pulse width in microseconds (180 degrees)
-#define SERVO_ANGLE_0           0                 // 0 degree position
-#define SERVO_ANGLE_30          30                // 30 degree position
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+
 void servo_init(void); // Initialize servo on GPIO0
-void set_servo_position(float angle); // Set servo position to a specific angle
-bool get_servo_state(void); // Get current servo state
 void toggle_servo(void); // Toggle servo position - helper function for C code
-void serialWheelControlTask(void *arg);
+void tilt_servos(float angle); // Tilt both servos by a specified angle
+void disable_servos(void); // Disable both servos
+void enable_servos(void); // Enable both servos
+
 void motor_task_init(void);
+void motorStateHelper(bool state);
+void set_friction_wheels_speed(const int16_t& speed); // Set speed for friction wheels
+void set_wheel_motors_speed(const int16_t& speed1, const int16_t& speed2);
+void moveLoader(float angle);
+void resetLoaderOrigin(void);
 
 #ifdef __cplusplus
 }

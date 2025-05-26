@@ -13,11 +13,11 @@
 #include "dm3519.h"
 #include <cmath>
 // #include "ui.h"
-#include "app_twai.h"
+// #include "app_twai.h"
 #include "app_motors.h"
-#include "esp_task_wdt.h"
 #include "serial.h"
 #include <algorithm>  // For std::min and std::max
+#include "servo.h"
 
 #define TAG "MOTORS"
 
@@ -25,141 +25,7 @@
 #define SERVO_2_MIDDLE_ANGLE 91.0f // Middle position for servo 2
 #define MAX_SPEED 5000 // Maximum speed for motors
 
-class ServoController {
 
-private:
-    gpio_num_t pin;
-    ledc_channel_t channel;
-    ledc_timer_t timer;
-    ledc_mode_t mode = LEDC_LOW_SPEED_MODE; // Use low speed mode for servo control
-
-    uint32_t current_duty = 0; // Current duty cycle for the servo
-    uint32_t origin_duty = 0; // Origin duty cycle for the servo
-public:
-    ServoController(gpio_num_t pin, ledc_channel_t channel, ledc_timer_t timer) : pin(pin), channel(channel), timer(timer) {
-        // Initialize the LEDC timer
-        ledc_timer_config_t ledc_timer = {
-            .speed_mode = mode,
-            .duty_resolution = LEDC_TIMER_13_BIT, // 13-bit resolution
-            .timer_num = timer,
-            .freq_hz = 50, // Standard servo frequency
-            .clk_cfg = LEDC_AUTO_CLK
-        };
-        ESP_ERROR_CHECK(ledc_timer_config(&ledc_timer));
-        
-        // Initialize the LEDC channel for servo control
-        ledc_channel_config_t ledc_channel = {
-            .gpio_num = pin,
-            .speed_mode = mode,
-            .channel = channel,
-            .intr_type = LEDC_INTR_DISABLE,
-            .timer_sel = timer,
-            .duty = 0, // Initial duty cycle set to 0
-            .hpoint = 0,
-            .flags = {}
-        };
-        ESP_ERROR_CHECK(ledc_channel_config(&ledc_channel));
-    }
-    ~ServoController() {
-        // Cleanup if needed
-        ESP_ERROR_CHECK(ledc_stop(mode, channel, 0));
-    }
-
-    uint32_t angle2duty(float angle) {
-        // Convert angle to a value between 0-180
-        if (angle < 0) angle = 0;
-        if (angle > 180) angle = 180;
-        
-        // Calculate pulse width based on angle
-        float pulse_width = SERVO_MIN_PULSEWIDTH + (SERVO_MAX_PULSEWIDTH - SERVO_MIN_PULSEWIDTH) * (angle / 180.0);
-        
-        // Convert pulse width to duty cycle
-        uint32_t duty = (uint32_t)((pulse_width / 20000.0) * ((1 << LEDC_DUTY_RES) - 1));
-        return duty;
-    }
-    float duty2angle(uint32_t duty) {
-        // Convert duty cycle back to angle
-        // First convert duty to pulse width
-        float pulse_width = (duty * 20000.0) / ((1 << LEDC_DUTY_RES) - 1);
-        
-        if (pulse_width < SERVO_MIN_PULSEWIDTH || pulse_width > SERVO_MAX_PULSEWIDTH) {
-            ESP_LOGW(TAG, "Pulse width out of range: %.2f", pulse_width);
-            return -1.0f; // Invalid pulse width
-        }
-        
-        // Calculate angle based on pulse width
-        float angle = (pulse_width - SERVO_MIN_PULSEWIDTH) / (SERVO_MAX_PULSEWIDTH - SERVO_MIN_PULSEWIDTH) * 180.0;
-        return std::max(0.0f, std::min(angle, 180.0f)); // Clamp angle between 0 and 180
-    }
-
-    void move(uint32_t duty) {
-        if(current_duty == duty) {
-            return; // No need to move if already at the desired duty cycle
-        }
-        // Move servo to specified duty cycle
-        ESP_ERROR_CHECK(ledc_set_duty(mode, channel, duty));
-        ESP_ERROR_CHECK(ledc_update_duty(mode, channel));
-        current_duty = duty; // Update current duty
-        ESP_LOGI(TAG, "Servo on GPIO%d moved to duty: %"PRIu32, pin, duty);
-    }
-
-    void reset() {
-        move(origin_duty); // Move servo to origin duty cycle
-        ESP_LOGI(TAG, "Servo on GPIO %d reset to origin duty: %"PRIu32, pin, origin_duty);
-    }
-
-    void setOriginDuty(uint32_t duty) {
-        origin_duty = duty;
-    }
-
-    void setOriginAngle(float angle) {
-        // Convert angle to duty cycle and set as origin
-        uint32_t duty = angle2duty(angle);
-        setOriginDuty(duty);
-        ESP_LOGI(TAG, "Servo on GPIO %d origin angle set to: %.2f degrees, duty: %"PRIu32, pin, angle, duty);
-    }
-
-    uint32_t getCurrentDuty() const {
-        return current_duty;
-    }
-
-    uint32_t getOriginDuty() const {
-        return origin_duty;
-    }
-
-    void setAngle(float angle) {
-        // Convert angle to duty cycle
-        uint32_t duty = angle2duty(angle);
-        move(duty); // Move servo to calculated duty cycle
-    }   
-
-    void moveRelativeToOrigin(float angle) {
-        // Move servo relative to origin position
-        float new_angle = duty2angle(getOriginDuty()) + angle; // Get current angle from origin duty
-        ESP_LOGI(TAG, "Moving servo on GPIO%d relative to origin by %.2f degrees, new angle: %.2f", pin, angle, new_angle);
-        if (new_angle < 0) new_angle = 0;
-        if (new_angle > 180) new_angle = 180;
-        setAngle(new_angle);
-    }
-
-    void moveRelativeToOrigin(float angle, float speed) {
-        // Move servo relative to origin position with speed control
-        uint32_t current_duty = getCurrentDuty(); // Get current duty cycle
-        uint32_t target_duty = angle2duty(duty2angle(getOriginDuty()) + angle); // Calculate target duty cycle
-        
-        float new_angle = duty2angle(getOriginDuty()) + angle; // Get current angle from origin duty
-        ESP_LOGI(TAG, "Moving servo on GPIO%d relative to origin by %.2f degrees, new angle: %.2f with speed: %.2f", pin, angle, new_angle, speed);
-        if (new_angle < 0) new_angle = 0;
-        if (new_angle > 180) new_angle = 180;
-
-        while (current_duty != target_duty) {
-            if (current_duty < target_duty) current_duty++;
-            else current_duty--;
-            move(current_duty); // Move servo to new duty cycle
-            vTaskDelay(pdMS_TO_TICKS(100 / speed));
-        }
-    }
-};
 
 ServoController servo1(SERVO_1_PIN, CHANNEL_SERVO_1, LEDC_TIMER);
 ServoController servo2(SERVO_2_PIN, CHANNEL_SERVO_2, LEDC_TIMER);
@@ -177,29 +43,43 @@ void servo_init(void) {
 }
 
 
-void set_servo_position(float angle) {
-    servo1.setAngle(angle);
-    servo2.setAngle(180 - angle);
-    vTaskDelay(pdMS_TO_TICKS(100)); // Delay to allow servo to move
-}
-
-void set_servos_position(float angle1, float angle2) {
-    servo1.setAngle(angle1);
-    servo2.setAngle(angle2);
-    vTaskDelay(pdMS_TO_TICKS(100)); // Delay to allow servos to move
-}
-
 bool servo_state = true;
 // Toggle servo position - helper function for C code
 void toggle_servo(void) {
     if(servo_state) {
-        servo1.moveRelativeToOrigin(-30.0f); // Move servo 1 to 30 degrees relative to origin
-        servo2.moveRelativeToOrigin(30.0f); // Move servo 2 to -30 degrees relative to origin
+        servo1.moveRelativeToOrigin(-30.0f, 100.0f); // Move servo 1 to 30 degrees relative to origin
+        servo2.moveRelativeToOrigin(30.0f, 100.0f); // Move servo 2 to -30 degrees relative to origin
     } else {
-        servo1.moveRelativeToOrigin(3.0f); 
-        servo2.moveRelativeToOrigin(-3.0f); 
+        servo1.moveRelativeToOrigin(3.0f, 100.0f); 
+        servo2.moveRelativeToOrigin(-3.0f, 100.0f); 
     }
     servo_state = !servo_state;
+}
+
+#define MAX_TILT_ANGLE 35.0f // Maximum tilt angle for servos
+#define MIN_TILT_ANGLE -10.0f // Minimum tilt angle for servos
+void tilt_servos(float angle) {
+    // Clamp angle to valid range
+    if (angle > MAX_TILT_ANGLE) angle = MAX_TILT_ANGLE;
+    if (angle < MIN_TILT_ANGLE) angle = MIN_TILT_ANGLE;
+
+    // Tilt both servos by the specified angle
+    servo1.moveRelativeToOrigin(-angle, 80.0f); // Move servo 1 relative to origin
+    servo2.moveRelativeToOrigin(angle, 80.0f); // Move servo 2 relative to origin
+}
+
+void disable_servos() {
+    // Disable both servos
+    servo1.disable();
+    servo2.disable();
+    ESP_LOGI(TAG, "Servos disabled");
+}
+
+void enable_servos() {
+    // Enable both servos
+    servo1.enable();
+    servo2.enable();
+    ESP_LOGI(TAG, "Servos enabled");
 }
 
 can_channel_t can_channel(0, TWAI_TX_PIN, TWAI_RX_PIN); // Create a CAN channel instance
@@ -215,8 +95,8 @@ void motorStateHelper(bool state) {
     if (state) {
         frictionWheel_1.enable();
         frictionWheel_2.enable();
-        // wheelMotor_1.enable();
-        // wheelMotor_2.enable();
+        wheelMotor_1.enable();
+        wheelMotor_2.enable();
         loaderMotor.enable();
     } else {
         frictionWheel_1.disable();
@@ -227,38 +107,49 @@ void motorStateHelper(bool state) {
     }
 }
 
-void serialWheelControlTask(void *arg) {
-    ESP_LOGI(TAG, "Serial wheel control task started");
-    // Setup for serial activity detection
-    rx_message_t* rx_msg = get_rx_message_ptr();
-    serial_state_t* task_state = getTaskState(); // Get the task state pointer
-    
-    while (1) {
-        if (*task_state == SERIAL_RECEIVING) {motorStateHelper(true);} // Enable the motor if receiving data
-        else {motorStateHelper(false);} // Disable the motor if not receiving data
-
-         // Get the machine state from the received message in advance
-         // Avoid the state change during the task execution
-        uint8_t machine_state = rx_msg->host_state; // Get the machine state from the received message
-
-        wheelMotor_1.setTarget(rx_msg->wheel1_speed);
-        wheelMotor_2.setTarget(-rx_msg->wheel2_speed);
-
-        if(machine_state == 0) {
-            frictionWheel_1.setTarget(0);
-            frictionWheel_2.setTarget(0);
-        } else if (machine_state == 1) {
-            frictionWheel_1.setTarget(1000);
-            frictionWheel_2.setTarget(-1000);
-        } else if (machine_state == 2) {
-            frictionWheel_1.setTarget(-1000);
-            frictionWheel_2.setTarget(1000);
-        }
-        vTaskDelay(pdMS_TO_TICKS(5));
+void set_friction_wheels_speed(const int16_t& speed) {
+    if(speed == 0) {
+        frictionWheel_1.disable();
+        frictionWheel_2.disable();
+        return; // Stop motors if speed is zero
     }
+    frictionWheel_1.setTarget(-speed);
+    frictionWheel_2.setTarget(speed);
+}
+
+void set_wheel_motors_speed(const int16_t& speed1, const int16_t& speed2) {
+    wheelMotor_1.setTarget(speed1);
+    wheelMotor_2.setTarget(-speed2);
+}
+
+
+static float loader_origin_angle = 0.0f;
+
+// Move loader to a specified angle
+void moveLoader(float angle) {
+    // Clamp angle to valid range
+    angle = loaderMotor.getShaftAngle() + angle; // Adjust angle relative to origin
+    if (angle < -180.0f) angle = -180.0f;
+    if (angle > 180.0f) angle = 180.0f;
+    if (fabs(angle) < 0.1f) {
+        ESP_LOGI(TAG, "Loader angle change too small, ignoring: %.2f", angle);
+        return; // Ignore small changes to prevent jitter
+    }
+    loaderMotor.setTarget(angle);
+}
+
+void resetLoaderOrigin() {
+    // Reset the loader motor to its origin position
+    loaderMotor.resetCounter(); // Reset the loop counter
+    loaderMotor.setTarget(0.0f);
+    loader_origin_angle = 0.0f; // Reset the global loader origin angle
 }
 
 void motor_task_init(){
+
+    serial_rx_semaphore = xSemaphoreCreateBinary();
+    state_change_semaphore = xSemaphoreCreateBinary();
+
     frictionWheel_1.setPIDParameters(20.0, 0.007, 0.005, 0.1, 0.1, 5000.0, -5000.0);
     frictionWheel_2.setPIDParameters(20.0, 0.007, 0.005, 0.1, 0.1, 5000.0, -5000.0);
     wheelMotor_1.setPIDParameters(25.0, 0.03, 0.5, 0.1, 0.1, 2000.0, -2000.0);
@@ -277,6 +168,5 @@ void motor_task_init(){
     can_channel.reg_motor(&wheelMotor_1);
     can_channel.reg_motor(&wheelMotor_2);
     can_channel.reg_motor(&loaderMotor);
-    can_channel.start(); // Start the CAN channel
-    xTaskCreatePinnedToCore(serialWheelControlTask, "Serial Wheel Control", 4096, NULL, configMAX_PRIORITIES - 3, NULL, 0);
+    can_channel.start();
 }

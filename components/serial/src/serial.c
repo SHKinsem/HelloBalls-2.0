@@ -21,7 +21,12 @@
 
 static const int RX_BUF_SIZE = 128;
 
+SemaphoreHandle_t serial_rx_semaphore = NULL; // Semaphore for serial RX task synchronization
+SemaphoreHandle_t state_change_semaphore = NULL; // Semaphore for state change synchronization
+
 static serial_state_t task_state = SERIAL_IDEL; // Initialize task state to SERIAL_IDEL
+static host_state_t host_state = HOST_IDLE; // Initialize host state to HOST_IDLE
+static mcu_state_t mcu_state = MCU_IDLE; // Initialize MCU state to MCU_IDLE
 
 // Global variables for message data
 static rx_message_t rx_msg = {0};
@@ -38,6 +43,14 @@ rx_message_t get_rx_message(void) {
 
 serial_state_t* getTaskState(void) {
     return &task_state;
+}
+
+host_state_t* getHostState(void) {
+    return &host_state;
+}
+
+mcu_state_t* getMcuState(void) {
+    return &mcu_state;
 }
 
 // Function to set TX data from external source
@@ -150,6 +163,11 @@ static void tx_task(void *arg)
 
 static void rx_task(void *arg)
 {   
+    if (serial_rx_semaphore == NULL) {
+        ESP_LOGE("RX_TASK", "Failed to create serial_rx_semaphore");
+        vTaskDelete(NULL);
+        return;
+    }
     int receiveCount = 0;
     static const char *RX_TASK_TAG = "RX_TASK";
     esp_log_level_set(RX_TASK_TAG, ESP_LOG_INFO);
@@ -185,6 +203,10 @@ static void rx_task(void *arg)
                     parsed = sscanf((char*)data, "%d,%d,%d,%d", &state, &wheel1, &wheel2, &servoAngle);
                 
                 if (parsed >= 1) {
+                    if(host_state != state) {
+                        host_state = (host_state_t)state; // Update host state
+                        xSemaphoreGive(state_change_semaphore); // Signal state change
+                    }
                     rx_msg.host_state = (uint8_t)state;
                     if (parsed >= 2) rx_msg.wheel1_speed = (int16_t)wheel1;
                     if (parsed >= 3) rx_msg.wheel2_speed = (int16_t)wheel2;
@@ -192,8 +214,7 @@ static void rx_task(void *arg)
                     ESP_LOGI(RX_TASK_TAG, "ASCII Parsed: State=%u, Wheel1=%d, Wheel2=%d, Tilt=%d", 
                             rx_msg.host_state, rx_msg.wheel1_speed, rx_msg.wheel2_speed, rx_msg.tilt_angle);
                 }
-            }
-            else if (rxBytes >= 7) {
+            } else if (rxBytes >= 7) {
                 rx_msg.host_state =     data[0];
                 rx_msg.wheel1_speed =   (data[1] << 8) | data[2];
                 rx_msg.wheel2_speed =   (data[3] << 8) | data[4];
@@ -201,15 +222,16 @@ static void rx_task(void *arg)
 
                 ESP_LOGI(RX_TASK_TAG, "Binary Parsed: State=%u, Wheel1=%d, Wheel2=%d, Tilt=%d", 
                         rx_msg.host_state, rx_msg.wheel1_speed, rx_msg.wheel2_speed, rx_msg.tilt_angle);
+            } else {
+                ESP_LOGW(RX_TASK_TAG, "Received data in unexpected format: %.*s", rxBytes, data);
             }
-            // Echo back the received data through UART to confirm reception
-            // sendUartData(RX_TASK_TAG, data, rxBytes);
+            
             receiveCount = 0; // Reset the receive count on successful read
-
             if (task_state == SERIAL_IDEL) {
                 task_state = SERIAL_RECEIVING;
                 ESP_LOGI(RX_TASK_TAG, "Task state changed to SERIAL_RECEIVING");
             }
+            xSemaphoreGive(serial_rx_semaphore); // Signal that data has been received
             update_led_state_noHandle(SEARCHING_BALL); // Update LED state to SERIAL_RECEIVING
         }
         else if(receiveCount < 20) {
@@ -234,6 +256,7 @@ static void rx_task(void *arg)
         }
     }
     free(data);
+    vTaskDelete(NULL); // Delete the task if it exits
 }
 
 void uart_init(void)

@@ -23,7 +23,7 @@
 // 10MHz resolution, 1 tick = 0.1us (led strip needs a high resolution)
 #define LED_STRIP_RMT_RES_HZ  (10 * 1000 * 1000)
 
-static const char *TAG = "example";
+static const char *TAG = "LED";
 led_strip_handle_t led_strip = NULL;
 led_strip_handle_t configure_led(void)
 {

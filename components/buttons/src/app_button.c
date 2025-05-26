@@ -5,7 +5,6 @@
 #include "freertos/task.h"
 #include "freertos/queue.h"
 #include "driver/gpio.h"
-#include "app_twai.h"
 #include "esp_log.h"
 
 // Include the servo control interface

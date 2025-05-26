@@ -10,4 +10,5 @@ idf_component_register(  SRCS           "src/app_twai"
                                         FastAccelStepper
                                         lvgl
                                         serial
+                                        szp_bsp
                          INCLUDE_DIRS   "include" "../../main/ui")

@@ -12,11 +12,10 @@
 #include "serial.h"
 #include "stepper_motors.h"
 #include "leds.h"
+#include "state_machine.h"
 
 
 t_sQMI8658 qmi8658_data; // QMI8658 data structure
-
-extern m2006_t loaderMotor; // Loader motor instance
 
 void szp_setup(){
     if(bsp_sdcard_mount() == ESP_OK) {
@@ -44,6 +43,11 @@ void setup(){
     motor_task_init();  // Initialize motor task
     servo_init();
     button_init();
+    stepper_motor_task_init(); // Initialize stepper motor task
+
+    home_stepper_motor(); // Home the stepper motor
+    set_stepper_pos(1000); // Move stepper to position 1000
+
     update_led_state_noHandle(MACHINE_IDLE); // Set LED state to IDLE
 
     uart_init();
@@ -53,8 +57,11 @@ void setup(){
 extern "C" void app_main(void)
 {
     setup();
+    state_machine_init();
+
+    vTaskDelay(pdMS_TO_TICKS(1000)); // Wait for 1 second before starting tasks
 
     while(1){
-        vTaskDelay(pdMS_TO_TICKS(10));
+        vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }
