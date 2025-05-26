@@ -23,6 +23,7 @@
 
 #define SERVO_1_MIDDLE_ANGLE 90.0f // Middle position for servo 1
 #define SERVO_2_MIDDLE_ANGLE 91.0f // Middle position for servo 2
+#define MAX_SPEED 5000 // Maximum speed for motors
 
 class ServoController {
 
@@ -190,19 +191,21 @@ m3508_t frictionWheel_1(1);
 m3508_t frictionWheel_2(2);
 m3508_t wheelMotor_1(3);
 m3508_t wheelMotor_2(4);
-m2006_t loaderMotor(6);
+m2006_t loaderMotor(5);
 
 void motorStateHelper(bool state) {
     if (state) {
-        frictionWheel_1.enable(); // Enable the motor
-        frictionWheel_2.enable(); // Enable the motor
-        wheelMotor_1.enable(); // Enable the motor
-        wheelMotor_2.enable(); // Enable the motor
+        frictionWheel_1.enable();
+        frictionWheel_2.enable();
+        // wheelMotor_1.enable();
+        // wheelMotor_2.enable();
+        loaderMotor.enable();
     } else {
         frictionWheel_1.disable();
         frictionWheel_2.disable();
         wheelMotor_1.disable();
         wheelMotor_2.disable();
+        loaderMotor.disable();
     }
 }
 
@@ -213,23 +216,25 @@ void serialWheelControlTask(void *arg) {
     serial_state_t* task_state = getTaskState(); // Get the task state pointer
     
     while (1) {
-        if (*task_state == SERIAL_RECEIVING) { motorStateHelper(true); } // Enable the motor if receiving data
-        else { motorStateHelper(false); } // Disable the motor if not receiving data
+        if (*task_state == SERIAL_RECEIVING) {motorStateHelper(true);} // Enable the motor if receiving data
+        else {motorStateHelper(false);} // Disable the motor if not receiving data
 
          // Get the machine state from the received message in advance
          // Avoid the state change during the task execution
         uint8_t machine_state = rx_msg->host_state; // Get the machine state from the received message
-        wheelMotor_1.setTargetSpeed(rx_msg->wheel1_speed);
-        wheelMotor_2.setTargetSpeed(-rx_msg->wheel2_speed);        
+
+        wheelMotor_1.setTarget(rx_msg->wheel1_speed);
+        wheelMotor_2.setTarget(-rx_msg->wheel2_speed);
+
         if(machine_state == 0) {
-            frictionWheel_1.setTargetSpeed(0);
-            frictionWheel_2.setTargetSpeed(0);
+            frictionWheel_1.setTarget(0);
+            frictionWheel_2.setTarget(0);
         } else if (machine_state == 1) {
-            frictionWheel_1.setTargetSpeed(1000);
-            frictionWheel_2.setTargetSpeed(-1000);
+            frictionWheel_1.setTarget(1000);
+            frictionWheel_2.setTarget(-1000);
         } else if (machine_state == 2) {
-            frictionWheel_1.setTargetSpeed(-1000);
-            frictionWheel_2.setTargetSpeed(1000);
+            frictionWheel_1.setTarget(-1000);
+            frictionWheel_2.setTarget(1000);
         }
         vTaskDelay(pdMS_TO_TICKS(5));
     }
@@ -241,11 +246,19 @@ void motor_task_init(){
     can_channel.reg_motor(&frictionWheel_2);
     can_channel.reg_motor(&wheelMotor_1);
     can_channel.reg_motor(&wheelMotor_2);
+    can_channel.reg_motor(&loaderMotor);
 
-    frictionWheel_1.setPIDParameters(20.0, 0.007, 0.005, 0.1, 0.1, 5000.0, -5000.0); // Set PID parameters
-    frictionWheel_2.setPIDParameters(20.0, 0.007, 0.005, 0.1, 0.1, 5000.0, -5000.0); // Set PID parameters
-    wheelMotor_1.setPIDParameters(30.0, 0.02, 0.1, 0.1, 0.1, 5000.0, -5000.0); // Set PID parameters
-    wheelMotor_2.setPIDParameters(30.0, 0.02, 0.1, 0.1, 0.1, 5000.0, -5000.0); // Set PID parameters
+    frictionWheel_1.setPIDParameters(20.0, 0.007, 0.005, 0.1, 0.1, 5000.0, -5000.0);
+    frictionWheel_2.setPIDParameters(20.0, 0.007, 0.005, 0.1, 0.1, 5000.0, -5000.0);
+    wheelMotor_1.setPIDParameters(25.0, 0.03, 0.5, 0.1, 0.1, 2000.0, -2000.0);
+    wheelMotor_2.setPIDParameters(25.0, 0.03, 0.5, 0.1, 0.1, 2000.0, -2000.0);
+
+    loaderMotor.initAnglePID();
+    controller_t<int16_t> speed_controller(loaderMotor.getRawSpeedPtr());
+    loaderMotor.setNextController(&speed_controller);
+
+    loaderMotor.setPIDParameters(100.0f, 0.0001f, 80.0f, 1.0f, 0.5f, 4000.0f, -4000.0f);
+    speed_controller.setPIDParameters(25.0f, 0.02f, 15.0f, 0.1f, 1.0f, 5000.0f, -5000.0f);
 
     can_channel.start(); // Start the CAN channel
     // Create the new serial wheel control task

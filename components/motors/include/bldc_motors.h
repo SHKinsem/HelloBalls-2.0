@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include "pid.h"
 #include "driver/twai.h"
+#include "esp_log.h"
 
 /**
  * @brief Motor data structure for DJI RM motors.
@@ -24,18 +25,19 @@
  * 
  */
 
-template <typename T>
-class controller_t
-{
-private:
+ 
+class base_controller_t{
+protected:
     PID_CONTROLLER pid_loop;
-    controller_t* nextController;
-    _iq* fbk;
+    bool reverse_fbk = false; // Flag to reverse feedback if needed
+    _iq error; // For debugging purposes, can be removed if not needed
+    base_controller_t* nextController;
 
 public:
-    controller_t(T* fbk) {
-        this->fbk = _iQ(fbk);
-        this->nextController = nullptr;
+
+    int16_t debug; // For debugging purposes, can be removed if not needed
+
+    base_controller_t() {
         pid_loop = {
             PID_TERM_DEFAULTS,
             PID_PARAM_DEFAULTS,
@@ -43,13 +45,21 @@ public:
         };
     }
 
-    ~controller_t() = default;
+    virtual ~base_controller_t() = default;
 
-    template <typename U>
-    void setNextController(controller_t<U>* nextController) {
-        this->nextController = nextController;
-    }
-
+    /**
+     * @brief Sets the parameters for the speed PID controller
+     * 
+     * @param Kp Proportional gain coefficient
+     * @param Ki Integral gain coefficient
+     * @param Kd Derivative gain coefficient
+     * @param Kr Reference weight coefficient
+     * @param Km Derivative weight coefficient
+     * @param Umax Maximum limit for the controller output
+     * @param Umin Minimum limit for the controller output
+     * 
+     * @note All parameters are in fixed-point _iq format
+     */
     void setPIDParameters(float Kp, float Ki, float Kd, float Kr, float Km, float Umax, float Umin) {
         pid_loop.param.Kp = _IQ(Kp);
         pid_loop.param.Ki = _IQ(Ki);
@@ -59,16 +69,75 @@ public:
         pid_loop.param.Umax = _IQ(Umax);
         pid_loop.param.Umin = _IQ(Umin);
     }
+    virtual _iq calOutput(_iq ref) = 0;
 
-    template <typename U>
-    _iq calOutput(T ref) {
-        pid_loop.term.Ref = _IQ(ref);
-        pid_loop.term.Fbk = *fbk;
+    void setReverseFeedback(bool reverse) {
+        reverse_fbk = reverse; // Set the flag to reverse feedback
+    }
+
+
+    void reset() {
+        pid_loop.data = PID_DATA_DEFAULTS; // Reset PID data
+        pid_loop.term.Out = _IQ(0); // Reset output
+    }
+
+    float getError() const {
+        return _IQtoF(error); // Return error in float format
+    }
+
+    base_controller_t* getTailController() {
+        base_controller_t* current = this;
+        while(current->nextController != nullptr) {
+            current = current->nextController; // Traverse to the end of the chain
+        }
+        return current; // Return the last controller in the chain
+    }
+
+    void setNextController(base_controller_t* nextController) {
+        base_controller_t* tail = getTailController(); // Get the last controller in the chain
+        tail->nextController = nextController; // Set the next controller in the chain
+        ESP_LOGI("Controller", "Next controller set");
+    }
+
+};
+
+template <typename T>
+class controller_t : public base_controller_t
+{
+private:
+    T* fbk;
+    base_controller_t* nextController;
+public:
+    controller_t(T* fbk) {
+        this->fbk = fbk;
+        this->nextController = nullptr;
+    }
+
+    ~controller_t() = default;
+
+    _iq calOutput(_iq ref) override {
+        pid_loop.term.Ref = ref;
+        if(reverse_fbk){
+            pid_loop.term.Fbk = _IQ(-(*fbk)); // Reverse feedback if needed
+        } else {
+            pid_loop.term.Fbk = _IQ(*fbk); // Use feedback as is
+        }
+
         PID_MACRO(pid_loop);
+
+        #ifdef DEBUG
+        error = pid_loop.term.Ref - pid_loop.term.Fbk; // Calculate error for debugging
+        debug = _IQint(pid_loop.term.Out); // Store output for debugging
+        #endif
+        
         if(nextController){
             return nextController->calOutput(pid_loop.term.Out);
         }
         return pid_loop.term.Out;
+    }
+
+    T* getFeedbackPtr() {
+        return fbk; // Return pointer to feedback variable
     }
 };
 
@@ -78,17 +147,17 @@ class base_motor_t
 {
 
 private:
-    bool enabled = false; // Flag to check if the motor is enabled
     uint8_t motor_id;
 
 protected:
+    bool enabled = false; // Flag to check if the motor is enabled
     int16_t raw_speed;          // Raw speed of motor in counts
     int16_t raw_current;        // Raw current of motor in counts
     int16_t raw_angle;          // Raw angle of motor in counts
     int8_t status;              // Status of motor
 
     int16_t target_speed;   // Raw target speed of motor
-    int16_t target_angle;   // Raw target angle of motor
+    float target;
     _iq temperature;      // Temperature of motor in Celsius
 
     _iq scale_angle = _IQdiv(_IQ(360.0), _IQ(8192.0)); // Scaling factor for angle
@@ -102,11 +171,14 @@ protected:
         PID_DATA_DEFAULTS
     };
 
-    PID_CONTROLLER* angle_pid;
+    base_controller_t* controller; // Controller for speed
 
     int16_t controlOutput;
 
 public:
+
+    int16_t debug;
+
     base_motor_t(uint8_t motor_id);
     virtual ~base_motor_t();
 
@@ -116,7 +188,6 @@ public:
     void disable()                  {this->enabled = false; }   // Disable the motor
     
     void setMotorId(uint8_t motor_id)   {this->motor_id = motor_id;}
-    void initAnglePID();
 
     uint8_t getMotorId() const          {return this->motor_id;}    
     int16_t getRawAngle() const         {return this->raw_angle;}
@@ -125,7 +196,8 @@ public:
     int16_t* getRawSpeedPtr()           {return &this->raw_speed;}
 
     int16_t getRawCurrent() const       {return this->raw_current;}
-    int16_t getTargetSpeed() const      {return this->target_speed;}
+    int16_t getTargetSpeed() const      {return this->target_speed;}    // Deprecated, use getTarget() instead
+    float getTarget() const             {return this->target;}
     int8_t getStatus() const            {return this->status;}
     int16_t getControlOutput() const    {return this->controlOutput;}
 
@@ -138,7 +210,7 @@ public:
     void setRawSpeed(int16_t raw_speed)         {this->raw_speed = raw_speed;} // Set raw speed of motor
     void setRawCurrent(int16_t current)         {this->raw_current = current;} // Set raw current of motor
     void setTargetSpeed(int16_t target_speed)   {this->target_speed = target_speed;}
-    void setTargetAngle(int16_t target_angle)   {this->target_angle = target_angle;} // Set target angle of motor
+    void setTarget(float target)                {this->target = target;} // Set target speed of motor
 
     void setCanChannel(can_channel_t* can_channel) {this->can_channel = can_channel;} // Set the CAN channel for the motor
 
@@ -157,22 +229,17 @@ public:
      * 
      * @note All parameters are in fixed-point _iq format
      */
+    
     void setPIDParameters(float Kp, float Ki, float Kd, float Kr, float Km, float Umax, float Umin) {
-        speed_pid.param.Kp = _IQ(Kp);
-        speed_pid.param.Ki = _IQ(Ki);
-        speed_pid.param.Kd = _IQ(Kd);
-        speed_pid.param.Kr = _IQ(Kr);
-        speed_pid.param.Km = _IQ(Km);
-        speed_pid.param.Umax = _IQ(Umax);
-        speed_pid.param.Umin = _IQ(Umin);
+        controller->setPIDParameters(Kp, Ki, Kd, Kr, Km, Umax, Umin);
     }
 
-    void setPIDTerminals(float c1, float c2) {
-        speed_pid.term.c1 = _IQ(c1);
-        speed_pid.term.c2 = _IQ(c2);
+    void setNextController(base_controller_t* next_controller) {
+        if (!controller) return;
+        controller->setNextController(next_controller); // Set the new controller
     }
 
-    int16_t calOutput();
+    virtual int16_t& calOutput();
 
     virtual char* getMotorInfo();
 

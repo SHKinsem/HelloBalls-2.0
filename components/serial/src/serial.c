@@ -57,7 +57,7 @@ static void uart_init_port(void)
         .source_clk = UART_SCLK_DEFAULT,
     };
     
-    uart_driver_install(UART_NUM_0, RX_BUF_SIZE * 2, 0, 0, NULL, 0);
+    uart_driver_install(UART_NUM_0, RX_BUF_SIZE * 2, RX_BUF_SIZE * 2, 0, NULL, 0);
     uart_param_config(UART_NUM_0, &uart_config);
 }
 
@@ -70,7 +70,7 @@ int sendUartData(const tx_message_t *tx_msg)
     }
     
     // Serialize tx_msg into a byte array
-    uint8_t data[32]; // Buffer size
+    uint8_t data[22]; // Buffer size
     int len = 0;
     const int max_len = sizeof(data);
     
@@ -115,7 +115,8 @@ int sendUartData(const tx_message_t *tx_msg)
 
     // Send the data through UART and handle errors
     int bytes_sent = uart_write_bytes(UART_NUM_0, (const char *)data, len);
-    if (bytes_sent < 0) {
+    if (bytes_sent < 0 || bytes_sent != len) {
+        ESP_LOGE("UART_SEND", "Failed to send data: expected %d bytes, sent %d bytes", len, bytes_sent);
         // Error handling
         return -1;
     }
@@ -131,18 +132,18 @@ static void tx_task(void *arg)
     tx_msg.mcu_state = 0; // Default state
     
     while (1) {
-        if (task_state == SERIAL_IDEL) {
-            vTaskDelay(pdMS_TO_TICKS(500));
-            continue;
-        }
+        // if (task_state == SERIAL_IDEL) {
+        //     vTaskDelay(pdMS_TO_TICKS(500));
+        //     continue;
+        // }
 
         qmi8658_Read_AccAndGry(&tx_msg.imu_data); // Fetch IMU data
 
         sendUartData(&tx_msg); // Send the tx_msg data through UART
-        ESP_LOGI(TX_TASK_TAG, "Sent: State=%u, Wheel1Dist=%"PRIu32", Wheel2Dist=%"PRIu32", IMU Acc=(%d, %d, %d), Gyr=(%d, %d, %d)", 
-                tx_msg.mcu_state, tx_msg.wheel1_distance, tx_msg.wheel2_distance,
-                tx_msg.imu_data.acc_x, tx_msg.imu_data.acc_y, tx_msg.imu_data.acc_z,
-                tx_msg.imu_data.gyr_x, tx_msg.imu_data.gyr_y, tx_msg.imu_data.gyr_z);
+        // ESP_LOGI(TX_TASK_TAG, "Sent: State=%u, Wheel1Dist=%"PRIu32", Wheel2Dist=%"PRIu32", IMU Acc=(%d, %d, %d), Gyr=(%d, %d, %d)", 
+        //         tx_msg.mcu_state, tx_msg.wheel1_distance, tx_msg.wheel2_distance,
+        //         tx_msg.imu_data.acc_x, tx_msg.imu_data.acc_y, tx_msg.imu_data.acc_z,
+        //         tx_msg.imu_data.gyr_x, tx_msg.imu_data.gyr_y, tx_msg.imu_data.gyr_z);
         vTaskDelay(pdMS_TO_TICKS(20)); // 50Hz = 20ms period
     }
 }
@@ -242,5 +243,5 @@ void uart_init(void)
     // Initialize UART
     uart_init_port();
     xTaskCreate(rx_task, "uart_rx_task", 1024 * 4, NULL, 3, NULL);
-    xTaskCreate(tx_task, "uart_tx_task", 1024 * 4, NULL, 3, NULL);
+    // xTaskCreate(tx_task, "uart_tx_task", 1024 * 4, NULL, 3, NULL);
 }

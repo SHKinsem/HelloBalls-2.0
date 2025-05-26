@@ -33,6 +33,8 @@
 
 t_sQMI8658 qmi8658_data; // QMI8658 data structure
 
+extern m2006_t loaderMotor; // Loader motor instance
+
 void szp_setup(){
     if(bsp_sdcard_mount() == ESP_OK) {
         ESP_LOGI(TAG, "SD card mounted successfully");
@@ -71,9 +73,6 @@ extern "C" void app_main(void)
     setup(); // Call setup function to initialize components
 
     while(1){
-        // qmi8658_fetch_angleFromAcc(&qmi8658_data); // Fetch angle data from QMI8658
-        // ESP_LOGI(TAG, "AngleX: %f, AngleY: %f, AngleZ: %f", qmi8658_data.AngleX, qmi8658_data.AngleY, qmi8658_data.AngleZ); // Log angle data
         vTaskDelay(pdMS_TO_TICKS(10));
     }
-
 }

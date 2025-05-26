@@ -13,7 +13,7 @@ base_motor_t::base_motor_t(uint8_t motor_id){
     this->raw_angle = 0;
     this->status = 0;
     this->target_speed = 0;
-    this->target_angle = 0;
+    this->target = 0;
     this->temperature = 0;
     this->can_channel = nullptr; // Initialize can_channel to nullptr
 
@@ -29,28 +29,26 @@ base_motor_t::base_motor_t(uint8_t motor_id){
     // Set up differential filter coefficients
     speed_pid.term.c1 = _IQ(0);     // Differential filter coefficient 1
     speed_pid.term.c2 = _IQ(0);    // Differential filter coefficient 2
+
+    controller = new controller_t<int16_t>(&raw_speed); // Initialize speed controller with raw speed feedback
 }
 
 base_motor_t::~base_motor_t(){
     // Destructor implementation if needed
+    if (controller) {
+        delete controller; // Clean up the speed controller
+        controller = nullptr;
+    }
 }
 
-int16_t base_motor_t::calOutput(){
-    if(enabled){    
-        // Set PID input values
-        speed_pid.term.Ref = _IQ(getTargetSpeed());     // Set reference input (target speed)
-        speed_pid.term.Fbk = _IQ(getRawSpeed());        // Set feedback value (current speed)
-
-        // Execute PID calculation
-        PID_MACRO(speed_pid);
-
-        // Get control output
-        controlOutput = _IQint(speed_pid.term.Out);    
+int16_t& base_motor_t::calOutput(){
+    if(enabled){
+        _iq ref = _IQ(target);
+        controlOutput = _IQint(controller->calOutput(ref));
     } else {
-        controlOutput = 0; // If motor is not enabled, set control output to 0
-        speed_pid.data = PID_DATA_DEFAULTS; // Reset PID data
+        controller->reset();
+        controlOutput = 0;
     }
-
     return controlOutput;
 }
 
@@ -62,10 +60,10 @@ char* base_motor_t::getMotorInfo(){
         "TargetSpeed:\n\t%5d RPM\n"
         "Current:\n\t%2.2f Amps\n",
         this->getMotorId(),
-        this->getAngle(),          // e.g. " 360.0" (always 6 characters)
-        this->getRawSpeed(),       // e.g. " 100" (5 characters)
+        this->getAngle(),
+        this->getRawSpeed(),
         this->getTargetSpeed(),
-        this->getCurrent()        // e.g. " 1.0" (5 characters)
+        this->getCurrent()
     );
     return motor_info;
 }

@@ -27,23 +27,29 @@ class m2006_t : public base_motor_t
 {
 protected:
     _iq gear_ratio = _IQ(36.0/1.0);
-    _iq shaft_angle = _IQ(0.0);
+    // _iq shaft_angle = _IQ(0.0);
     _iq shaft_speed = _IQ(0.0);
     int16_t loopCounter = 0;
     int16_t prev_raw_angle = 0;
-    int16_t maxBump = 2214;
+    int16_t maxBump = 4000;
+    float* shaft_angle_ptr;         //used for angle PID control
     // Max RPM: ~16200, 16200/60 = 270 RPS, 270*8192 = 221,340 Counts/second
     // Max Bump = 221,340 Counts/second * 0.01 seconds = 2213 counts
 public:
     m2006_t(uint8_t motor_id) : base_motor_t(motor_id) {
         scale_current = _IQdiv(_IQ(10.0), _IQ(10000.0)); // Scaling factor for current
         temperature = -1; // M2006 temperature is not available
-        status = 0; // Initialize raw status to 0
+        status = 0;
         loopCounter = 0;
+        shaft_angle_ptr = nullptr;
     }
 
     ~m2006_t() {
-        // Destructor implementation if needed
+        if (shaft_angle_ptr) {
+            delete shaft_angle_ptr; // Clean up the cumulative angle pointer if it was allocated
+            shaft_angle_ptr = nullptr;
+        }
+        prev_raw_angle = 0; // Reset previous raw angle
     }
 
     void parseData(const uint8_t* data) override {
@@ -53,25 +59,33 @@ public:
         this->raw_current = (uint16_t)((data[4] << 8) | data[5]); // Combine high and low byte for current
         // this->temperature = data[6]; // Temperature byte
         // this->raw_status = data[7]; // Status byte
-        if(raw_angle - prev_raw_angle > maxBump){
-            loopCounter--;
-        } else if (prev_raw_angle - raw_angle > maxBump) {
-            loopCounter++;
+
+        if(shaft_angle_ptr) {
+            if(raw_angle - prev_raw_angle > maxBump){
+                loopCounter--;
+            } else if (prev_raw_angle - raw_angle > maxBump) {
+                loopCounter++;
+            }
+            prev_raw_angle = raw_angle;
         }
-        prev_raw_angle = raw_angle;
     }
 
     void resetCounter() {loopCounter = 0;}
     int16_t getCounter() {return loopCounter;}
-    _iq calShaftAngle() {
+    float calShaftAngle() {
         // Calculate the shaft angle based on the raw angle and loop counter
-        _iq angle = _IQmpy(_IQ(raw_angle), scale_angle) + _IQ(360 * loopCounter); 
-        this->shaft_angle = _IQdiv(angle, gear_ratio); // Divide by gear ratio
-        return this->shaft_angle;
+        if(shaft_angle_ptr) {
+            // *shaft_angle_ptr = _IQmpy(_IQ(raw_angle), scale_angle) + _IQ(360 * loopCounter); // Convert counts to degrees
+            // *shaft_angle_ptr = _IQdiv(*shaft_angle_ptr, gear_ratio);
+            *shaft_angle_ptr = (raw_angle * _IQtoF(scale_angle) + 360.0 * loopCounter) / _IQtoF(gear_ratio); // Convert counts to degrees
+            return *shaft_angle_ptr;
+        } else {
+            return 0.0; // Return zero if cumulative angle is not initialized
+        }
     }
 
-    float getShaftAngle()       {return _IQtoF(calShaftAngle());}
-    _iq* getShaftAnglePtr()     {return &this->shaft_angle;}
+    float getShaftAngle()       {return *shaft_angle_ptr;}
+    float* getShaftAnglePtr()     {return this->shaft_angle_ptr;}
 
     char* getMotorInfo() override {
         snprintf(motor_info, sizeof(motor_info),
@@ -90,6 +104,38 @@ public:
         );
         return motor_info;
     }
+
+    void initAnglePID(){
+        if(!shaft_angle_ptr) shaft_angle_ptr = new float(0);
+        if(controller) delete controller;
+
+        // Initialize a new controller with cumulative angle feedback
+        controller = new controller_t<float>(shaft_angle_ptr); 
+        controller->setPIDParameters(10.0, 0.0, 0.0, 1.0, 0.0, 500.0, -500.0);
+        // controller->setReverseFeedback(true);
+    }
+
+    int16_t& calOutput() override {
+        if(shaft_angle_ptr) calShaftAngle(); // Update the cumulative angle if pointer is set
+
+        _iq ref = _IQ(target);
+        controlOutput = _IQint(controller->calOutput(ref));
+        debug = controlOutput; // For debugging purposes
+        if(!enabled){
+            controller->reset();
+            controlOutput = 0;
+        }
+        return controlOutput;
+    }
+
+    float getPID_Error() {
+        if (controller) {
+            return controller->getError();
+        } else {
+            return -999.0f;
+        }
+    }
+    
 };
 
 
