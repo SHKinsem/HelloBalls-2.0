@@ -105,7 +105,7 @@ public:
 
     void reset() {
         move(origin_duty); // Move servo to origin duty cycle
-        ESP_LOGI(TAG, "Servo on GPIO%d reset to origin duty: %"PRIu32, pin, origin_duty);
+        ESP_LOGI(TAG, "Servo on GPIO %d reset to origin duty: %"PRIu32, pin, origin_duty);
     }
 
     void setOriginDuty(uint32_t duty) {
@@ -116,7 +116,7 @@ public:
         // Convert angle to duty cycle and set as origin
         uint32_t duty = angle2duty(angle);
         setOriginDuty(duty);
-        ESP_LOGI(TAG, "Servo on GPIO%d origin angle set to: %.2f degrees, duty: %"PRIu32, pin, angle, duty);
+        ESP_LOGI(TAG, "Servo on GPIO %d origin angle set to: %.2f degrees, duty: %"PRIu32, pin, angle, duty);
     }
 
     uint32_t getCurrentDuty() const {
@@ -140,6 +140,24 @@ public:
         if (new_angle < 0) new_angle = 0;
         if (new_angle > 180) new_angle = 180;
         setAngle(new_angle);
+    }
+
+    void moveRelativeToOrigin(float angle, float speed) {
+        // Move servo relative to origin position with speed control
+        uint32_t current_duty = getCurrentDuty(); // Get current duty cycle
+        uint32_t target_duty = angle2duty(duty2angle(getOriginDuty()) + angle); // Calculate target duty cycle
+        
+        float new_angle = duty2angle(getOriginDuty()) + angle; // Get current angle from origin duty
+        ESP_LOGI(TAG, "Moving servo on GPIO%d relative to origin by %.2f degrees, new angle: %.2f with speed: %.2f", pin, angle, new_angle, speed);
+        if (new_angle < 0) new_angle = 0;
+        if (new_angle > 180) new_angle = 180;
+
+        while (current_duty != target_duty) {
+            if (current_duty < target_duty) current_duty++;
+            else current_duty--;
+            move(current_duty); // Move servo to new duty cycle
+            vTaskDelay(pdMS_TO_TICKS(100 / speed));
+        }
     }
 };
 
@@ -241,27 +259,24 @@ void serialWheelControlTask(void *arg) {
 }
 
 void motor_task_init(){
-    can_channel.reg_motor(&test_motor);
-    can_channel.reg_motor(&frictionWheel_1);
-    can_channel.reg_motor(&frictionWheel_2);
-    can_channel.reg_motor(&wheelMotor_1);
-    can_channel.reg_motor(&wheelMotor_2);
-    can_channel.reg_motor(&loaderMotor);
-
     frictionWheel_1.setPIDParameters(20.0, 0.007, 0.005, 0.1, 0.1, 5000.0, -5000.0);
     frictionWheel_2.setPIDParameters(20.0, 0.007, 0.005, 0.1, 0.1, 5000.0, -5000.0);
     wheelMotor_1.setPIDParameters(25.0, 0.03, 0.5, 0.1, 0.1, 2000.0, -2000.0);
     wheelMotor_2.setPIDParameters(25.0, 0.03, 0.5, 0.1, 0.1, 2000.0, -2000.0);
 
     loaderMotor.initAnglePID();
-    controller_t<int16_t> speed_controller(loaderMotor.getRawSpeedPtr());
-    loaderMotor.setNextController(&speed_controller);
+    controller_t<int16_t>* speed_controller = new controller_t<int16_t>(loaderMotor.getRawSpeedPtr());
+    loaderMotor.setNextController(speed_controller);
 
     loaderMotor.setPIDParameters(100.0f, 0.0001f, 80.0f, 1.0f, 0.5f, 4000.0f, -4000.0f);
-    speed_controller.setPIDParameters(25.0f, 0.02f, 15.0f, 0.1f, 1.0f, 5000.0f, -5000.0f);
+    speed_controller->setPIDParameters(25.0f, 0.02f, 15.0f, 0.1f, 1.0f, 5000.0f, -5000.0f);
 
+    can_channel.reg_motor(&test_motor);
+    can_channel.reg_motor(&frictionWheel_1);
+    can_channel.reg_motor(&frictionWheel_2);
+    can_channel.reg_motor(&wheelMotor_1);
+    can_channel.reg_motor(&wheelMotor_2);
+    can_channel.reg_motor(&loaderMotor);
     can_channel.start(); // Start the CAN channel
-    // Create the new serial wheel control task
-
     xTaskCreatePinnedToCore(serialWheelControlTask, "Serial Wheel Control", 4096, NULL, configMAX_PRIORITIES - 3, NULL, 0);
 }

@@ -1,21 +1,3 @@
-/*
- * SPDX-FileCopyrightText: 2010-2024 Espressif Systems (Shanghai) CO LTD
- *
- * SPDX-License-Identifier: CC0-1.0
- */
-
-/*
- * The following example demonstrates a master node in a TWAI network. The master
- * node is responsible for initiating and stopping the transfer of data messages.
- * The example will execute multiple iterations, with each iteration the master
- * node will do the following:
- * 1) Start the TWAI driver
- * 2) Repeatedly send ping messages until a ping response from slave is received
- * 3) Send start command to slave and receive data messages from slave
- * 4) Send stop command to slave and wait for stop response from slave
- * 5) Stop the TWAI driver
- */
-
 #define TAG "app_main"
 #define GLOBAL_IQ 15    // IQ math library global IQ value
 #include "board_pins.h"
@@ -30,6 +12,7 @@
 #include "serial.h"
 #include "stepper_motors.h"
 #include "leds.h"
+
 
 t_sQMI8658 qmi8658_data; // QMI8658 data structure
 
@@ -49,28 +32,27 @@ void szp_setup(){
 }
 
 void setup(){
-    led_init(); // Initialize LED strip
+    led_init();         // Initialize LED strip
     update_led_state_noHandle(STARTING); // Set initial LED state
 
-    bsp_i2c_init();  // I2C initialization
-    pca9557_init();  // IO expander initialization
-    qmi8658_init(); // QMI8658 initialization
+    bsp_i2c_init();     // I2C initialization
+    pca9557_init();     // IO expander initialization
+    qmi8658_init();     // QMI8658 initialization
 
-    // szp_setup(); // Call the setup function to initialize components
+    // szp_setup();
 
-    motor_task_init(); // Initialize motor task
+    motor_task_init();  // Initialize motor task
     servo_init();
     button_init();
     update_led_state_noHandle(MACHINE_IDLE); // Set LED state to IDLE
 
     uart_init();
-
 }
 
 
 extern "C" void app_main(void)
 {
-    setup(); // Call setup function to initialize components
+    setup();
 
     while(1){
         vTaskDelay(pdMS_TO_TICKS(10));

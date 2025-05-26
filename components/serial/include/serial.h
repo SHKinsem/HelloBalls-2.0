@@ -20,6 +20,7 @@ typedef enum {
 typedef enum {
     HOST_IDLE = 0,
     HOST_SEARCHING_BALL,
+    HOST_BALL_REACHED,
     HOST_SHOOTING,
     HOST_ERROR,
 } host_state_t;
@@ -55,6 +56,8 @@ rx_message_t* get_rx_message_ptr(void);
 rx_message_t get_rx_message(void);
 
 serial_state_t* getTaskState(void);
+host_state_t* getHostState(void);
+mcu_state_t* getMcuState(void);
 
 // Set data for transmission
 void set_tx_message(uint8_t state, int32_t w1_dist, int32_t w2_dist,
