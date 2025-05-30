@@ -133,7 +133,7 @@ void serial_watchdog_task(void *arg) {
         switch(*host_state)
         {
         case HOST_SEARCHING_BALL:
-
+            // Fall through to set wheel motors speed
         case HOST_BALL_REACHED:
             set_wheel_motors_speed(rx_msg->wheel1_speed, rx_msg->wheel2_speed);
             break;
@@ -143,6 +143,7 @@ void serial_watchdog_task(void *arg) {
             break;
 
         case HOST_SCANNING:
+            tilt_servos(rx_msg->tilt_angle);
             set_wheel_motors_speed(rx_msg->wheel1_speed, rx_msg->wheel2_speed);
             break;
 
