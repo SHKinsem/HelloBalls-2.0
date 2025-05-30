@@ -84,11 +84,9 @@ void state_machine_task(void *arg) {
             break;
         case HOST_SCANNING:
             ESP_LOGI(TAG, "HOST_SCANNING state");
+            enable_servos();
             // Update the MCU state to indicate scanning
-            *mcu_state = MCU_IDLE; // Set MCU state to idle during scanning
             set_friction_wheels_speed(0); // Stop friction wheels
-            disable_servos(); // Disable servos during scanning
-
             break;
 
         case HOST_ERROR:
@@ -143,7 +141,15 @@ void serial_watchdog_task(void *arg) {
             break;
 
         case HOST_SCANNING:
-            tilt_servos(rx_msg->tilt_angle);
+            int16_t tilt_angle = rx_msg->tilt_angle;
+
+            if (tilt_angle < -5){
+                tilt_angle = -5;
+            } else if (tilt_angle > 35) {
+                tilt_angle = 35;
+            }
+
+            tilt_servos(tilt_angle);
             set_wheel_motors_speed(rx_msg->wheel1_speed, rx_msg->wheel2_speed);
             break;
 

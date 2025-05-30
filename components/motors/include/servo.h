@@ -92,9 +92,6 @@ public:
     
     void enable() {
         if(enabled) return; // Already enabled
-        // Restore PWM with current duty cycle
-        ESP_ERROR_CHECK(ledc_set_duty(mode, channel, current_duty));
-        ESP_ERROR_CHECK(ledc_update_duty(mode, channel));
         enabled = true;
         ESP_LOGI(TAG, "Servo on GPIO%d enabled, restored to duty: %"PRIu32, pin, current_duty);
     }
