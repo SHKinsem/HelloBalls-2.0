@@ -14,9 +14,6 @@
 #include "leds.h"
 #include "state_machine.h"
 
-
-t_sQMI8658 qmi8658_data; // QMI8658 data structure
-
 void szp_setup(){
     if(bsp_sdcard_mount() == ESP_OK) {
         ESP_LOGI(TAG, "SD card mounted successfully");
@@ -45,8 +42,8 @@ void setup(){
     button_init();
     stepper_motor_task_init(); // Initialize stepper motor task
 
-    home_stepper_motor(); // Home the stepper motor
-    set_stepper_pos(1000); // Move stepper to position 1000
+    home_stepper_motor();
+    set_stepper_pos(1000);
 
     update_led_state_noHandle(MACHINE_IDLE); // Set LED state to IDLE
 

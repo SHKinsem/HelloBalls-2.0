@@ -8,7 +8,7 @@
 
 #define TAG "STATE_MACHINE"
 
-SemaphoreHandle_t wheelControl_handle = NULL; // Handle for wheel control task
+SemaphoreHandle_t wheelControl_handle = NULL; // Handle for wheel control task  
 
 // Holds the tasks that execute only once when the state changes
 void state_machine_task(void *arg) {
@@ -128,6 +128,7 @@ void serial_watchdog_task(void *arg) {
 
         motorStateHelper(true);
         // Process commands based on host state
+        int16_t tilt_angle;
         switch(*host_state)
         {
         case HOST_SEARCHING_BALL:
@@ -141,7 +142,7 @@ void serial_watchdog_task(void *arg) {
             break;
 
         case HOST_SCANNING:
-            int16_t tilt_angle = rx_msg->tilt_angle;
+            tilt_angle = rx_msg->tilt_angle;
 
             if (tilt_angle < -5){
                 tilt_angle = -5;
