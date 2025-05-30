@@ -7,11 +7,11 @@
 #include "esp_log.h"
 #include <inttypes.h>
 
-#define HOME_SPEED_HZ    2000
-#define HOME_MAX_STEPS   20000
+#define HOME_SPEED_HZ    3000
+#define HOME_MAX_STEPS   5000
 
 #define DEFAULT_SPEED 10000 // Default speed in Hz
-#define DEFAULT_ACCELERATION 8000 // Default acceleration in Hz
+#define DEFAULT_ACCELERATION 10000 // Default acceleration in Hz
 
 #define TAG "STEPPER_MOTORS"
 

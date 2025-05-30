@@ -118,8 +118,13 @@ public:
      * @note All parameters are in fixed-point _iq format
      */
     
-    void setPIDParameters(float Kp, float Ki, float Kd, float Kr, float Km, float Umax, float Umin) {
+    void setPIDParameters(const float& Kp, const float& Ki, const float& Kd, 
+                          const float& Kr, const float& Km, const float& Umax, const float& Umin) {
         controller->setPIDParameters(Kp, Ki, Kd, Kr, Km, Umax, Umin);
+    }
+
+    void setPIDLimit(const float& Umax, const float& Umin){
+        
     }
 
     void setNextController(base_controller_t* next_controller) {

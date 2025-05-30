@@ -68,8 +68,22 @@ public:
         ESP_ERROR_CHECK(ledc_stop(mode, channel, 0));
     }
 
-    void disable() {
+    void release() {
+        if(!enabled) return; // Can't release if already disabled
+        
+        // Set duty to zero to stop the servo from actively holding position
+        ESP_ERROR_CHECK(ledc_set_duty(mode, channel, 0));
+        ESP_ERROR_CHECK(ledc_update_duty(mode, channel));
+        current_duty = 0; // Update current duty
+        ESP_LOGI(TAG, "Servo on GPIO%d released (not actively holding position)", pin);
+    }
+    
+    void disable(bool release_first = true) {
         if(!enabled) return; // Already disabled
+        
+        if(release_first) {
+            release(); // First release the servo to stop it from holding position
+        }
         
         ESP_ERROR_CHECK(ledc_stop(mode, channel, 0)); // Stop PWM output
         enabled = false;
@@ -78,7 +92,6 @@ public:
     
     void enable() {
         if(enabled) return; // Already enabled
-        
         // Restore PWM with current duty cycle
         ESP_ERROR_CHECK(ledc_set_duty(mode, channel, current_duty));
         ESP_ERROR_CHECK(ledc_update_duty(mode, channel));

@@ -41,7 +41,8 @@ public:
      * 
      * @note All parameters are in fixed-point _iq format
      */
-    void setPIDParameters(float Kp, float Ki, float Kd, float Kr, float Km, float Umax, float Umin) {
+    void setPIDParameters(const float& Kp, const float& Ki, const float& Kd,
+                          const float& Kr, const float& Km, const float& Umax, const float& Umin) {
         pid_loop.param.Kp = _IQ(Kp);
         pid_loop.param.Ki = _IQ(Ki);
         pid_loop.param.Kd = _IQ(Kd);
@@ -50,6 +51,12 @@ public:
         pid_loop.param.Umax = _IQ(Umax);
         pid_loop.param.Umin = _IQ(Umin);
     }
+
+    void setPIDLimits(const float& Umax, const float& Umin){
+        pid_loop.param.Umax = _IQ(Umax);
+        pid_loop.param.Umin = _IQ(Umin);
+    }
+
     virtual _iq calOutput(_iq ref) = 0;
 
     void setReverseFeedback(bool reverse) {

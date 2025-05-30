@@ -56,7 +56,7 @@ void toggle_servo(void) {
     servo_state = !servo_state;
 }
 
-#define MAX_TILT_ANGLE 35.0f // Maximum tilt angle for servos
+#define MAX_TILT_ANGLE 40.0f // Maximum tilt angle for servos
 #define MIN_TILT_ANGLE -10.0f // Minimum tilt angle for servos
 void tilt_servos(float angle) {
     // Clamp angle to valid range
@@ -69,17 +69,13 @@ void tilt_servos(float angle) {
 }
 
 void disable_servos() {
-    // Disable both servos
     servo1.disable();
     servo2.disable();
-    ESP_LOGI(TAG, "Servos disabled");
 }
 
 void enable_servos() {
-    // Enable both servos
     servo1.enable();
     servo2.enable();
-    ESP_LOGI(TAG, "Servos enabled");
 }
 
 can_channel_t can_channel(0, TWAI_TX_PIN, TWAI_RX_PIN); // Create a CAN channel instance

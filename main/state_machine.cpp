@@ -8,7 +8,6 @@
 
 #define TAG "STATE_MACHINE"
 
-
 SemaphoreHandle_t wheelControl_handle = NULL; // Handle for wheel control task
 
 // Holds the tasks that execute only once when the state changes
@@ -28,7 +27,6 @@ void state_machine_task(void *arg) {
 
     while (1) {
         xSemaphoreTake(state_change_semaphore, portMAX_DELAY); // Wait for state change signal
-        motorStateHelper(true);
         enable_servos(); // Ensure servos are enabled
         switch (*host_state)
         {
@@ -39,14 +37,12 @@ void state_machine_task(void *arg) {
 
         case HOST_SEARCHING_BALL:
             ESP_LOGI(TAG, "HOST_SEARCHING_BALL state");
-            motorStateHelper(true);
             set_friction_wheels_speed(-800); // Set speed for friction wheels
             home_stepper_motor(); // Home the stepper motor
             set_stepper_pos(1000); // Reset stepper position
             tilt_servos(-10);
             vTaskDelay(pdMS_TO_TICKS(50)); // Wait for servos to tilt
             tilt_servos(-3); // Reset servos to neutral position
-            set_wheel_motors_speed(rx_msg->wheel1_speed, -rx_msg->wheel2_speed); // Stop wheel motors
             // Update the MCU state to indicate searching for a ball
             *mcu_state = MCU_SEARCHING_BALL;
             update_led_state_noHandle(SEARCHING_BALL); // Update LED state
@@ -56,7 +52,7 @@ void state_machine_task(void *arg) {
             ESP_LOGI(TAG, "HOST_BALL_REACHED state");
             set_friction_wheels_speed(-800);
             tilt_servos(30);
-            vTaskDelay(pdMS_TO_TICKS(2000));
+            vTaskDelay(pdMS_TO_TICKS(1500));
             disable_servos(); // Disable servos after tilting
             moveLoader(-90.0f);
             vTaskDelay(pdMS_TO_TICKS(500));
@@ -73,10 +69,11 @@ void state_machine_task(void *arg) {
             ESP_LOGI(TAG, "HOST_SHOOTING state");
             // Update the MCU state to indicate shooting
             *mcu_state = MCU_SHOOTING;
-            set_friction_wheels_speed(5000); // Set speed for friction wheels
+            set_friction_wheels_speed(6500); // Set speed for friction wheels
+            set_wheel_motors_speed(0, 0);
             home_stepper_motor(); // Home the stepper motor
-            set_stepper_pos(1400); // Reset stepper position
-            vTaskDelay(pdMS_TO_TICKS(2000)); // Wait for friction wheels to reach speed
+            set_stepper_pos(1600); // Reset stepper position
+            vTaskDelay(pdMS_TO_TICKS(1500)); // Wait for friction wheels to reach speed
             moveLoader(180.0f); // Move loader to shooting position
             vTaskDelay(pdMS_TO_TICKS(1000)); // Wait for loader to move
             moveLoader(-90.0f);
@@ -84,6 +81,14 @@ void state_machine_task(void *arg) {
             resetLoaderOrigin();
             // update_led_state_noHandle(SHOOTING); // Update LED state
             set_friction_wheels_speed(0); // Stop friction wheels
+            break;
+        case HOST_SCANNING:
+            ESP_LOGI(TAG, "HOST_SCANNING state");
+            // Update the MCU state to indicate scanning
+            *mcu_state = MCU_IDLE; // Set MCU state to idle during scanning
+            set_friction_wheels_speed(0); // Stop friction wheels
+            disable_servos(); // Disable servos during scanning
+
             break;
 
         case HOST_ERROR:
@@ -96,8 +101,6 @@ void state_machine_task(void *arg) {
         default:
             break;
         }
-        
-        // vTaskDelay(pdMS_TO_TICKS(100)); // Delay for 100 ms before checking again
     }
 }
 
@@ -107,7 +110,7 @@ void serial_watchdog_task(void *arg) {
     ESP_LOGI(TAG, "Serial watchdog task started");
     // Setup for serial activity detection
     const rx_message_t* rx_msg = get_rx_message_ptr();
-    const serial_state_t* task_state = getTaskState(); // Get the task state pointer
+    const serial_state_t* serial_state = getTaskState(); // Get the task state pointer
     const host_state_t* host_state = getHostState();
     
     const TickType_t xSerialTimeout = pdMS_TO_TICKS(500); // 500ms timeout
@@ -115,7 +118,8 @@ void serial_watchdog_task(void *arg) {
     while (1) {
 
         // Wait for the semaphore with timeout 
-        if (xSemaphoreTake(serial_rx_semaphore, xSerialTimeout) == pdFALSE) {
+        if ((xSemaphoreTake(serial_rx_semaphore, xSerialTimeout) == pdFALSE) 
+            || (*serial_state != SERIAL_RECEIVING)) {
             // Timeout occurred, no serial data received
             motorStateHelper(false); // Ensure motors are off
             set_wheel_motors_speed(0, 0); // Stop wheel motors
@@ -123,28 +127,23 @@ void serial_watchdog_task(void *arg) {
             disable_servos();
             continue; // Go back to waiting
         }
-        
-        // Semaphore obtained, check serial state
-        if (*task_state != SERIAL_RECEIVING) {
-            motorStateHelper(false); // Disable motors if not actively receiving
-            continue;
-        }
-        
+
+        motorStateHelper(true);
         // Process commands based on host state
         switch(*host_state)
         {
         case HOST_SEARCHING_BALL:
-            set_wheel_motors_speed(rx_msg->wheel1_speed, rx_msg->wheel2_speed);
-            // tilt_servos(rx_msg->tilt_angle); // Tilt servos based on received angle
-            break;
 
         case HOST_BALL_REACHED:
             set_wheel_motors_speed(rx_msg->wheel1_speed, rx_msg->wheel2_speed);
             break;
 
         case HOST_SHOOTING:
-            ESP_LOGI(TAG, "HOST_SHOOTING state in serial task");
             tilt_servos(rx_msg->tilt_angle); // Tilt servos based on received angle
+            break;
+
+        case HOST_SCANNING:
+            set_wheel_motors_speed(rx_msg->wheel1_speed, rx_msg->wheel2_speed);
             break;
 
         case HOST_ERROR:

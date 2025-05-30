@@ -22,6 +22,7 @@ typedef enum {
     HOST_SEARCHING_BALL,
     HOST_BALL_REACHED,
     HOST_SHOOTING,
+    HOST_SCANNING,
     HOST_ERROR,
 } host_state_t;
 
