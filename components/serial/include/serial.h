@@ -57,7 +57,7 @@ extern SemaphoreHandle_t serial_rx_semaphore;
 extern SemaphoreHandle_t state_change_semaphore; // Semaphore for state change synchronization
 
 // Get a pointer to the received message data
-rx_message_t* get_rx_message_ptr(void);
+rx_message_t* getRXmsg(void);
 rx_message_t get_rx_message(void);
 
 serial_state_t* getTaskState(void);

@@ -33,7 +33,7 @@ static rx_message_t rx_msg = {0};
 static tx_message_t tx_msg = {0};
 
 // Function to get pointer to RX data for external access
-rx_message_t* get_rx_message_ptr(void) {
+rx_message_t* getRXmsg(void) {
     return &rx_msg;
 }
 

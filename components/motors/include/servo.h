@@ -85,7 +85,7 @@ public:
             release(); // First release the servo to stop it from holding position
         }
         
-        ESP_ERROR_CHECK(ledc_stop(mode, channel, 0)); // Stop PWM output
+        // ESP_ERROR_CHECK(ledc_stop(mode, channel, 0)); // Stop PWM output
         enabled = false;
         ESP_LOGI(TAG, "Servo on GPIO%d disabled", pin);
     }
@@ -93,7 +93,7 @@ public:
     void enable() {
         if(enabled) return; // Already enabled
         enabled = true;
-        ESP_LOGI(TAG, "Servo on GPIO%d enabled, restored to duty: %"PRIu32, pin, current_duty);
+        ESP_LOGI(TAG, "Servo on GPIO%d enabled", pin);
     }
     
     bool isEnabled() const {

@@ -22,7 +22,7 @@
 #define TAG "MOTORS"
 
 #define SERVO_1_MIDDLE_ANGLE 90.0f // Middle position for servo 1
-#define SERVO_2_MIDDLE_ANGLE 91.0f // Middle position for servo 2
+#define SERVO_2_MIDDLE_ANGLE 94.0f // Middle position for servo 2
 #define MAX_SPEED 5000 // Maximum speed for motors
 
 
@@ -155,7 +155,7 @@ void motor_task_init(){
     controller_t<int16_t>* speed_controller = new controller_t<int16_t>(loaderMotor.getRawSpeedPtr());
     loaderMotor.setNextController(speed_controller);
 
-    loaderMotor.setPIDParameters(100.0f, 0.0001f, 80.0f, 1.0f, 0.5f, 4000.0f, -4000.0f);
+    loaderMotor.setPIDParameters(50.0f, 0.0001f, 80.0f, 1.0f, 0.5f, 4000.0f, -4000.0f);
     speed_controller->setPIDParameters(25.0f, 0.02f, 15.0f, 0.1f, 1.0f, 5000.0f, -5000.0f);
 
     can_channel.reg_motor(&test_motor);

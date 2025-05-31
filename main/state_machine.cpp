@@ -10,6 +10,8 @@
 
 SemaphoreHandle_t wheelControl_handle = NULL; // Handle for wheel control task  
 
+bool isShot = false; // Flag to indicate if a shot has been made
+
 // Holds the tasks that execute only once when the state changes
 void state_machine_task(void *arg) {
     ESP_LOGI(TAG, "State machine task started");
@@ -23,23 +25,28 @@ void state_machine_task(void *arg) {
     // Get the task state pointer
     mcu_state_t* mcu_state = getMcuState();
     const host_state_t* host_state = getHostState();
-    const rx_message_t* rx_msg = get_rx_message_ptr();
+    const rx_message_t* rx_msg = getRXmsg();
 
     while (1) {
         xSemaphoreTake(state_change_semaphore, portMAX_DELAY); // Wait for state change signal
-        enable_servos(); // Ensure servos are enabled
+        // enable_servos(); // Ensure servos are enabled
         switch (*host_state)
         {
         case HOST_IDLE:
             ESP_LOGI(TAG, "HOST_IDLE state");
             set_friction_wheels_speed(0); // Stop friction wheels
+            disable_servos(); // Disable servos after tilting
             break;
 
         case HOST_SEARCHING_BALL:
             ESP_LOGI(TAG, "HOST_SEARCHING_BALL state");
+            enable_servos();
             set_friction_wheels_speed(-800); // Set speed for friction wheels
-            home_stepper_motor(); // Home the stepper motor
-            set_stepper_pos(1000); // Reset stepper position
+            if(isShot){ 
+                home_stepper_motor();
+                isShot = false; // Reset shot flag after homing
+            }
+            set_stepper_pos(1150); // Reset stepper position
             tilt_servos(-10);
             vTaskDelay(pdMS_TO_TICKS(50)); // Wait for servos to tilt
             tilt_servos(-3); // Reset servos to neutral position
@@ -50,14 +57,18 @@ void state_machine_task(void *arg) {
         
         case HOST_BALL_REACHED:
             ESP_LOGI(TAG, "HOST_BALL_REACHED state");
-            set_friction_wheels_speed(-800);
+            enable_servos();
+            set_friction_wheels_speed(-300);
             tilt_servos(30);
-            vTaskDelay(pdMS_TO_TICKS(1500));
-            disable_servos(); // Disable servos after tilting
-            moveLoader(-90.0f);
             vTaskDelay(pdMS_TO_TICKS(500));
-            enable_servos(); // Re-enable servos after loader movement
+            disable_servos(); // Disable servos after tilting
+            moveLoader(20.0f);
+            vTaskDelay(pdMS_TO_TICKS(500));
+            moveLoader(-110.0f);
+            vTaskDelay(pdMS_TO_TICKS(1000));
+            enable_servos();
             tilt_servos(-10);
+            tilt_servos(-3);
             vTaskDelay(pdMS_TO_TICKS(200));
             disable_servos(); // Disable servos after reaching the ball
             set_friction_wheels_speed(0); // Stop friction wheels
@@ -69,18 +80,22 @@ void state_machine_task(void *arg) {
             ESP_LOGI(TAG, "HOST_SHOOTING state");
             // Update the MCU state to indicate shooting
             *mcu_state = MCU_SHOOTING;
+            enable_servos();
             set_friction_wheels_speed(6500); // Set speed for friction wheels
             set_wheel_motors_speed(0, 0);
-            home_stepper_motor(); // Home the stepper motor
+            if(isShot){
+                home_stepper_motor();
+                isShot = false;
+            }
             set_stepper_pos(1600); // Reset stepper position
-            vTaskDelay(pdMS_TO_TICKS(1500)); // Wait for friction wheels to reach speed
+            vTaskDelay(pdMS_TO_TICKS(2000)); // Wait for friction wheels to reach speed
             moveLoader(180.0f); // Move loader to shooting position
             vTaskDelay(pdMS_TO_TICKS(1000)); // Wait for loader to move
             moveLoader(-90.0f);
             vTaskDelay(pdMS_TO_TICKS(500)); // Wait for loader to move
             resetLoaderOrigin();
-            // update_led_state_noHandle(SHOOTING); // Update LED state
-            set_friction_wheels_speed(0); // Stop friction wheels
+            isShot = true; // Set shot flag to true
+            // set_friction_wheels_speed(0); // Stop friction wheels
             break;
         case HOST_SCANNING:
             ESP_LOGI(TAG, "HOST_SCANNING state");
@@ -107,7 +122,7 @@ void state_machine_task(void *arg) {
 void serial_watchdog_task(void *arg) {
     ESP_LOGI(TAG, "Serial watchdog task started");
     // Setup for serial activity detection
-    const rx_message_t* rx_msg = get_rx_message_ptr();
+    const rx_message_t* rx_msg = getRXmsg();
     const serial_state_t* serial_state = getTaskState(); // Get the task state pointer
     const host_state_t* host_state = getHostState();
     
