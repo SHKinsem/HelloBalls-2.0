@@ -47,9 +47,9 @@ void state_machine_task(void *arg) {
                 isShot = false; // Reset shot flag after homing
             }
             set_stepper_pos(1150); // Reset stepper position
-            tilt_servos(-10);
-            vTaskDelay(pdMS_TO_TICKS(50)); // Wait for servos to tilt
-            tilt_servos(-3); // Reset servos to neutral position
+            tilt_servos(-20);
+            vTaskDelay(pdMS_TO_TICKS(1000)); // Wait for servos to tilt
+            tilt_servos(-5); // Reset servos to neutral position
             // Update the MCU state to indicate searching for a ball
             *mcu_state = MCU_SEARCHING_BALL;
             update_led_state_noHandle(SEARCHING_BALL); // Update LED state
@@ -60,7 +60,7 @@ void state_machine_task(void *arg) {
             enable_servos();
             set_friction_wheels_speed(-300);
             tilt_servos(30);
-            vTaskDelay(pdMS_TO_TICKS(500));
+            vTaskDelay(pdMS_TO_TICKS(1000));
             disable_servos(); // Disable servos after tilting
             moveLoader(20.0f);
             vTaskDelay(pdMS_TO_TICKS(500));
@@ -68,8 +68,9 @@ void state_machine_task(void *arg) {
             vTaskDelay(pdMS_TO_TICKS(1000));
             enable_servos();
             tilt_servos(-10);
+            vTaskDelay(pdMS_TO_TICKS(500));
             tilt_servos(-3);
-            vTaskDelay(pdMS_TO_TICKS(200));
+            vTaskDelay(pdMS_TO_TICKS(500));
             disable_servos(); // Disable servos after reaching the ball
             set_friction_wheels_speed(0); // Stop friction wheels
             resetLoaderOrigin();
@@ -81,7 +82,6 @@ void state_machine_task(void *arg) {
             // Update the MCU state to indicate shooting
             *mcu_state = MCU_SHOOTING;
             enable_servos();
-            set_friction_wheels_speed(6500); // Set speed for friction wheels
             set_wheel_motors_speed(0, 0);
             if(isShot){
                 home_stepper_motor();
@@ -89,13 +89,13 @@ void state_machine_task(void *arg) {
             }
             set_stepper_pos(1600); // Reset stepper position
             vTaskDelay(pdMS_TO_TICKS(2000)); // Wait for friction wheels to reach speed
-            moveLoader(180.0f); // Move loader to shooting position
+            moveLoader(135.0f); // Move loader to shooting position
             vTaskDelay(pdMS_TO_TICKS(1000)); // Wait for loader to move
-            moveLoader(-90.0f);
+            moveLoader(-45.0f);
             vTaskDelay(pdMS_TO_TICKS(500)); // Wait for loader to move
             resetLoaderOrigin();
             isShot = true; // Set shot flag to true
-            // set_friction_wheels_speed(0); // Stop friction wheels
+            set_friction_wheels_speed(0); // Stop friction wheels
             break;
         case HOST_SCANNING:
             ESP_LOGI(TAG, "HOST_SCANNING state");
@@ -154,6 +154,8 @@ void serial_watchdog_task(void *arg) {
 
         case HOST_SHOOTING:
             tilt_servos(rx_msg->tilt_angle); // Tilt servos based on received angle
+            set_friction_wheels_speed(rx_msg->shoot_speed); // Set speed for friction wheels
+
             break;
 
         case HOST_SCANNING:
@@ -189,6 +191,10 @@ void serial_watchdog_task(void *arg) {
 
 void state_machine_init(void) {
     // Create the state machine task
+    enable_servos();
+    tilt_servos(0); // Initialize servos to neutral position
+    vTaskDelay(pdMS_TO_TICKS(1000));
+    disable_servos();
     xTaskCreate(state_machine_task, "state_machine_task", 4096, NULL, 5, NULL);
     xTaskCreate(serial_watchdog_task, "serial_watchdog_task", 4096, NULL, 5, NULL);
     ESP_LOGI(TAG, "State machine task created");

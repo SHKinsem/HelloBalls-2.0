@@ -38,6 +38,7 @@ typedef struct {
     int16_t wheel1_speed;
     int16_t wheel2_speed;
     int16_t tilt_angle;
+    int16_t shoot_speed;
 } rx_message_t;
 
 // Define message structure for transmitting data

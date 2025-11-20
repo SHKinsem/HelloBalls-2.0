@@ -11,6 +11,8 @@
 #include "esp_log.h"
 #include "esp32_s3_szp.h"
 #include <stdint.h>
+#include <inttypes.h>
+#include <algorithm>
 
 
 
@@ -81,11 +83,11 @@ public:
     void disable(bool release_first = true) {
         if(!enabled) return; // Already disabled
         
-        if(release_first) {
-            release(); // First release the servo to stop it from holding position
-        }
+        // if(release_first) {
+        //     release(); // First release the servo to stop it from holding position
+        // }
         
-        // ESP_ERROR_CHECK(ledc_stop(mode, channel, 0)); // Stop PWM output
+        ESP_ERROR_CHECK(ledc_stop(mode, channel, 0)); // Stop PWM output
         enabled = false;
         ESP_LOGI(TAG, "Servo on GPIO%d disabled", pin);
     }
@@ -177,9 +179,14 @@ public:
     }   
 
     void moveRelativeToOrigin(float angle) {
-        // Move servo relative to origin position
-        float new_angle = duty2angle(getOriginDuty()) + angle; // Get current angle from origin duty
-        ESP_LOGI(TAG, "Moving servo on GPIO%d relative to origin by %.2f degrees, new angle: %.2f", pin, angle, new_angle);
+        // Move servo relative to origin position. Handle unset origin (duty2angle may return -1).
+        float origin_angle = duty2angle(getOriginDuty());
+        if (origin_angle < 0.0f) {
+            ESP_LOGW(TAG, "Origin duty not set or out of range for GPIO%d; assuming origin angle 0", pin);
+            origin_angle = 0.0f;
+        }
+        float new_angle = origin_angle + angle;
+        ESP_LOGI(TAG, "Moving servo on GPIO%d relative to origin by %.2f degrees, origin angle: %.2f, new angle: %.2f", pin, angle, origin_angle, new_angle);
         if (new_angle < 0) new_angle = 0;
         if (new_angle > 180) new_angle = 180;
         setAngle(new_angle);
@@ -192,8 +199,12 @@ public:
             speed = 1.0f;
         }
         
-        // Calculate new angle relative to origin
+        // Calculate new angle relative to origin; handle unset origin
         float origin_angle = duty2angle(getOriginDuty());
+        if (origin_angle < 0.0f) {
+            ESP_LOGW(TAG, "Origin duty not set or out of range for GPIO%d; assuming origin angle 0", pin);
+            origin_angle = 0.0f;
+        }
         float new_angle = origin_angle + angle;
         
         // Clamp angle to valid range
@@ -202,10 +213,10 @@ public:
         
         // Calculate target duty cycle based on clamped angle
         uint32_t target_duty = angle2duty(new_angle);
-        uint32_t current_duty = getCurrentDuty();
-        
+        uint32_t cur = getCurrentDuty();
+
         // Early exit if already at target position
-        if (current_duty == target_duty) {
+        if (cur == target_duty) {
             ESP_LOGI(TAG, "Servo on GPIO%d already at target position", pin);
             return;
         }
@@ -214,13 +225,35 @@ public:
                  pin, angle, new_angle, speed);
         
         // Move servo gradually to target position
-        while (current_duty != target_duty) {
-            if (current_duty < target_duty) current_duty++;
-            else current_duty--;
-            
-            move(current_duty, false); // Move servo to current duty cycle
-            vTaskDelay(pdMS_TO_TICKS(100 / speed));
+        // Use LEDC hardware fade (non-blocking) instead of blocking loop
+
+    uint32_t diff = (target_duty > cur) ? (target_duty - cur) : (cur - target_duty);
+        // Total time in ms computed to match previous stepping behavior:
+        // previous total_time = steps * (100 / speed)
+        uint32_t time_ms = (uint32_t)(diff * (100.0f / speed));
+        if (time_ms == 0) time_ms = 1; // minimal non-zero time
+
+        // Install fade service if not already installed. Ignore "already installed" error.
+        esp_err_t r = ledc_fade_func_install(0);
+        if (r != ESP_OK && r != ESP_ERR_INVALID_STATE) {
+            move(target_duty);
+            return;
         }
+
+        esp_err_t err = ledc_set_fade_with_time(mode, channel, target_duty, time_ms);
+        if (err != ESP_OK) {
+            move(target_duty);
+            return;
+        }
+
+        err = ledc_fade_start(mode, channel, LEDC_FADE_NO_WAIT); // start fade asynchronously
+        if (err != ESP_OK) {
+            move(target_duty);
+            return;
+        }
+
+        // Update member state immediately to reflect target (hardware will perform the transition)
+        this->current_duty = target_duty;
     }
 };
 

@@ -196,12 +196,12 @@ static void rx_task(void *arg)
             
             if (is_ascii_format) {
                 // ASCII text parsing (format: "machine_state,wheel1_speed,wheel2_speed" or "machine_state wheel1_speed wheel2_speed")
-                int state = 0, wheel1 = 0, wheel2 = 0, servoAngle = 0;
+                int state = 0, wheel1 = 0, wheel2 = 0, servoAngle = 0, shootSpeed = 0;
                 int parsed = 0;
-                
-                if (strchr((char*)data, ',') != NULL) 
-                    parsed = sscanf((char*)data, "%d,%d,%d,%d", &state, &wheel1, &wheel2, &servoAngle);
-                
+
+                if (strchr((char*)data, ',') != NULL)
+                    parsed = sscanf((char*)data, "%d,%d,%d,%d,%d", &state, &wheel1, &wheel2, &servoAngle, &shootSpeed);
+
                 if (parsed >= 1) {
                     if(host_state != state) {
                         host_state = (host_state_t)state; // Update host state
@@ -211,17 +211,19 @@ static void rx_task(void *arg)
                     if (parsed >= 2) rx_msg.wheel1_speed = (int16_t)wheel1;
                     if (parsed >= 3) rx_msg.wheel2_speed = (int16_t)wheel2;
                     if (parsed >= 4) rx_msg.tilt_angle = (int16_t)servoAngle;
-                    ESP_LOGI(RX_TASK_TAG, "ASCII Parsed: State=%u, Wheel1=%d, Wheel2=%d, Tilt=%d", 
-                            rx_msg.host_state, rx_msg.wheel1_speed, rx_msg.wheel2_speed, rx_msg.tilt_angle);
+                    if (parsed >= 5) rx_msg.shoot_speed = (int16_t)shootSpeed;
+                    ESP_LOGI(RX_TASK_TAG, "ASCII Parsed: State=%u, Wheel1=%d, Wheel2=%d, Tilt=%d, Shoot=%d", 
+                            rx_msg.host_state, rx_msg.wheel1_speed, rx_msg.wheel2_speed, rx_msg.tilt_angle, rx_msg.shoot_speed);
                 }
             } else if (rxBytes >= 7) {
                 rx_msg.host_state =     data[0];
                 rx_msg.wheel1_speed =   (data[1] << 8) | data[2];
                 rx_msg.wheel2_speed =   (data[3] << 8) | data[4];
                 rx_msg.tilt_angle =     (data[5] << 8) | data[6];
+                rx_msg.shoot_speed =    (data[7] << 8) | data[8];
 
-                ESP_LOGI(RX_TASK_TAG, "Binary Parsed: State=%u, Wheel1=%d, Wheel2=%d, Tilt=%d", 
-                        rx_msg.host_state, rx_msg.wheel1_speed, rx_msg.wheel2_speed, rx_msg.tilt_angle);
+                ESP_LOGI(RX_TASK_TAG, "Binary Parsed: State=%u, Wheel1=%d, Wheel2=%d, Tilt=%d, Shoot=%d", 
+                        rx_msg.host_state, rx_msg.wheel1_speed, rx_msg.wheel2_speed, rx_msg.tilt_angle, rx_msg.shoot_speed);
             } else {
                 ESP_LOGW(RX_TASK_TAG, "Received data in unexpected format: %.*s", rxBytes, data);
             }

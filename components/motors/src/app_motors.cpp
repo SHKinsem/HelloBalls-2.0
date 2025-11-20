@@ -64,8 +64,8 @@ void tilt_servos(float angle) {
     if (angle < MIN_TILT_ANGLE) angle = MIN_TILT_ANGLE;
 
     // Tilt both servos by the specified angle
-    servo1.moveRelativeToOrigin(-angle, 80.0f); // Move servo 1 relative to origin
-    servo2.moveRelativeToOrigin(angle, 80.0f); // Move servo 2 relative to origin
+    servo1.moveRelativeToOrigin(angle, 80.0f); // Move servo 1 relative to origin
+    servo2.moveRelativeToOrigin(-angle, 80.0f); // Move servo 2 relative to origin
 }
 
 void disable_servos() {
@@ -148,8 +148,8 @@ void motor_task_init(){
 
     frictionWheel_1.setPIDParameters(20.0, 0.007, 0.005, 0.1, 0.1, 5000.0, -5000.0);
     frictionWheel_2.setPIDParameters(20.0, 0.007, 0.005, 0.1, 0.1, 5000.0, -5000.0);
-    wheelMotor_1.setPIDParameters(25.0, 0.03, 0.5, 0.1, 0.1, 2000.0, -2000.0);
-    wheelMotor_2.setPIDParameters(25.0, 0.03, 0.5, 0.1, 0.1, 2000.0, -2000.0);
+    wheelMotor_1.setPIDParameters(25.0, 0.03, 0.5, 0.1, 0.1, 3000.0, -3000.0);
+    wheelMotor_2.setPIDParameters(25.0, 0.03, 0.5, 0.1, 0.1, 3000.0, -3000.0);
 
     loaderMotor.initAnglePID();
     controller_t<int16_t>* speed_controller = new controller_t<int16_t>(loaderMotor.getRawSpeedPtr());
