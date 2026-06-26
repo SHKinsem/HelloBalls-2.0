@@ -5,6 +5,12 @@
 
 #define TAG "CAN_CHANNEL"
 
+static TickType_t ms_to_ticks_min_1(uint32_t ms)
+{
+    TickType_t ticks = pdMS_TO_TICKS(ms);
+    return ticks > 0 ? ticks : 1;
+}
+
 
 can_channel_t::can_channel_t(uint8_t channel_id, gpio_num_t tx_io, gpio_num_t rx_io):
     channel_id(channel_id), 
@@ -137,7 +143,7 @@ void can_channel_t::tx_task(void* arg) {
 
         twai_transmit_v2(twai_handle, &tx_message[0], pdMS_TO_TICKS(5)); // Transmit the first message
         twai_transmit_v2(twai_handle, &tx_message[1], pdMS_TO_TICKS(5)); // Transmit the second message
-        xTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1)); // Precise delay for 1ms
+        xTaskDelayUntil(&xLastWakeTime, ms_to_ticks_min_1(1)); // Precise delay for 1ms
     }
 
     vTaskDelete(NULL);
