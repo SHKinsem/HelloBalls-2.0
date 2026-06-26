@@ -15,11 +15,17 @@
     Frequency: 50 Hz
 
     TX message format:
-    [machine_state, wheel1_distance, wheel2_distance, imu_x, imu_y, imu_z, imu_yaw]
+    [0xAA, 0x55, msg_type, payload_len, payload..., checksum]
     Frequency: 50 Hz
 */
 
 static const int RX_BUF_SIZE = 128;
+
+#define UART_TX_FRAME_HEADER_0  0xAA
+#define UART_TX_FRAME_HEADER_1  0x55
+#define UART_TX_MSG_TYPE_IMU    0x01
+#define UART_TX_PAYLOAD_LEN     22
+#define UART_TX_FRAME_LEN       (2 + 1 + 1 + UART_TX_PAYLOAD_LEN + 1)
 
 SemaphoreHandle_t serial_rx_semaphore = NULL; // Semaphore for serial RX task synchronization
 SemaphoreHandle_t state_change_semaphore = NULL; // Semaphore for state change synchronization
@@ -58,6 +64,36 @@ void set_tx_message(uint8_t state, int32_t w1_dist, int32_t w2_dist,
                     float x, float y, float z, float yaw) {
 }
 
+static void append_u8(uint8_t *data, int *len, uint8_t value)
+{
+    data[(*len)++] = value;
+}
+
+static void append_i16_be(uint8_t *data, int *len, int16_t value)
+{
+    uint16_t raw = (uint16_t)value;
+    data[(*len)++] = (uint8_t)((raw >> 8) & 0xFF);
+    data[(*len)++] = (uint8_t)(raw & 0xFF);
+}
+
+static void append_i32_be(uint8_t *data, int *len, int32_t value)
+{
+    uint32_t raw = (uint32_t)value;
+    data[(*len)++] = (uint8_t)((raw >> 24) & 0xFF);
+    data[(*len)++] = (uint8_t)((raw >> 16) & 0xFF);
+    data[(*len)++] = (uint8_t)((raw >> 8) & 0xFF);
+    data[(*len)++] = (uint8_t)(raw & 0xFF);
+}
+
+static uint8_t calc_checksum(const uint8_t *data, int start, int end)
+{
+    uint8_t checksum = 0;
+    for (int i = start; i < end; i++) {
+        checksum = (uint8_t)(checksum + data[i]);
+    }
+    return checksum;
+}
+
 // Initialize UART communication
 static void uart_init_port(void)
 {
@@ -82,49 +118,25 @@ int sendUartData(const tx_message_t *tx_msg)
         return -1;
     }
     
-    // Serialize tx_msg into a byte array
-    uint8_t data[22]; // Buffer size
+    uint8_t data[UART_TX_FRAME_LEN];
     int len = 0;
-    const int max_len = sizeof(data);
-    
-    // Ensure we have enough space for basic fields (safety check)
-    if (max_len < 22) { // Minimum size needed for all fields
-        return -1;
-    }
-    
-    // Basic fields serialization
-    data[len++] = tx_msg->mcu_state;
-    data[len++] = tx_msg->host_state;
-    
-    // Wheel distances (32-bit values)
-    data[len++] = (tx_msg->wheel1_distance >> 24) & 0xFF;
-    data[len++] = (tx_msg->wheel1_distance >> 16) & 0xFF;
-    data[len++] = (tx_msg->wheel1_distance >> 8) & 0xFF;
-    data[len++] = tx_msg->wheel1_distance & 0xFF;
-    
-    data[len++] = (tx_msg->wheel2_distance >> 24) & 0xFF;
-    data[len++] = (tx_msg->wheel2_distance >> 16) & 0xFF;
-    data[len++] = (tx_msg->wheel2_distance >> 8) & 0xFF;
-    data[len++] = tx_msg->wheel2_distance & 0xFF;
 
-    // IMU data serialization (assuming 16-bit values)
-    data[len++] = (uint8_t)(tx_msg->imu_data.acc_x >> 8);
-    data[len++] = (uint8_t)(tx_msg->imu_data.acc_x & 0xFF);
-    
-    data[len++] = (uint8_t)(tx_msg->imu_data.acc_y >> 8);
-    data[len++] = (uint8_t)(tx_msg->imu_data.acc_y & 0xFF);
-    
-    data[len++] = (uint8_t)(tx_msg->imu_data.acc_z >> 8);
-    data[len++] = (uint8_t)(tx_msg->imu_data.acc_z & 0xFF);
-    
-    data[len++] = (uint8_t)(tx_msg->imu_data.gyr_x >> 8);
-    data[len++] = (uint8_t)(tx_msg->imu_data.gyr_x & 0xFF);
-    
-    data[len++] = (uint8_t)(tx_msg->imu_data.gyr_y >> 8);
-    data[len++] = (uint8_t)(tx_msg->imu_data.gyr_y & 0xFF);
-    
-    data[len++] = (uint8_t)(tx_msg->imu_data.gyr_z >> 8);
-    data[len++] = (uint8_t)(tx_msg->imu_data.gyr_z & 0xFF);
+    append_u8(data, &len, UART_TX_FRAME_HEADER_0);
+    append_u8(data, &len, UART_TX_FRAME_HEADER_1);
+    append_u8(data, &len, UART_TX_MSG_TYPE_IMU);
+    append_u8(data, &len, UART_TX_PAYLOAD_LEN);
+
+    append_u8(data, &len, tx_msg->mcu_state);
+    append_u8(data, &len, tx_msg->host_state);
+    append_i32_be(data, &len, tx_msg->wheel1_distance);
+    append_i32_be(data, &len, tx_msg->wheel2_distance);
+    append_i16_be(data, &len, tx_msg->imu_data.acc_x);
+    append_i16_be(data, &len, tx_msg->imu_data.acc_y);
+    append_i16_be(data, &len, tx_msg->imu_data.acc_z);
+    append_i16_be(data, &len, tx_msg->imu_data.gyr_x);
+    append_i16_be(data, &len, tx_msg->imu_data.gyr_y);
+    append_i16_be(data, &len, tx_msg->imu_data.gyr_z);
+    append_u8(data, &len, calc_checksum(data, 2, len));
 
     // Send the data through UART and handle errors
     int bytes_sent = uart_write_bytes(UART_NUM_0, (const char *)data, len);
@@ -268,5 +280,5 @@ void uart_init(void)
     // Initialize UART
     uart_init_port();
     xTaskCreate(rx_task, "uart_rx_task", 1024 * 4, NULL, 3, NULL);
-    // xTaskCreate(tx_task, "uart_tx_task", 1024 * 4, NULL, 3, NULL);
+    xTaskCreate(tx_task, "uart_tx_task", 1024 * 4, NULL, 3, NULL);
 }
