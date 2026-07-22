@@ -48,6 +48,8 @@ typedef struct {
     int32_t wheel1_distance;
     int32_t wheel2_distance;
     t_sQMI8658 imu_data; // Structure containing IMU data
+    uint32_t sample_sequence;
+    uint64_t sample_time_us;
 } tx_message_t;
 
 // Initialize UART communication

@@ -3,6 +3,7 @@
 #include "freertos/task.h"
 #include "esp_system.h"
 #include "esp_log.h"
+#include "esp_timer.h"
 #include "driver/uart.h"
 #include "string.h"
 #include "driver/gpio.h"
@@ -16,16 +17,17 @@
 
     TX message format:
     [0xAA, 0x55, msg_type, payload_len, payload..., checksum]
-    Frequency: 50 Hz
+    Frequency: 100 Hz
 */
 
 static const int RX_BUF_SIZE = 128;
 
 #define UART_TX_FRAME_HEADER_0  0xAA
 #define UART_TX_FRAME_HEADER_1  0x55
-#define UART_TX_MSG_TYPE_IMU    0x01
-#define UART_TX_PAYLOAD_LEN     22
-#define UART_TX_FRAME_LEN       (2 + 1 + 1 + UART_TX_PAYLOAD_LEN + 1)
+#define UART_TX_MSG_TYPE_IMU_V2 0x02
+#define UART_TX_PAYLOAD_LEN_V2  34
+#define IMU_SAMPLE_PERIOD_MS    10
+#define UART_TX_FRAME_LEN_V2    (2 + 1 + 1 + UART_TX_PAYLOAD_LEN_V2 + 1)
 
 SemaphoreHandle_t serial_rx_semaphore = NULL; // Semaphore for serial RX task synchronization
 SemaphoreHandle_t state_change_semaphore = NULL; // Semaphore for state change synchronization
@@ -85,6 +87,26 @@ static void append_i32_be(uint8_t *data, int *len, int32_t value)
     data[(*len)++] = (uint8_t)(raw & 0xFF);
 }
 
+static void append_u32_be(uint8_t *data, int *len, uint32_t value)
+{
+    data[(*len)++] = (uint8_t)((value >> 24) & 0xFF);
+    data[(*len)++] = (uint8_t)((value >> 16) & 0xFF);
+    data[(*len)++] = (uint8_t)((value >> 8) & 0xFF);
+    data[(*len)++] = (uint8_t)(value & 0xFF);
+}
+
+static void append_u64_be(uint8_t *data, int *len, uint64_t value)
+{
+    data[(*len)++] = (uint8_t)((value >> 56) & 0xFF);
+    data[(*len)++] = (uint8_t)((value >> 48) & 0xFF);
+    data[(*len)++] = (uint8_t)((value >> 40) & 0xFF);
+    data[(*len)++] = (uint8_t)((value >> 32) & 0xFF);
+    data[(*len)++] = (uint8_t)((value >> 24) & 0xFF);
+    data[(*len)++] = (uint8_t)((value >> 16) & 0xFF);
+    data[(*len)++] = (uint8_t)((value >> 8) & 0xFF);
+    data[(*len)++] = (uint8_t)(value & 0xFF);
+}
+
 static uint8_t calc_checksum(const uint8_t *data, int start, int end)
 {
     uint8_t checksum = 0;
@@ -118,13 +140,13 @@ int sendUartData(const tx_message_t *tx_msg)
         return -1;
     }
     
-    uint8_t data[UART_TX_FRAME_LEN];
+    uint8_t data[UART_TX_FRAME_LEN_V2];
     int len = 0;
 
     append_u8(data, &len, UART_TX_FRAME_HEADER_0);
     append_u8(data, &len, UART_TX_FRAME_HEADER_1);
-    append_u8(data, &len, UART_TX_MSG_TYPE_IMU);
-    append_u8(data, &len, UART_TX_PAYLOAD_LEN);
+    append_u8(data, &len, UART_TX_MSG_TYPE_IMU_V2);
+    append_u8(data, &len, UART_TX_PAYLOAD_LEN_V2);
 
     append_u8(data, &len, tx_msg->mcu_state);
     append_u8(data, &len, tx_msg->host_state);
@@ -136,7 +158,15 @@ int sendUartData(const tx_message_t *tx_msg)
     append_i16_be(data, &len, tx_msg->imu_data.gyr_x);
     append_i16_be(data, &len, tx_msg->imu_data.gyr_y);
     append_i16_be(data, &len, tx_msg->imu_data.gyr_z);
+    append_u32_be(data, &len, tx_msg->sample_sequence);
+    append_u64_be(data, &len, tx_msg->sample_time_us);
     append_u8(data, &len, calc_checksum(data, 2, len));
+
+    if (len != UART_TX_FRAME_LEN_V2) {
+        ESP_LOGE("UART_SEND", "Invalid v2 frame length: expected %d bytes, got %d bytes",
+                 UART_TX_FRAME_LEN_V2, len);
+        return -1;
+    }
 
     // Send the data through UART and handle errors
     int bytes_sent = uart_write_bytes(UART_NUM_0, (const char *)data, len);
@@ -154,7 +184,8 @@ static void tx_task(void *arg)
     static const char *TX_TASK_TAG = "TX_TASK";
     esp_log_level_set(TX_TASK_TAG, ESP_LOG_INFO);
     
-    tx_msg.mcu_state = 0; // Default state
+    uint32_t sample_sequence = 0;
+    TickType_t last_wake_time = xTaskGetTickCount();
     
     while (1) {
         // if (task_state == SERIAL_IDEL) {
@@ -162,14 +193,22 @@ static void tx_task(void *arg)
         //     continue;
         // }
 
-        qmi8658_Read_AccAndGry(&tx_msg.imu_data); // Fetch IMU data
+        /*
+         * Capture the sample time at the sensor-read point, not when UART
+         * transmission starts.  Keep all per-sample fields in this local
+         * snapshot so a later sample cannot modify a frame being serialized.
+         */
+        tx_message_t sample = tx_msg;
+        sample.sample_time_us = (uint64_t)esp_timer_get_time();
+        sample.sample_sequence = sample_sequence++;
+        qmi8658_Read_AccAndGry(&sample.imu_data);
 
-        sendUartData(&tx_msg); // Send the tx_msg data through UART
+        sendUartData(&sample);
         // ESP_LOGI(TX_TASK_TAG, "Sent: State=%u, Wheel1Dist=%"PRIu32", Wheel2Dist=%"PRIu32", IMU Acc=(%d, %d, %d), Gyr=(%d, %d, %d)", 
         //         tx_msg.mcu_state, tx_msg.wheel1_distance, tx_msg.wheel2_distance,
         //         tx_msg.imu_data.acc_x, tx_msg.imu_data.acc_y, tx_msg.imu_data.acc_z,
         //         tx_msg.imu_data.gyr_x, tx_msg.imu_data.gyr_y, tx_msg.imu_data.gyr_z);
-        vTaskDelay(pdMS_TO_TICKS(20)); // 50Hz = 20ms period
+        vTaskDelayUntil(&last_wake_time, pdMS_TO_TICKS(IMU_SAMPLE_PERIOD_MS));
     }
 }
 
