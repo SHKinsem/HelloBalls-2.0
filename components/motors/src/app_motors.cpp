@@ -87,6 +87,22 @@ m3508_t wheelMotor_1(3);
 m3508_t wheelMotor_2(4);
 m2006_t loaderMotor(5);
 
+static void wheel_speed_feedback_task(void *arg) {
+    TickType_t last_wake_time = xTaskGetTickCount();
+
+    while (true) {
+        /*
+         * M3508 feedback speed is signed RPM. wheelMotor_2 is installed in
+         * the opposite direction, matching the sign conversion used when
+         * commands are applied in set_wheel_motors_speed().
+         */
+        set_tx_wheel_speed_feedback(
+            (int32_t)wheelMotor_1.getRawSpeed(),
+            -(int32_t)wheelMotor_2.getRawSpeed());
+        vTaskDelayUntil(&last_wake_time, pdMS_TO_TICKS(10));
+    }
+}
+
 void motorStateHelper(bool state) {
     if (state) {
         frictionWheel_1.enable();
@@ -165,4 +181,7 @@ void motor_task_init(){
     can_channel.reg_motor(&wheelMotor_2);
     can_channel.reg_motor(&loaderMotor);
     can_channel.start();
+
+    xTaskCreate(wheel_speed_feedback_task, "wheel_speed_feedback", 2048,
+                NULL, 3, NULL);
 }

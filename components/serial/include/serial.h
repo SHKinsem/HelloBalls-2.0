@@ -45,8 +45,8 @@ typedef struct {
 typedef struct {
     uint8_t mcu_state;
     uint8_t host_state; // 0: SERIAL_IDEL, 1: SEARCHING_BALL, 2: SHOOTING
-    int32_t wheel1_distance;
-    int32_t wheel2_distance;
+    int32_t wheel1_speed_rpm;
+    int32_t wheel2_speed_rpm;
     t_sQMI8658 imu_data; // Structure containing IMU data
     uint32_t sample_sequence;
     uint64_t sample_time_us;
@@ -67,9 +67,9 @@ serial_state_t* getTaskState(void);
 host_state_t* getHostState(void);
 mcu_state_t* getMcuState(void);
 
-// Set data for transmission
-void set_tx_message(uint8_t state, int32_t w1_dist, int32_t w2_dist,
-                    float x, float y, float z, float yaw);
+// Update the latest signed wheel-speed feedback sent to the host.
+void set_tx_wheel_speed_feedback(int32_t wheel1_speed_rpm,
+                                 int32_t wheel2_speed_rpm);
 
 #ifdef __cplusplus
 }

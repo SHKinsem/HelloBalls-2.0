@@ -39,6 +39,7 @@ static mcu_state_t mcu_state = MCU_IDLE; // Initialize MCU state to MCU_IDLE
 // Global variables for message data
 static rx_message_t rx_msg = {0};
 static tx_message_t tx_msg = {0};
+static portMUX_TYPE tx_msg_lock = portMUX_INITIALIZER_UNLOCKED;
 
 // Function to get pointer to RX data for external access
 rx_message_t* getRXmsg(void) {
@@ -61,9 +62,12 @@ mcu_state_t* getMcuState(void) {
     return &mcu_state;
 }
 
-// Function to set TX data from external source
-void set_tx_message(uint8_t state, int32_t w1_dist, int32_t w2_dist, 
-                    float x, float y, float z, float yaw) {
+void set_tx_wheel_speed_feedback(int32_t wheel1_speed_rpm,
+                                 int32_t wheel2_speed_rpm) {
+    taskENTER_CRITICAL(&tx_msg_lock);
+    tx_msg.wheel1_speed_rpm = wheel1_speed_rpm;
+    tx_msg.wheel2_speed_rpm = wheel2_speed_rpm;
+    taskEXIT_CRITICAL(&tx_msg_lock);
 }
 
 static void append_u8(uint8_t *data, int *len, uint8_t value)
@@ -150,8 +154,8 @@ int sendUartData(const tx_message_t *tx_msg)
 
     append_u8(data, &len, tx_msg->mcu_state);
     append_u8(data, &len, tx_msg->host_state);
-    append_i32_be(data, &len, tx_msg->wheel1_distance);
-    append_i32_be(data, &len, tx_msg->wheel2_distance);
+    append_i32_be(data, &len, tx_msg->wheel1_speed_rpm);
+    append_i32_be(data, &len, tx_msg->wheel2_speed_rpm);
     append_i16_be(data, &len, tx_msg->imu_data.acc_x);
     append_i16_be(data, &len, tx_msg->imu_data.acc_y);
     append_i16_be(data, &len, tx_msg->imu_data.acc_z);
@@ -198,14 +202,17 @@ static void tx_task(void *arg)
          * transmission starts.  Keep all per-sample fields in this local
          * snapshot so a later sample cannot modify a frame being serialized.
          */
-        tx_message_t sample = tx_msg;
+        tx_message_t sample;
+        taskENTER_CRITICAL(&tx_msg_lock);
+        sample = tx_msg;
+        taskEXIT_CRITICAL(&tx_msg_lock);
         sample.sample_time_us = (uint64_t)esp_timer_get_time();
         sample.sample_sequence = sample_sequence++;
         qmi8658_Read_AccAndGry(&sample.imu_data);
 
         sendUartData(&sample);
-        // ESP_LOGI(TX_TASK_TAG, "Sent: State=%u, Wheel1Dist=%"PRIu32", Wheel2Dist=%"PRIu32", IMU Acc=(%d, %d, %d), Gyr=(%d, %d, %d)", 
-        //         tx_msg.mcu_state, tx_msg.wheel1_distance, tx_msg.wheel2_distance,
+        // ESP_LOGI(TX_TASK_TAG, "Sent: State=%u, Wheel1Speed=%"PRId32", Wheel2Speed=%"PRId32", IMU Acc=(%d, %d, %d), Gyr=(%d, %d, %d)",
+        //         sample.mcu_state, sample.wheel1_speed_rpm, sample.wheel2_speed_rpm,
         //         tx_msg.imu_data.acc_x, tx_msg.imu_data.acc_y, tx_msg.imu_data.acc_z,
         //         tx_msg.imu_data.gyr_x, tx_msg.imu_data.gyr_y, tx_msg.imu_data.gyr_z);
         vTaskDelayUntil(&last_wake_time, pdMS_TO_TICKS(IMU_SAMPLE_PERIOD_MS));
