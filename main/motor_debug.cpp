@@ -47,6 +47,45 @@ static void stop_motors(void)
     motorStateHelper(false);
 }
 
+static void apply_servos(void)
+{
+    float t = g_motor_debug.servo_tilt;
+    set_servo_offsets(t + g_motor_debug.servo_trim[0], -t + g_motor_debug.servo_trim[1]);
+    g_motor_debug.servo_touched = true;
+}
+
+static void reset_servo_state(void)
+{
+    g_motor_debug.servo_tilt = 0;
+    g_motor_debug.servo_trim[0] = 0;
+    g_motor_debug.servo_trim[1] = 0;
+}
+
+uint32_t motor_debug_set_servo(uint8_t sub, float deg)
+{
+    if (!g_motor_debug.mode) {
+        return OD_ABORT_STATE;
+    }
+    if (sub == 1) {
+        g_motor_debug.servo_tilt = deg;
+    } else if (sub == 2 || sub == 3) {
+        g_motor_debug.servo_trim[sub - 2] = deg;
+    } else {
+        return OD_ABORT_NO_SUB;
+    }
+    apply_servos();
+    return OD_OK;
+}
+
+void motor_debug_servo_origin_changed(void)
+{
+    if (g_motor_debug.mode && g_motor_debug.servo_touched) {
+        apply_servos();
+    } else {
+        move_servos_to_origin();
+    }
+}
+
 uint32_t motor_debug_set_mode(bool on)
 {
     if (!on) {
@@ -63,6 +102,8 @@ uint32_t motor_debug_set_mode(bool on)
     g_motor_debug.mode = true;
     g_motor_debug.run = false;
     g_motor_debug.target_rpm = 0;
+    reset_servo_state();
+    g_motor_debug.servo_touched = false;
     stop_motors();
     ESP_LOGI(TAG, "Debug mode on");
     return OD_OK;
@@ -103,6 +144,13 @@ void motor_debug_exit(const char *why)
     g_motor_debug.run = false;
     g_motor_debug.target_rpm = 0;
     stop_motors();
+    if (g_motor_debug.servo_touched) {
+        // Back to centre, then unpowered like after a command timeout
+        reset_servo_state();
+        move_servos_to_origin();
+        disable_servos();
+        g_motor_debug.servo_touched = false;
+    }
     ESP_LOGI(TAG, "Debug mode off: %s", why);
 }
 

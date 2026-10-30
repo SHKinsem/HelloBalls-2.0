@@ -195,7 +195,7 @@ static uint32_t wr_pid(const od_entry_t *e, const uint8_t *, size_t)
 static uint32_t wr_servo_origin(const od_entry_t *, const uint8_t *, size_t)
 {
     set_servo_origins(g_params.servo_origin[0], g_params.servo_origin[1]);
-    move_servos_to_origin(); // show the new centre right away while calibrating
+    motor_debug_servo_origin_changed(); // show the new centre right away while calibrating
     return OD_OK;
 }
 
@@ -212,6 +212,13 @@ static uint32_t wr_debug_motor(const od_entry_t *, const uint8_t *d, size_t)
 static uint32_t wr_debug_run(const od_entry_t *, const uint8_t *d, size_t)
 {
     return motor_debug_set_run(d[0] != 0);
+}
+
+static uint32_t wr_debug_servo(const od_entry_t *e, const uint8_t *d, size_t)
+{
+    float deg;
+    memcpy(&deg, d, sizeof deg);
+    return motor_debug_set_servo(e->sub, deg);
 }
 
 static uint32_t wr_estop(const od_entry_t *, const uint8_t *d, size_t)
@@ -363,6 +370,10 @@ static const od_entry_t entries[] = {
     RO(0x2600, 7, OD_I16, PDO, "实测转速", "rpm", &live.debug_speed),
     RO(0x2600, 8, OD_F32, PDO, "电流", "A", &live.debug_current),
     RO(0x2600, 9, OD_F32, PDO, "温度", "°C", &live.debug_temperature),
+    // Servos are linked in parallel: tilt moves both (1 +θ, 2 −θ); a trim moves one only and makes them fight
+    {0x2601, 1, OD_F32, OD_RW, RANGE | OD_F_SELF, "联动角度", "°", -10, 40, NULL, &g_motor_debug.servo_tilt, NULL, wr_debug_servo},
+    {0x2601, 2, OD_F32, OD_RW, RANGE | OD_F_SELF, "舵机 1 单独偏移", "°", -MOTOR_DEBUG_SERVO_TRIM_DEG, MOTOR_DEBUG_SERVO_TRIM_DEG, NULL, &g_motor_debug.servo_trim[0], NULL, wr_debug_servo},
+    {0x2601, 3, OD_F32, OD_RW, RANGE | OD_F_SELF, "舵机 2 单独偏移", "°", -MOTOR_DEBUG_SERVO_TRIM_DEG, MOTOR_DEBUG_SERVO_TRIM_DEG, NULL, &g_motor_debug.servo_trim[1], NULL, wr_debug_servo},
 
     RW(0x3000, 1, OD_U16, STORE, "遥控轮速上限", "rpm", 0, 9000, &g_params.max_wheel_rpm, NULL),
     RW(0x3000, 2, OD_U16, STORE, "遥控摩擦轮上限", NULL, 0, 9000, &g_params.max_shoot_speed, NULL),
@@ -425,6 +436,7 @@ static const od_object_t objects[] = {
     {0x2400, "步进电机"},
     {0x2500, "IMU"},
     {0x2600, "电机调试"},
+    {0x2601, "舵机调试"},
     {0x3000, "遥控限幅"},
     {0x3101, "PID 摩擦轮 1"},
     {0x3102, "PID 摩擦轮 2"},

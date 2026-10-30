@@ -34,6 +34,8 @@ bool servos_enabled(void);
 void set_servo_origins(float servo1_deg, float servo2_deg);
 // Move both servos to their (new) origin now, so a calibration is visible; no-op while disabled
 void move_servos_to_origin(void);
+// Power both servos and move each to its own offset from its origin (servo frame, degrees)
+void set_servo_offsets(float servo1_deg, float servo2_deg);
 
 // CAN motors by bus ID: 1/2 friction wheels, 3/4 drive wheels, 5 loader
 #define APP_MOTOR_ID_FIRST 1
