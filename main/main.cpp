@@ -31,6 +31,7 @@ void szp_setup(){
 
 void setup(){
     cmd_hub_init();     // Command hub shared by the serial host and the BLE remote
+    remote_link_init(); // BLE first, so the phone can see the robot even if a later step hangs
     led_init();         // Initialize LED strip
     update_led_state_noHandle(STARTING); // Set initial LED state
 
@@ -44,14 +45,15 @@ void setup(){
     servo_init();
     button_init();
     stepper_motor_task_init(); // Initialize stepper motor task
+    remote_link_set_hw_ready(); // Motors exist now, BLE e-stop may drive them
 
-    home_stepper_motor();
-    set_stepper_pos(1000);
+    if (home_stepper_motor()) { // Times out instead of blocking boot; retried on the next state change
+        set_stepper_pos(1000);
+    }
 
     update_led_state_noHandle(MACHINE_IDLE); // Set LED state to IDLE
 
     uart_init();
-    remote_link_init(); // BLE remote (no-op when CONFIG_HELLOBALLS_BLE_REMOTE is off)
 }
 
 

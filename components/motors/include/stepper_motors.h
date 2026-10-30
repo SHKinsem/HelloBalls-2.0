@@ -15,6 +15,7 @@
   #define ENDSTOP_PIN 18 // Default endstop switch pin
 #endif
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #ifdef __cplusplus
@@ -23,9 +24,12 @@ extern "C" {
 
 // Initialize stepper engine and attach stepper to pins
 void stepper_motor_task_init(void);
-// Perform homing using endstop switch, resets position to 0
-void home_stepper_motor(void);
-// Move stepper to specified absolute position
+// Perform homing using endstop switch, resets position to 0.
+// Returns false if the endstop did not trigger within the timeout.
+bool home_stepper_motor(void);
+// True once homing has succeeded; moves are refused until then
+bool stepper_is_homed(void);
+// Move stepper to specified absolute position (ignored while not homed)
 void set_stepper_pos(int32_t pos);
 // Stop any move immediately (emergency stop)
 void stop_stepper_motor(void);

@@ -19,6 +19,7 @@
 #define STATUS_PERIOD_MS 100
 
 static volatile uint8_t last_seq = 0;
+static volatile bool hw_ready = false; // BLE starts before the motor drivers exist
 
 static int16_t clamp16(int32_t v, int32_t lo, int32_t hi) {
     return (int16_t)(v < lo ? lo : (v > hi ? hi : v));
@@ -41,6 +42,7 @@ static void on_action(const ble_remote_action_t *action, void *ctx) {
     switch (action->action) {
     case BLE_REMOTE_ACTION_ESTOP:
         cmd_hub_set_estop(true);
+        if (!hw_ready) break; // Latched in cmd_hub; nothing is driving yet
         // Cut the motors now instead of waiting for the watchdog timeout
         motorStateHelper(false);
         set_wheel_motors_speed(0, 0);
@@ -108,8 +110,13 @@ void remote_link_init(void) {
     xTaskCreate(status_task, "remote_status", 3072, NULL, 2, NULL);
 }
 
+void remote_link_set_hw_ready(void) {
+    hw_ready = true;
+}
+
 #else
 
 void remote_link_init(void) {}
+void remote_link_set_hw_ready(void) {}
 
 #endif // CONFIG_HELLOBALLS_BLE_REMOTE

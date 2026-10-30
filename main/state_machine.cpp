@@ -62,7 +62,7 @@ void state_machine_task(void *arg) {
             ESP_LOGI(TAG, "HOST_SEARCHING_BALL state");
             enable_servos();
             set_friction_wheels_speed(-800); // Set speed for friction wheels
-            if(isShot){ 
+            if(isShot || !stepper_is_homed()){ // Re-home after a shot, or retry a failed boot homing
                 home_stepper_motor();
                 isShot = false; // Reset shot flag after homing
             }
@@ -103,7 +103,7 @@ void state_machine_task(void *arg) {
             *mcu_state = MCU_SHOOTING;
             enable_servos();
             set_wheel_motors_speed(0, 0);
-            if(isShot){
+            if(isShot || !stepper_is_homed()){ // Re-home after a shot, or retry a failed boot homing
                 home_stepper_motor();
                 isShot = false;
             }
