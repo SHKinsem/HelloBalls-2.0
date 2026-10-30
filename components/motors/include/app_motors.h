@@ -32,6 +32,8 @@ float get_tilt_angle(void);
 bool servos_enabled(void);
 // Change the servo neutral positions (degrees, servo frame); takes effect on the next move
 void set_servo_origins(float servo1_deg, float servo2_deg);
+// Move both servos to their (new) origin now, so a calibration is visible; no-op while disabled
+void move_servos_to_origin(void);
 
 // CAN motors by bus ID: 1/2 friction wheels, 3/4 drive wheels, 5 loader
 #define APP_MOTOR_ID_FIRST 1

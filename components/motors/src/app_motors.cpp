@@ -93,6 +93,12 @@ void set_servo_origins(float servo1_deg, float servo2_deg) {
     servo2.setOriginAngle(servo2_deg);
 }
 
+void move_servos_to_origin(void) {
+    if (!servos_enabled()) return;
+    servo1.reset();
+    servo2.reset();
+}
+
 can_channel_t can_channel(0, TWAI_TX_PIN, TWAI_RX_PIN); // Create a CAN channel instance
 dm3519_t test_motor(1); // Create an instance of the motor
 

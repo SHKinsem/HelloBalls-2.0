@@ -195,6 +195,7 @@ static uint32_t wr_pid(const od_entry_t *e, const uint8_t *, size_t)
 static uint32_t wr_servo_origin(const od_entry_t *, const uint8_t *, size_t)
 {
     set_servo_origins(g_params.servo_origin[0], g_params.servo_origin[1]);
+    move_servos_to_origin(); // show the new centre right away while calibrating
     return OD_OK;
 }
 
