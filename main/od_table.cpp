@@ -65,6 +65,7 @@ static struct {
     float debug_temperature;
 } live;
 
+static uint8_t s_reset_reason;
 static char *s_desc;
 static size_t s_desc_len;
 static uint32_t s_desc_crc;
@@ -93,6 +94,19 @@ static uint32_t rd_reason(const od_entry_t *, uint32_t off, uint8_t *buf, size_t
     char text[200];
     health_reason(text, sizeof(text));
     return read_text(text, off, buf, cap, len, total);
+}
+
+static uint32_t rd_crash(const od_entry_t *, uint32_t off, uint8_t *buf, size_t cap, size_t *len, uint32_t *total)
+{
+    return read_text(health_crash_text(), off, buf, cap, len, total);
+}
+
+static uint32_t wr_clear_crash(const od_entry_t *, const uint8_t *d, size_t)
+{
+    if (d[0]) {
+        health_clear_crash();
+    }
+    return OD_OK;
 }
 
 static uint32_t rd_version(const od_entry_t *, uint32_t off, uint8_t *buf, size_t cap, size_t *len, uint32_t *total)
@@ -287,6 +301,8 @@ static uint32_t gate(const od_entry_t *e, void *)
     RW(0x3100 + id, 6, OD_F32, STORE | IDLE | CONFIRM, "Umax", NULL, 0, 16384, &g_params.pid[id - 1][5], wr_pid), \
     RW(0x3100 + id, 7, OD_F32, STORE | IDLE | CONFIRM, "Umin", NULL, -16384, 0, &g_params.pid[id - 1][6], wr_pid)
 
+// esp_reset_reason_t
+static const char *const RESET_REASONS = "未知,上电,外部复位,软件重启,程序崩溃,中断看门狗,任务看门狗,其他看门狗,深睡唤醒,电源欠压,SDIO,USB,JTAG,eFuse,电源毛刺,CPU 锁死";
 static const char *const STAGES = "启动中,启动蓝牙,初始化 IMU,启动 CAN 电机,初始化舵机,初始化步进电机,步进回零,启动串口,就绪";
 static const char *const MCU_STATES = "空闲,找球中,已取球,射球中,射球完成,错误";
 static const char *const HOST_STATES = "空闲,找球,到达球,射球,扫描,错误";
@@ -312,6 +328,9 @@ static const od_entry_t entries[] = {
     RO_ENUM(0x2001, 1, PDO, "开机阶段", STAGES, &live.stage),
     RO(0x2001, 2, OD_U32, PDO, "故障位", NULL, &live.faults),
     {0x2001, 3, OD_STR, OD_R, 0, "故障原因", NULL, 0, 0, NULL, NULL, rd_reason, NULL},
+    RO_ENUM(0x2001, 4, 0, "上次复位原因", RESET_REASONS, &s_reset_reason),
+    {0x2001, 5, OD_STR, OD_R, 0, "上次崩溃信息", NULL, 0, 0, NULL, NULL, rd_crash, NULL},
+    {0x2001, 6, OD_BOOL, OD_W, 0, "清除崩溃记录", NULL, 0, 0, NULL, NULL, NULL, wr_clear_crash},
 
     MOTOR(1), MOTOR(2), MOTOR(3), MOTOR(4), MOTOR(5),
     RO(0x2205, 9, OD_F32, PDO, "拨球轴角度", "°", &live.loader_shaft),
@@ -499,6 +518,7 @@ void od_table_refresh(void)
     live.takeover = hub.takeover;
     live.uptime_ms = (uint32_t)(esp_timer_get_time() / 1000);
     live.stage = (uint8_t)health_stage();
+    s_reset_reason = health_reset_reason();
     live.faults = health_faults();
 
     for (uint8_t id = APP_MOTOR_ID_FIRST; id <= APP_MOTOR_ID_LAST; id++) {

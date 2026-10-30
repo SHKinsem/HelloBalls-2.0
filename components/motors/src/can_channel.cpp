@@ -32,9 +32,14 @@ can_channel_t::can_channel_t(uint8_t channel_id, gpio_num_t tx_io, gpio_num_t rx
     g_config.rx_io = rx_io;       
     g_config.clkout_io = TWAI_IO_UNUSED; 
     g_config.bus_off_io = TWAI_IO_UNUSED;  
-    g_config.tx_queue_len = 5;
-    g_config.rx_queue_len = 5;                          
-    g_config.alerts_enabled = TWAI_ALERT_ALL;
+    g_config.tx_queue_len = 16;
+    // Five motors report at 1 kHz each: a 5-frame queue overflows on any scheduling hiccup
+    g_config.rx_queue_len = 64;
+    // Error alerts only: TWAI_ALERT_ALL also raised RX_DATA/TX_SUCCESS/TX_IDLE, waking
+    // the alert task for every one of the ~7000 frames per second
+    g_config.alerts_enabled = TWAI_ALERT_BUS_OFF | TWAI_ALERT_BUS_RECOVERED | TWAI_ALERT_ERR_PASS |
+                              TWAI_ALERT_ERR_ACTIVE | TWAI_ALERT_BUS_ERROR | TWAI_ALERT_RX_QUEUE_FULL |
+                              TWAI_ALERT_RX_FIFO_OVERRUN | TWAI_ALERT_TX_FAILED;
     g_config.clkout_divider = 0;
     g_config.intr_flags = ESP_INTR_FLAG_LEVEL2;
 
@@ -99,12 +104,20 @@ void can_channel_t::rx_task(void* arg) {
             ESP_LOGI(TAG, "RX message received, enabling TX on channel %d", channel_id);
         }
 
-        int msg_id = rx_msg.identifier % 0x200;
-        if(motors[msg_id - 1]) {
+        // Feedback frames are 0x201-0x208; anything else (0x1FF, 0x200, other nodes)
+        // used to index motors[] out of bounds
+        int msg_id = (int)rx_msg.identifier - 0x200;
+        if (msg_id >= 1 && msg_id <= 8 && motors[msg_id - 1]) {
             motors[msg_id - 1]->parseData(rx_msg.data);
             motors[msg_id - 1]->markRx();
         } else {
-            ESP_LOGI(TAG, "Unregistered motor msg with ID %d", msg_id);
+            // At 1 kHz a log line per frame would block on the 115200 baud console
+            static TickType_t last_log = 0;
+            TickType_t now = xTaskGetTickCount();
+            if (now - last_log >= pdMS_TO_TICKS(1000)) {
+                ESP_LOGI(TAG, "Unregistered CAN frame 0x%03lx", (unsigned long)rx_msg.identifier);
+                last_log = now;
+            }
         }
     }
     vTaskDelete(NULL);
@@ -162,28 +175,36 @@ void can_channel_t::alert_task(void* arg) {
         // Wait for alerts with a timeout
         esp_err_t res = twai_read_alerts_v2(twai_handle, &alerts, pdMS_TO_TICKS(1000));
         if (res == ESP_OK && alerts) {
-            // Only attempt recovery for critical errors
-            if (alerts & (TWAI_ALERT_BUS_OFF | TWAI_ALERT_ERR_PASS)) {
-                ESP_LOGW(TAG, "TWAI channel %d critical error detected, attempting recovery", channel_id);
-                
-                // Simple recovery: stop and restart the driver
-                stop();
-                vTaskDelay(pdMS_TO_TICKS(500));
-                start();
-                ESP_LOGI(TAG, "TWAI channel %d restarted after error", channel_id);
+            // Bus off: the controller must count 128 recessive sequences before it may
+            // restart. Stopping the driver and starting new tasks here (as before) left
+            // stop_flag set, so TX never resumed and a second RX task was spawned.
+            if (alerts & TWAI_ALERT_BUS_OFF) {
+                ESP_LOGW(TAG, "TWAI channel %d bus off, recovering", channel_id);
+                twai_initiate_recovery_v2(twai_handle);
             }
-            
-            // Clear RX queue if full
-            if (alerts & TWAI_ALERT_RX_QUEUE_FULL) {
-                ESP_LOGW(TAG, "TWAI Alert: Receive queue full - channel %d", channel_id);
-                twai_message_t msg;
-                int cleared = 0;
-                while (twai_receive_v2(twai_handle, &msg, 0) == ESP_OK && cleared < 20) {
-                    cleared++;
+            if (alerts & TWAI_ALERT_BUS_RECOVERED) {
+                esp_err_t err = twai_start_v2(twai_handle);
+                ESP_LOGI(TAG, "TWAI channel %d recovered from bus off: %s", channel_id, esp_err_to_name(err));
+            }
+            // Error passive still sends and receives; it clears by itself once errors stop
+            if (alerts & TWAI_ALERT_ERR_PASS) {
+                ESP_LOGW(TAG, "TWAI channel %d error passive", channel_id);
+            }
+
+            // The RX task drains the queue; just count overflows, logging at most once a second
+            if (alerts & (TWAI_ALERT_RX_QUEUE_FULL | TWAI_ALERT_RX_FIFO_OVERRUN)) {
+                static uint32_t overflows = 0;
+                static TickType_t last_log = 0;
+                overflows++;
+                TickType_t now = xTaskGetTickCount();
+                if (now - last_log >= pdMS_TO_TICKS(1000)) {
+                    ESP_LOGW(TAG, "TWAI channel %d RX overflow (%lu since last report)", channel_id,
+                             (unsigned long)overflows);
+                    overflows = 0;
+                    last_log = now;
                 }
-                ESP_LOGI(TAG, "Cleared %d messages from RX queue", cleared);
             }
-            
+
             // Handle TX failures with brief pause
             if (alerts & TWAI_ALERT_TX_FAILED) {
                 static uint32_t tx_failed_count = 0;

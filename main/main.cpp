@@ -34,6 +34,7 @@ void szp_setup(){
 void setup(){
     robot_params_init(); // Tunable parameters (BLE object dictionary), saved ones from NVS
     cmd_hub_init();     // Command hub shared by the serial host and the BLE remote
+    health_boot_report(); // Why the last boot ended, from the reset reason and a core dump in flash
     health_set_stage(HEALTH_STAGE_BLE);
     remote_link_init(); // BLE first, so the phone can see the robot even if a later step hangs
     led_init();         // Initialize LED strip

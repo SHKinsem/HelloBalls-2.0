@@ -35,8 +35,18 @@ typedef enum {
 #define HEALTH_F_HOMING         (1u << 7)  // stepper homing timed out, endstop never triggered
 #define HEALTH_F_SERIAL         (1u << 8)  // no commands from the serial host
 #define HEALTH_F_ESTOP          (1u << 9)  // emergency stop latched
+#define HEALTH_F_CRASH          (1u << 10) // last reset was a crash (panic, watchdog, brownout); cleared by 0x2001.6
 
 #define HEALTH_MFG_LEN 10
+
+// Reads the reset reason and any core dump left in flash. Call once, early in setup().
+void health_boot_report(void);
+// esp_reset_reason_t of this boot
+uint8_t health_reset_reason(void);
+// "中断看门狗；任务 od_server，PC 0x42036bc0，回溯 ..." or "" when the last reset was normal
+const char *health_crash_text(void);
+// Forget the crash: erase the core dump and drop HEALTH_F_CRASH
+void health_clear_crash(void);
 
 // The step setup() is working on; also stamps when it started
 void health_set_stage(health_stage_t stage);
