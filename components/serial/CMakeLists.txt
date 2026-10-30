@@ -6,4 +6,5 @@ idf_component_register( SRCS            "src/serial.c"
                                         esp_timer
                                         leds
                                         szp_bsp
+                                        cmd_hub
                         INCLUDE_DIRS    "include")

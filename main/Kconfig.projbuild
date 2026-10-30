@@ -1,0 +1,23 @@
+menu "HelloBalls remote control"
+
+    config HELLOBALLS_BLE_REMOTE
+        bool "Enable the BLE remote control (Flutter app)"
+        depends on BT_NIMBLE_ENABLED
+        default y
+        help
+            Lets the HelloBalls-Remote app drive the robot over Bluetooth LE.
+            The app must request control; the serial host keeps control otherwise.
+
+    config HELLOBALLS_BLE_MAX_WHEEL_RPM
+        int "Max wheel motor RPM accepted from the remote"
+        depends on HELLOBALLS_BLE_REMOTE
+        range 0 9000
+        default 3000
+
+    config HELLOBALLS_BLE_MAX_SHOOT_SPEED
+        int "Max friction wheel speed accepted from the remote"
+        depends on HELLOBALLS_BLE_REMOTE
+        range 0 9000
+        default 6000
+
+endmenu

@@ -13,6 +13,8 @@
 #include "stepper_motors.h"
 #include "leds.h"
 #include "state_machine.h"
+#include "cmd_hub.h"
+#include "remote_link.h"
 
 void szp_setup(){
     if(bsp_sdcard_mount() == ESP_OK) {
@@ -28,6 +30,7 @@ void szp_setup(){
 }
 
 void setup(){
+    cmd_hub_init();     // Command hub shared by the serial host and the BLE remote
     led_init();         // Initialize LED strip
     update_led_state_noHandle(STARTING); // Set initial LED state
 
@@ -48,6 +51,7 @@ void setup(){
     update_led_state_noHandle(MACHINE_IDLE); // Set LED state to IDLE
 
     uart_init();
+    remote_link_init(); // BLE remote (no-op when CONFIG_HELLOBALLS_BLE_REMOTE is off)
 }
 
 

@@ -32,19 +32,10 @@ typedef enum {
     SERIAL_IDEL,
 } serial_state_t;
 
-// Define message structure for receiving data
-typedef struct {
-    uint8_t host_state;
-    int16_t wheel1_speed;
-    int16_t wheel2_speed;
-    int16_t tilt_angle;
-    int16_t shoot_speed;
-} rx_message_t;
-
 // Define message structure for transmitting data
 typedef struct {
     uint8_t mcu_state;
-    uint8_t host_state; // 0: SERIAL_IDEL, 1: SEARCHING_BALL, 2: SHOOTING
+    uint8_t host_state; // effective host_state_t from cmd_hub
     int32_t wheel1_speed_rpm;
     int32_t wheel2_speed_rpm;
     t_sQMI8658 imu_data; // Structure containing IMU data
@@ -55,21 +46,18 @@ typedef struct {
 // Initialize UART communication
 void uart_init(void);
 
-// Semaphore indicating message reception
-extern SemaphoreHandle_t serial_rx_semaphore;
-extern SemaphoreHandle_t state_change_semaphore; // Semaphore for state change synchronization
-
-// Get a pointer to the received message data
-rx_message_t* getRXmsg(void);
-rx_message_t get_rx_message(void);
+// Host commands are parsed line by line and submitted to cmd_hub (CMD_SRC_SERIAL)
 
 serial_state_t* getTaskState(void);
-host_state_t* getHostState(void);
 mcu_state_t* getMcuState(void);
 
 // Update the latest signed wheel-speed feedback sent to the host.
 void set_tx_wheel_speed_feedback(int32_t wheel1_speed_rpm,
                                  int32_t wheel2_speed_rpm);
+
+// Read back the latest signed wheel-speed feedback.
+void get_tx_wheel_speed_feedback(int32_t *wheel1_speed_rpm,
+                                 int32_t *wheel2_speed_rpm);
 
 #ifdef __cplusplus
 }

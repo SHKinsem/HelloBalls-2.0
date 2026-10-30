@@ -1,4 +1,5 @@
 #include "serial.h"
+#include "cmd_hub.h"
 #include "leds.h"
 #include "app_motors.h"
 #include "freertos/FreeRTOS.h"
@@ -24,13 +25,16 @@ void state_machine_task(void *arg) {
 
     // Get the task state pointer
     mcu_state_t* mcu_state = getMcuState();
-    const host_state_t* host_state = getHostState();
-    const rx_message_t* rx_msg = getRXmsg();
 
     while (1) {
-        xSemaphoreTake(state_change_semaphore, portMAX_DELAY); // Wait for state change signal
+        bool changed = false;
+        // Wait for state change signal from any command source (serial host or BLE remote)
+        host_state_t host_state = (host_state_t)cmd_hub_wait_state_change(portMAX_DELAY, &changed);
+        if (!changed) {
+            continue;
+        }
         // enable_servos(); // Ensure servos are enabled
-        switch (*host_state)
+        switch (host_state)
         {
         case HOST_IDLE:
             ESP_LOGI(TAG, "HOST_IDLE state");
@@ -118,22 +122,19 @@ void state_machine_task(void *arg) {
 }
 
 
-// Holds the task that monitors serial activity and controls motors based on received commands
+// Holds the task that monitors command activity and controls motors based on received commands
 void serial_watchdog_task(void *arg) {
-    ESP_LOGI(TAG, "Serial watchdog task started");
-    // Setup for serial activity detection
-    const rx_message_t* rx_msg = getRXmsg();
-    const serial_state_t* serial_state = getTaskState(); // Get the task state pointer
-    const host_state_t* host_state = getHostState();
+    ESP_LOGI(TAG, "Command watchdog task started");
+    robot_cmd_t cmd = {};
+    const robot_cmd_t* rx_msg = &cmd;
     
     const TickType_t xSerialTimeout = pdMS_TO_TICKS(500); // 500ms timeout
     
     while (1) {
 
-        // Wait for the semaphore with timeout 
-        if ((xSemaphoreTake(serial_rx_semaphore, xSerialTimeout) == pdFALSE) 
-            || (*serial_state != SERIAL_RECEIVING)) {
-            // Timeout occurred, no serial data received
+        // Wait for a command from the source in control (serial host or BLE remote)
+        if (!cmd_hub_wait_command(&cmd, xSerialTimeout)) {
+            // Timeout occurred (or emergency stop latched), no command received
             motorStateHelper(false); // Ensure motors are off
             set_wheel_motors_speed(0, 0); // Stop wheel motors
             set_friction_wheels_speed(0); // Stop friction wheels
@@ -144,7 +145,7 @@ void serial_watchdog_task(void *arg) {
         motorStateHelper(true);
         // Process commands based on host state
         int16_t tilt_angle;
-        switch(*host_state)
+        switch((host_state_t)cmd_hub_host_state())
         {
         case HOST_SEARCHING_BALL:
             // Fall through to set wheel motors speed
