@@ -40,6 +40,8 @@ typedef struct {
 
 // A source is stale when it has not sent a command for this long
 #define CMD_HUB_SOURCE_TIMEOUT_MS 300
+// How often cmd_hub_wait_command checks for a stale source while waiting
+#define CMD_HUB_POLL_MS 50
 
 void cmd_hub_init(void);
 
@@ -55,8 +57,13 @@ void cmd_hub_source_lost(cmd_source_t src);
 // Latch or clear the emergency stop. Latching forces HOST_IDLE.
 void cmd_hub_set_estop(bool estop);
 
-// Wait for the next accepted command. Returns false on timeout or while e-stopped.
+// Wait for the next accepted command. Returns false on timeout, while e-stopped,
+// or as soon as the hub stops the robot (source lost or gone quiet, e-stop,
+// change of controller): the caller must then turn the motors off.
 bool cmd_hub_wait_command(robot_cmd_t *out, TickType_t timeout);
+
+// True while the emergency stop is latched. Long actuator sequences check it.
+bool cmd_hub_estopped(void);
 
 // Wait until the effective host state changes, then return it.
 uint8_t cmd_hub_wait_state_change(TickType_t timeout, bool *changed);

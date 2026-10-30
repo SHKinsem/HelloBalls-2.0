@@ -8,6 +8,7 @@
 #include "cmd_hub.h"
 #include "serial.h"
 #include "app_motors.h"
+#include "stepper_motors.h"
 #include "esp_app_desc.h"
 #include "esp_log.h"
 #include "esp_timer.h"
@@ -44,6 +45,8 @@ static void on_action(const ble_remote_action_t *action, void *ctx) {
         motorStateHelper(false);
         set_wheel_motors_speed(0, 0);
         set_friction_wheels_speed(0);
+        stop_stepper_motor();
+        disable_servos();
         break;
     case BLE_REMOTE_ACTION_CLEAR_ESTOP:
         cmd_hub_set_estop(false);

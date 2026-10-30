@@ -17,6 +17,7 @@ static robot_cmd_t s_current;
 static int64_t s_last_us[CMD_SRC_COUNT];
 static bool s_takeover;
 static bool s_estop;
+static bool s_stopped;  // forced idle; cleared by the next accepted command
 static uint8_t s_host_state = HOST_IDLE;
 
 static bool is_fresh(cmd_source_t src, int64_t now)
@@ -35,16 +36,37 @@ static bool set_state_locked(uint8_t state)
 }
 
 // Caller holds s_lock: stop everything and fall back to idle
+// The command consumer is woken too (see signal_stop) so the motors stop now,
+// not when its own timeout runs out.
 static bool force_idle_locked(void)
 {
     memset(&s_current, 0, sizeof(s_current));
+    s_stopped = true;
     return set_state_locked(HOST_IDLE);
+}
+
+// Caller holds s_lock: BLE went quiet while in control, stop and hand control back
+static bool expire_locked(int64_t now, bool *stopped)
+{
+    if (!s_takeover || is_fresh(CMD_SRC_BLE, now)) {
+        return false;
+    }
+    s_takeover = false;
+    *stopped = true;
+    return force_idle_locked();
 }
 
 static void signal_state(bool changed)
 {
     if (changed) {
         xSemaphoreGive(s_state_sem);
+    }
+}
+
+static void signal_stop(bool stopped)
+{
+    if (stopped) {
+        xSemaphoreGive(s_cmd_sem);
     }
 }
 
@@ -64,44 +86,42 @@ void cmd_hub_submit(cmd_source_t src, const robot_cmd_t *cmd)
     int64_t now = esp_timer_get_time();
     bool state_changed = false;
     bool accepted = false;
+    bool stopped = false;
 
     taskENTER_CRITICAL(&s_lock);
     s_last_us[src] = now;
-
-    // BLE went quiet while in control: stop, then hand control back to the host
-    if (s_takeover && !is_fresh(CMD_SRC_BLE, now)) {
-        s_takeover = false;
-        state_changed |= force_idle_locked();
-    }
+    state_changed |= expire_locked(now, &stopped);
 
     cmd_source_t active = s_takeover ? CMD_SRC_BLE : CMD_SRC_SERIAL;
     if (src == active && !s_estop) {
         s_current = *cmd;
+        s_stopped = false;
         state_changed |= set_state_locked(cmd->host_state);
         accepted = true;
     }
     taskEXIT_CRITICAL(&s_lock);
 
     signal_state(state_changed);
-    if (accepted) {
-        xSemaphoreGive(s_cmd_sem);
-    }
+    signal_stop(accepted || stopped);
 }
 
 void cmd_hub_request_takeover(bool takeover)
 {
     bool state_changed = false;
+    bool stopped = false;
     taskENTER_CRITICAL(&s_lock);
     if (s_takeover != takeover) {
         s_takeover = takeover;
         state_changed = force_idle_locked();
+        stopped = true;
     }
     taskEXIT_CRITICAL(&s_lock);
 
-    if (state_changed || takeover) {
+    if (stopped) {
         ESP_LOGI(TAG, "Control: %s", takeover ? "BLE remote" : "serial host");
     }
     signal_state(state_changed);
+    signal_stop(stopped);
 }
 
 void cmd_hub_source_lost(cmd_source_t src)
@@ -121,6 +141,7 @@ void cmd_hub_source_lost(cmd_source_t src)
     }
     taskEXIT_CRITICAL(&s_lock);
     signal_state(state_changed);
+    signal_stop(was_active);
 }
 
 void cmd_hub_set_estop(bool estop)
@@ -134,21 +155,48 @@ void cmd_hub_set_estop(bool estop)
     taskEXIT_CRITICAL(&s_lock);
     ESP_LOGW(TAG, "Emergency stop %s", estop ? "LATCHED" : "cleared");
     signal_state(state_changed);
+    signal_stop(estop);
 }
 
 bool cmd_hub_wait_command(robot_cmd_t *out, TickType_t timeout)
 {
-    if (xSemaphoreTake(s_cmd_sem, timeout) != pdTRUE) {
-        return false;
+    // Wait in short slices so a quiet BLE controller is stopped on time even
+    // when no other source is sending anything.
+    const TickType_t slice = pdMS_TO_TICKS(CMD_HUB_POLL_MS);
+    for (;;) {
+        TickType_t wait = timeout < slice ? timeout : slice;
+        bool got = xSemaphoreTake(s_cmd_sem, wait) == pdTRUE;
+        bool ok = false;
+        bool stopped = false;
+
+        taskENTER_CRITICAL(&s_lock);
+        bool state_changed = expire_locked(esp_timer_get_time(), &stopped);
+        if (got) {
+            ok = !s_estop && !s_stopped;
+            if (ok && out != NULL) {
+                *out = s_current;
+            }
+        }
+        taskEXIT_CRITICAL(&s_lock);
+        signal_state(state_changed);
+
+        if (got || stopped) {
+            return ok;  // false after a stop: the caller turns the motors off
+        }
+        if (timeout <= wait) {
+            return false;
+        }
+        timeout -= wait;
     }
-    bool ok;
+}
+
+bool cmd_hub_estopped(void)
+{
+    bool estop;
     taskENTER_CRITICAL(&s_lock);
-    ok = !s_estop;
-    if (ok && out != NULL) {
-        *out = s_current;
-    }
+    estop = s_estop;
     taskEXIT_CRITICAL(&s_lock);
-    return ok;
+    return estop;
 }
 
 uint8_t cmd_hub_wait_state_change(TickType_t timeout, bool *changed)

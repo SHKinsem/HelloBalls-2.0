@@ -71,18 +71,37 @@ int main(void)
     cmd_hub_source_lost(CMD_SRC_BLE);
     cmd_hub_get_status(&st);
     CHECK(!st.takeover && st.host_state == 0);
+    // ...and the command consumer is woken with "stop" instead of waiting out its timeout
+    CHECK(sems[0].count == 1);
+    CHECK(!cmd_hub_wait_command(&out, 0));
+
+    // BLE goes quiet and nobody else is sending: the consumer's own wait expires it
+    cmd_hub_request_takeover(true);
+    c = mk(4, 700);
+    cmd_hub_submit(CMD_SRC_BLE, &c);
+    CHECK(cmd_hub_wait_command(&out, 0) && out.wheel1_speed == 700);
+    advance_ms(CMD_HUB_SOURCE_TIMEOUT_MS - 50);
+    CHECK(!cmd_hub_wait_command(&out, 0));
+    cmd_hub_get_status(&st);
+    CHECK(st.takeover && st.host_state == 4);  // still within the timeout
+    advance_ms(60);
+    CHECK(!cmd_hub_wait_command(&out, 0));
+    cmd_hub_get_status(&st);
+    CHECK(!st.takeover && st.host_state == 0);
+    CHECK(cmd_hub_wait_state_change(0, &changed) == 0 && changed);
 
     // Emergency stop latches: nothing is accepted until cleared, even from a new source
     c = mk(1, 300);
     cmd_hub_submit(CMD_SRC_SERIAL, &c);
     cmd_hub_set_estop(true);
-    CHECK(cmd_hub_host_state() == 0);
+    CHECK(cmd_hub_host_state() == 0 && cmd_hub_estopped());
     CHECK(!cmd_hub_wait_command(&out, 0));
     c = mk(1, 300);
     cmd_hub_submit(CMD_SRC_SERIAL, &c);
     CHECK(!cmd_hub_wait_command(&out, 0));
     CHECK(cmd_hub_host_state() == 0);
     cmd_hub_set_estop(false);
+    CHECK(!cmd_hub_estopped());
     cmd_hub_submit(CMD_SRC_SERIAL, &c);
     CHECK(cmd_hub_wait_command(&out, 0) && out.wheel1_speed == 300);
 

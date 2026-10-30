@@ -27,6 +27,8 @@ void stepper_motor_task_init(void);
 void home_stepper_motor(void);
 // Move stepper to specified absolute position
 void set_stepper_pos(int32_t pos);
+// Stop any move immediately (emergency stop)
+void stop_stepper_motor(void);
 
 #ifdef __cplusplus
 }

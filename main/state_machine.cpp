@@ -13,6 +13,22 @@ SemaphoreHandle_t wheelControl_handle = NULL; // Handle for wheel control task
 
 bool isShot = false; // Flag to indicate if a shot has been made
 
+// Delay inside an actuator sequence. Returns false if an emergency stop latched
+// meanwhile, after making sure nothing keeps moving; the sequence must then end.
+static bool sequence_delay(uint32_t ms) {
+    vTaskDelay(pdMS_TO_TICKS(ms));
+    if (!cmd_hub_estopped()) {
+        return true;
+    }
+    ESP_LOGW(TAG, "Emergency stop: sequence aborted");
+    motorStateHelper(false);
+    set_wheel_motors_speed(0, 0);
+    set_friction_wheels_speed(0);
+    stop_stepper_motor();
+    disable_servos();
+    return false;
+}
+
 // Holds the tasks that execute only once when the state changes
 void state_machine_task(void *arg) {
     ESP_LOGI(TAG, "State machine task started");
@@ -52,7 +68,7 @@ void state_machine_task(void *arg) {
             }
             set_stepper_pos(1150); // Reset stepper position
             tilt_servos(-20);
-            vTaskDelay(pdMS_TO_TICKS(1000)); // Wait for servos to tilt
+            if (!sequence_delay(1000)) break; // Wait for servos to tilt
             tilt_servos(-5); // Reset servos to neutral position
             // Update the MCU state to indicate searching for a ball
             *mcu_state = MCU_SEARCHING_BALL;
@@ -64,17 +80,17 @@ void state_machine_task(void *arg) {
             enable_servos();
             set_friction_wheels_speed(-300);
             tilt_servos(30);
-            vTaskDelay(pdMS_TO_TICKS(1000));
+            if (!sequence_delay(1000)) break;
             disable_servos(); // Disable servos after tilting
             moveLoader(20.0f);
-            vTaskDelay(pdMS_TO_TICKS(500));
+            if (!sequence_delay(500)) break;
             moveLoader(-110.0f);
-            vTaskDelay(pdMS_TO_TICKS(1000));
+            if (!sequence_delay(1000)) break;
             enable_servos();
             tilt_servos(-10);
-            vTaskDelay(pdMS_TO_TICKS(500));
+            if (!sequence_delay(500)) break;
             tilt_servos(-3);
-            vTaskDelay(pdMS_TO_TICKS(500));
+            if (!sequence_delay(500)) break;
             disable_servos(); // Disable servos after reaching the ball
             set_friction_wheels_speed(0); // Stop friction wheels
             resetLoaderOrigin();
@@ -92,11 +108,11 @@ void state_machine_task(void *arg) {
                 isShot = false;
             }
             set_stepper_pos(1600); // Reset stepper position
-            vTaskDelay(pdMS_TO_TICKS(2000)); // Wait for friction wheels to reach speed
+            if (!sequence_delay(2000)) break; // Wait for friction wheels to reach speed
             moveLoader(135.0f); // Move loader to shooting position
-            vTaskDelay(pdMS_TO_TICKS(1000)); // Wait for loader to move
+            if (!sequence_delay(1000)) break; // Wait for loader to move
             moveLoader(-45.0f);
-            vTaskDelay(pdMS_TO_TICKS(500)); // Wait for loader to move
+            if (!sequence_delay(500)) break; // Wait for loader to move
             resetLoaderOrigin();
             isShot = true; // Set shot flag to true
             set_friction_wheels_speed(0); // Stop friction wheels

@@ -68,3 +68,8 @@ void set_stepper_pos(int32_t pos) {
     // int16_t pcnt = stepper->readPulseCounter();
     // ESP_LOGI(TAG, "Current position: %" PRId32 ", Pulse counter: %d", stepper->getCurrentPosition(), pcnt);
 }
+
+void stop_stepper_motor(void) {
+    if (!stepper) return;
+    stepper->forceStop();
+}
