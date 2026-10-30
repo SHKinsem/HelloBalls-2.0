@@ -16,6 +16,23 @@ static uint16_t limit = 500;
 static char name[] = "HelloBalls";
 static int triggers;
 static uint8_t blob[300];
+static uint8_t selected = 1;
+static int switches;
+
+// Sees the old value: counts real changes only, like motor_debug_select()
+static uint32_t select_hook(const od_entry_t *e, const uint8_t *data, size_t len)
+{
+    (void)e;
+    (void)len;
+    if (data[0] == 9) {
+        return OD_ABORT_RANGE;
+    }
+    if (data[0] != selected) {
+        switches++;
+    }
+    selected = data[0];
+    return OD_OK;
+}
 
 static uint32_t trigger(const od_entry_t *e, const uint8_t *data, size_t len)
 {
@@ -54,9 +71,10 @@ static const od_entry_t entries[] = {
     {0x2002, 0, OD_STR, OD_R, 0, "名称", NULL, 0, 0, NULL, name, NULL, NULL},
     {0x2003, 1, OD_U8, OD_W, 0, "触发", NULL, 0, 0, NULL, NULL, NULL, trigger},
     {0x2004, 0, OD_DOMAIN, OD_R, 0, "数据", NULL, 0, 0, NULL, NULL, read_blob, NULL},
+    {0x2005, 0, OD_U8, OD_RW, OD_F_SELF, "选择", NULL, 0, 0, NULL, &selected, NULL, select_hook},
 };
 static const od_object_t objects[] = {
-    {0x2000, "状态组"}, {0x2001, "参数"}, {0x2002, "名称"}, {0x2003, "动作"}, {0x2004, "大数据"},
+    {0x2000, "状态组"}, {0x2001, "参数"}, {0x2002, "名称"}, {0x2003, "动作"}, {0x2004, "大数据"}, {0x2005, "选择"},
 };
 static const od_dict_t dict = {entries, sizeof(entries) / sizeof(entries[0]),
                                objects, sizeof(objects) / sizeof(objects[0]), gate, NULL};
@@ -169,6 +187,16 @@ static void test_gate(void)
     CHECK(od_write(&dict, 0x2001, 1, nan, 4) == OD_ABORT_RANGE);
 }
 
+static void test_self_storing_hook(void)
+{
+    uint8_t v = 1;
+    CHECK(od_write(&dict, 0x2005, 0, &v, 1) == OD_OK && switches == 0);
+    v = 2;
+    CHECK(od_write(&dict, 0x2005, 0, &v, 1) == OD_OK && switches == 1 && selected == 2);
+    v = 9;
+    CHECK(od_write(&dict, 0x2005, 0, &v, 1) == OD_ABORT_RANGE && selected == 2);
+}
+
 static void test_pdo(void)
 {
     uint32_t map[] = {od_map(0x2000, 1, 8), od_map(0x2000, 2, 16), od_map(0x2001, 1, 32)};
@@ -213,6 +241,7 @@ int main(int argc, char **argv)
     test_vectors(argc > 1 ? argv[1] : "vectors.json");
     test_segments();
     test_gate();
+    test_self_storing_hook();
     test_pdo();
     test_describe();
     if (failures) {

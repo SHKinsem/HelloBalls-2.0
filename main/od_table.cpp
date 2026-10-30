@@ -334,10 +334,10 @@ static const od_entry_t entries[] = {
     RO(0x2500, 6, OD_I16, PDO, "角速度 Z", "raw", &live.gyr[2]),
     RO(0x2500, 7, OD_U32, PDO, "采样序号", NULL, &live.imu_seq),
 
-    {0x2600, 1, OD_BOOL, OD_RW, 0, "调试模式", NULL, 0, 0, NULL, &g_motor_debug.mode, NULL, wr_debug_mode},
-    {0x2600, 2, OD_U8, OD_RW, RANGE, "调试电机", NULL, 0, 4, DEBUG_MOTORS, &g_motor_debug.motor_id, NULL, wr_debug_motor},
+    {0x2600, 1, OD_BOOL, OD_RW, OD_F_SELF, "调试模式", NULL, 0, 0, NULL, &g_motor_debug.mode, NULL, wr_debug_mode},
+    {0x2600, 2, OD_U8, OD_RW, RANGE | OD_F_SELF, "调试电机", NULL, 0, 4, DEBUG_MOTORS, &g_motor_debug.motor_id, NULL, wr_debug_motor},
     RW(0x2600, 3, OD_F32, PDO, "目标转速", "rpm", -9000, 9000, &g_motor_debug.target_rpm, NULL),
-    {0x2600, 4, OD_BOOL, OD_RW, PDO, "运行（按住）", NULL, 0, 0, NULL, &g_motor_debug.run, NULL, wr_debug_run},
+    {0x2600, 4, OD_BOOL, OD_RW, PDO | OD_F_SELF, "运行（按住）", NULL, 0, 0, NULL, &g_motor_debug.run, NULL, wr_debug_run},
     RW(0x2600, 5, OD_U16, STORE, "调试转速上限", "rpm", 0, 9000, &g_params.debug_max_rpm, NULL),
     RO(0x2600, 6, OD_F32, PDO, "实际下发转速", "rpm", &g_motor_debug.applied_rpm),
     RO(0x2600, 7, OD_I16, PDO, "实测转速", "rpm", &live.debug_speed),

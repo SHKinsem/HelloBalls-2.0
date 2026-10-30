@@ -43,6 +43,7 @@ typedef enum {
 #define OD_F_TAKEOVER 0x04  // writable only while the BLE remote has taken control
 #define OD_F_IDLE     0x08  // writable only while the motors are stopped and the host state is IDLE
 #define OD_F_CONFIRM  0x10  // the app asks the user to confirm before writing
+#define OD_F_SELF     0x20  // the write hook sees the old ptr value and stores the new one itself
 #define OD_F_RANGE    0x80  // min/max are valid (numeric types)
 
 // SDO abort codes (CANopen subset)
@@ -81,7 +82,7 @@ struct od_entry {
     const char *enums;  // comma-separated labels for value 0,1,2..., or NULL
     void *ptr;          // backing variable for plain entries (read and/or write)
     od_read_fn read;    // optional, takes precedence over ptr
-    od_write_fn write;  // optional, called after ptr is updated (or instead when ptr is NULL)
+    od_write_fn write;  // optional, called after ptr is updated (before, with OD_F_SELF; or instead when ptr is NULL)
 };
 
 typedef struct {

@@ -226,14 +226,14 @@ uint32_t od_write(const od_dict_t *d, uint16_t index, uint8_t sub, const uint8_t
     }
 
     uint8_t old[4];
-    if (size != 0 && e->ptr != NULL) {
+    if (size != 0 && e->ptr != NULL && !(e->flags & OD_F_SELF)) {
         memcpy(old, e->ptr, size);
         memcpy(e->ptr, data, size);
     }
     if (e->write) {
         uint32_t rc = e->write(e, data, len);
         if (rc != OD_OK) {
-            if (size != 0 && e->ptr != NULL) {
+            if (size != 0 && e->ptr != NULL && !(e->flags & OD_F_SELF)) {
                 memcpy(e->ptr, old, size);
             }
             return rc;
