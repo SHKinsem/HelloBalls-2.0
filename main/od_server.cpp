@@ -14,6 +14,8 @@
 #include "motor_debug.h"
 #include "obj_dict.h"
 #include "od_table.h"
+#include "health.h"
+#include "remote_link.h"
 
 #define TAG "OD_SERVER"
 #define TICK_MS 10
@@ -26,7 +28,9 @@ typedef struct {
 } sdo_request_t;
 
 static QueueHandle_t s_queue;
-static volatile bool s_reset;  // a phone connected or left: start from a clean state
+static volatile bool s_reset;
+static uint8_t s_health_ticks;
+#define HEALTH_TICKS 10  // faults re-evaluated every 100 ms  // a phone connected or left: start from a clean state
 
 void od_server_on_sdo(const uint8_t *data, size_t len)
 {
@@ -103,7 +107,13 @@ static void od_task(void *arg)
             motor_debug_exit("connection changed");
             od_table_reset_tpdo();
         }
-        motor_debug_tick(TICK_MS);
+        if (remote_link_hw_ready()) {
+            motor_debug_tick(TICK_MS);
+        }
+        if (++s_health_ticks >= HEALTH_TICKS) {
+            s_health_ticks = 0;
+            health_refresh();
+        }
         send_tpdos(now);
     }
 }

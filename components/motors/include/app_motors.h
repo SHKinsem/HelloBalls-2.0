@@ -46,9 +46,14 @@ typedef struct {
     float angle_deg;     // rotor angle 0..360
     int8_t status;
     bool enabled;
+    bool online;         // feedback received within APP_MOTOR_ONLINE_MS
 } app_motor_info_t;
 
+#define APP_MOTOR_ONLINE_MS 500
+
 bool app_motor_get_info(uint8_t can_id, app_motor_info_t *out);
+// True once the CAN driver has started
+bool app_can_running(void);
 float app_loader_shaft_angle(void);
 float app_loader_pid_error(void);
 

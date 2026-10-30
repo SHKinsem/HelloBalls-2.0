@@ -173,7 +173,12 @@ bool app_motor_get_info(uint8_t can_id, app_motor_info_t *out) {
     out->angle_deg = m->getAngle();
     out->status = m->getStatus();
     out->enabled = m->isEnabled();
+    out->online = m->isOnline(APP_MOTOR_ONLINE_MS);
     return true;
+}
+
+bool app_can_running(void) {
+    return can_channel.isRunning();
 }
 
 float app_loader_shaft_angle(void) {

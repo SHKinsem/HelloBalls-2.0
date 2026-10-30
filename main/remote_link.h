@@ -7,6 +7,7 @@ void remote_link_init(void);
 // Call once motors, servos and the stepper are initialised. Until then a BLE
 // e-stop only latches in cmd_hub and does not touch the motor drivers.
 void remote_link_set_hw_ready(void);
+bool remote_link_hw_ready(void);
 
 // Latch the emergency stop and cut every actuator now
 void remote_link_emergency_stop(void);

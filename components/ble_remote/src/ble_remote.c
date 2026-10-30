@@ -32,6 +32,9 @@ static char s_name[32];
 static char s_info[64];
 static uint8_t s_own_addr_type;
 static uint16_t s_conn_handle = BLE_HS_CONN_HANDLE_NONE;
+static uint8_t s_mfg[BLE_REMOTE_MAX_MFG_DATA];
+static uint8_t s_mfg_len;
+static volatile bool s_synced;
 static uint16_t s_status_handle;
 static bool s_status_subscribed;
 static uint16_t s_sdo_handle;
@@ -224,6 +227,25 @@ static int gap_event(struct ble_gap_event *event, void *arg)
     }
 }
 
+// The 128-bit service UUID does not fit next to the name, so it goes in the
+// scan response, with the application's manufacturer data (18 + 2 + len bytes)
+static int set_scan_rsp(void)
+{
+    struct ble_hs_adv_fields rsp = {0};
+    rsp.uuids128 = (ble_uuid128_t *)&svc_uuid;
+    rsp.num_uuids128 = 1;
+    rsp.uuids128_is_complete = 1;
+    if (s_mfg_len > 0) {
+        rsp.mfg_data = s_mfg;
+        rsp.mfg_data_len = s_mfg_len;
+    }
+    int rc = ble_gap_adv_rsp_set_fields(&rsp);
+    if (rc != 0) {
+        ESP_LOGE(TAG, "scan rsp fields rc=%d", rc);
+    }
+    return rc;
+}
+
 static void advertise(void)
 {
     struct ble_hs_adv_fields fields = {0};
@@ -237,14 +259,7 @@ static void advertise(void)
         return;
     }
 
-    // The 128-bit service UUID does not fit next to the name, so it goes in the scan response
-    struct ble_hs_adv_fields rsp = {0};
-    rsp.uuids128 = (ble_uuid128_t *)&svc_uuid;
-    rsp.num_uuids128 = 1;
-    rsp.uuids128_is_complete = 1;
-    rc = ble_gap_adv_rsp_set_fields(&rsp);
-    if (rc != 0) {
-        ESP_LOGE(TAG, "scan rsp fields rc=%d", rc);
+    if (set_scan_rsp() != 0) {
         return;
     }
 
@@ -266,6 +281,7 @@ static void on_sync(void)
         ESP_LOGE(TAG, "Failed to infer address type");
         return;
     }
+    s_synced = true;
     advertise();
 }
 
@@ -392,4 +408,18 @@ bool ble_remote_is_connected(void)
 const char *ble_remote_device_name(void)
 {
     return s_name;
+}
+
+esp_err_t ble_remote_set_mfg_data(const uint8_t *data, size_t len)
+{
+    if (len > sizeof(s_mfg)) {
+        return ESP_ERR_INVALID_SIZE;
+    }
+    // Not locked: a scan response sent while this changes is at worst one update stale
+    memcpy(s_mfg, data, len);
+    s_mfg_len = (uint8_t)len;
+    if (!s_synced) {
+        return ESP_OK;  // used by the first advertise()
+    }
+    return set_scan_rsp() == 0 ? ESP_OK : ESP_FAIL;
 }

@@ -12,6 +12,7 @@
 #include "esp_app_desc.h"
 #include "esp_log.h"
 #include "esp_timer.h"
+#include "health.h"
 #include "motor_debug.h"
 #include "remote_link.h"
 #include "robot_params.h"
@@ -44,6 +45,8 @@ static struct {
     bool estop;
     bool takeover;
     uint32_t uptime_ms;
+    uint8_t stage;
+    uint32_t faults;
     motor_live_t motor[APP_MOTOR_ID_LAST];
     float loader_shaft;
     float loader_error;
@@ -83,6 +86,13 @@ static uint32_t read_text(const char *s, uint32_t offset, uint8_t *buf, size_t c
 static uint32_t rd_name(const od_entry_t *, uint32_t off, uint8_t *buf, size_t cap, size_t *len, uint32_t *total)
 {
     return read_text(ble_remote_device_name(), off, buf, cap, len, total);
+}
+
+static uint32_t rd_reason(const od_entry_t *, uint32_t off, uint8_t *buf, size_t cap, size_t *len, uint32_t *total)
+{
+    char text[200];
+    health_reason(text, sizeof(text));
+    return read_text(text, off, buf, cap, len, total);
 }
 
 static uint32_t rd_version(const od_entry_t *, uint32_t off, uint8_t *buf, size_t cap, size_t *len, uint32_t *total)
@@ -210,6 +220,9 @@ static uint32_t gate(const od_entry_t *e, void *)
     if (!(e->flags & (OD_F_TAKEOVER | OD_F_IDLE))) {
         return OD_OK;
     }
+    if (!remote_link_hw_ready()) {
+        return OD_ABORT_STATE;  // BLE is up before the motor drivers
+    }
     cmd_hub_status_t hub;
     cmd_hub_get_status(&hub);
     if ((e->flags & OD_F_TAKEOVER) && (hub.estop || !hub.takeover || !hub.fresh[CMD_SRC_BLE])) {
@@ -274,6 +287,7 @@ static uint32_t gate(const od_entry_t *e, void *)
     RW(0x3100 + id, 6, OD_F32, STORE | IDLE | CONFIRM, "Umax", NULL, 0, 16384, &g_params.pid[id - 1][5], wr_pid), \
     RW(0x3100 + id, 7, OD_F32, STORE | IDLE | CONFIRM, "Umin", NULL, -16384, 0, &g_params.pid[id - 1][6], wr_pid)
 
+static const char *const STAGES = "启动中,启动蓝牙,初始化 IMU,启动 CAN 电机,初始化舵机,初始化步进电机,步进回零,启动串口,就绪";
 static const char *const MCU_STATES = "空闲,找球中,已取球,射球中,射球完成,错误";
 static const char *const HOST_STATES = "空闲,找球,到达球,射球,扫描,错误";
 static const char *const SOURCES = "无,串口上位机,蓝牙遥控";
@@ -295,6 +309,9 @@ static const od_entry_t entries[] = {
     RO(0x2000, 4, OD_BOOL, PDO, "急停锁存", NULL, &live.estop),
     RO(0x2000, 5, OD_BOOL, PDO, "蓝牙接管中", NULL, &live.takeover),
     RO(0x2000, 6, OD_U32, PDO, "运行时间", "ms", &live.uptime_ms),
+    RO_ENUM(0x2001, 1, PDO, "开机阶段", STAGES, &live.stage),
+    RO(0x2001, 2, OD_U32, PDO, "故障位", NULL, &live.faults),
+    {0x2001, 3, OD_STR, OD_R, 0, "故障原因", NULL, 0, 0, NULL, NULL, rd_reason, NULL},
 
     MOTOR(1), MOTOR(2), MOTOR(3), MOTOR(4), MOTOR(5),
     RO(0x2205, 9, OD_F32, PDO, "拨球轴角度", "°", &live.loader_shaft),
@@ -378,6 +395,7 @@ static const od_object_t objects[] = {
     {0x1A02, "TPDO3 映射"},
     {0x1A03, "TPDO4 映射"},
     {0x2000, "机器人状态"},
+    {0x2001, "诊断"},
     {0x2201, "摩擦轮 1（CAN 1）"},
     {0x2202, "摩擦轮 2（CAN 2）"},
     {0x2203, "左轮（CAN 3）"},
@@ -480,6 +498,8 @@ void od_table_refresh(void)
     live.estop = hub.estop;
     live.takeover = hub.takeover;
     live.uptime_ms = (uint32_t)(esp_timer_get_time() / 1000);
+    live.stage = (uint8_t)health_stage();
+    live.faults = health_faults();
 
     for (uint8_t id = APP_MOTOR_ID_FIRST; id <= APP_MOTOR_ID_LAST; id++) {
         app_motor_info_t info;

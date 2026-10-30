@@ -61,6 +61,11 @@ esp_err_t ble_remote_notify_tpdo(const uint8_t *data, size_t len);
 // Largest notification payload for the current connection (ATT MTU - 3), at most BLE_REMOTE_MAX_PAYLOAD.
 size_t ble_remote_max_payload(void);
 
+// Manufacturer data (company ID first, little endian) for the scan response, so a
+// phone can show it in the scan list without connecting. Safe to call before init.
+#define BLE_REMOTE_MAX_MFG_DATA 11
+esp_err_t ble_remote_set_mfg_data(const uint8_t *data, size_t len);
+
 bool ble_remote_is_connected(void);
 
 // Advertised device name, valid after ble_remote_init().

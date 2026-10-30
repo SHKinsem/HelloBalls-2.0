@@ -129,10 +129,15 @@ void remote_link_set_hw_ready(void) {
     hw_ready = true;
 }
 
+bool remote_link_hw_ready(void) {
+    return hw_ready;
+}
+
 #else
 
 void remote_link_init(void) {}
 void remote_link_set_hw_ready(void) {}
+bool remote_link_hw_ready(void) { return false; }
 void remote_link_emergency_stop(void) {}
 
 #endif // CONFIG_HELLOBALLS_BLE_REMOTE

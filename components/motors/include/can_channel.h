@@ -57,6 +57,7 @@ public:
     void sendMessage(twai_message_t* msg);
 
     void start();
+    bool isRunning() const { return this->twai_running; }
     void resume();
     void pause();
     void stop();

@@ -102,6 +102,7 @@ void can_channel_t::rx_task(void* arg) {
         int msg_id = rx_msg.identifier % 0x200;
         if(motors[msg_id - 1]) {
             motors[msg_id - 1]->parseData(rx_msg.data);
+            motors[msg_id - 1]->markRx();
         } else {
             ESP_LOGI(TAG, "Unregistered motor msg with ID %d", msg_id);
         }
