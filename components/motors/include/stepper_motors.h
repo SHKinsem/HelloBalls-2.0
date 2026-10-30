@@ -34,6 +34,12 @@ void set_stepper_pos(int32_t pos);
 // Stop any move immediately (emergency stop)
 void stop_stepper_motor(void);
 
+// Position in the same sign as set_stepper_pos(), the last target, and status
+int32_t get_stepper_pos(void);
+int32_t get_stepper_target(void);
+bool stepper_is_running(void);
+bool stepper_endstop_hit(void); // the endstop pulls the pin low when pressed
+
 #ifdef __cplusplus
 }
 #endif

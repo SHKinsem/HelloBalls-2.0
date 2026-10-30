@@ -58,10 +58,12 @@ void toggle_servo(void) {
 
 #define MAX_TILT_ANGLE 40.0f // Maximum tilt angle for servos
 #define MIN_TILT_ANGLE -10.0f // Minimum tilt angle for servos
+static float last_tilt_angle = 0.0f;
 void tilt_servos(float angle) {
     // Clamp angle to valid range
     if (angle > MAX_TILT_ANGLE) angle = MAX_TILT_ANGLE;
     if (angle < MIN_TILT_ANGLE) angle = MIN_TILT_ANGLE;
+    last_tilt_angle = angle;
 
     // Tilt both servos by the specified angle
     servo1.moveRelativeToOrigin(angle, 80.0f); // Move servo 1 relative to origin
@@ -76,6 +78,19 @@ void disable_servos() {
 void enable_servos() {
     servo1.enable();
     servo2.enable();
+}
+
+float get_tilt_angle(void) {
+    return last_tilt_angle;
+}
+
+bool servos_enabled(void) {
+    return servo1.isEnabled() && servo2.isEnabled();
+}
+
+void set_servo_origins(float servo1_deg, float servo2_deg) {
+    servo1.setOriginAngle(servo1_deg);
+    servo2.setOriginAngle(servo2_deg);
 }
 
 can_channel_t can_channel(0, TWAI_TX_PIN, TWAI_RX_PIN); // Create a CAN channel instance
@@ -135,6 +150,67 @@ void set_wheel_motors_speed(const int16_t& speed1, const int16_t& speed2) {
 }
 
 
+static controller_t<int16_t>* loader_speed_controller = nullptr;
+
+static base_motor_t* motor_by_id(uint8_t can_id) {
+    switch (can_id) {
+    case 1: return &frictionWheel_1;
+    case 2: return &frictionWheel_2;
+    case 3: return &wheelMotor_1;
+    case 4: return &wheelMotor_2;
+    case 5: return &loaderMotor;
+    default: return nullptr;
+    }
+}
+
+bool app_motor_get_info(uint8_t can_id, app_motor_info_t *out) {
+    base_motor_t* m = motor_by_id(can_id);
+    if (!m || !out) return false;
+    out->speed_rpm = m->getRawSpeed();
+    out->target = m->getTarget();
+    out->current_a = m->getCurrent();
+    out->temperature_c = m->getTemperature();
+    out->angle_deg = m->getAngle();
+    out->status = m->getStatus();
+    out->enabled = m->isEnabled();
+    return true;
+}
+
+float app_loader_shaft_angle(void) {
+    return loaderMotor.getShaftAnglePtr() ? loaderMotor.getShaftAngle() : 0.0f;
+}
+
+float app_loader_pid_error(void) {
+    return loaderMotor.getPID_Error();
+}
+
+bool app_motor_debug_drive(uint8_t can_id, float rpm) {
+    if (can_id == APP_MOTOR_ID_LOADER || (can_id != 0 && !motor_by_id(can_id))) return false;
+    for (uint8_t id = APP_MOTOR_ID_FIRST; id <= APP_MOTOR_ID_LAST; id++) {
+        base_motor_t* m = motor_by_id(id);
+        if (id == can_id) {
+            m->setTarget(rpm);
+            m->enable();
+        } else {
+            m->disable();
+            if (id != APP_MOTOR_ID_LOADER) m->setTarget(0);
+        }
+    }
+    return true;
+}
+
+bool app_motor_set_pid(uint8_t pid_id, const float g[7]) {
+    if (pid_id == APP_PID_LOADER_SPEED) {
+        if (!loader_speed_controller) return false;
+        loader_speed_controller->setPIDParameters(g[0], g[1], g[2], g[3], g[4], g[5], g[6]);
+        return true;
+    }
+    base_motor_t* m = motor_by_id(pid_id);
+    if (!m) return false;
+    m->setPIDParameters(g[0], g[1], g[2], g[3], g[4], g[5], g[6]);
+    return true;
+}
+
 static float loader_origin_angle = 0.0f;
 
 // Move loader to a specified angle
@@ -167,6 +243,7 @@ void motor_task_init(){
     loaderMotor.initAnglePID();
     controller_t<int16_t>* speed_controller = new controller_t<int16_t>(loaderMotor.getRawSpeedPtr());
     loaderMotor.setNextController(speed_controller);
+    loader_speed_controller = speed_controller;
 
     loaderMotor.setPIDParameters(50.0f, 0.0001f, 80.0f, 1.0f, 0.5f, 4000.0f, -4000.0f);
     speed_controller->setPIDParameters(25.0f, 0.02f, 15.0f, 0.1f, 1.0f, 5000.0f, -5000.0f);

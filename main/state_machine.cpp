@@ -6,6 +6,8 @@
 #include "freertos/task.h"
 #include "freertos/semphr.h"
 #include "stepper_motors.h"
+#include "robot_params.h"
+#include "motor_debug.h"
 
 #define TAG "STATE_MACHINE"
 
@@ -61,15 +63,15 @@ void state_machine_task(void *arg) {
         case HOST_SEARCHING_BALL:
             ESP_LOGI(TAG, "HOST_SEARCHING_BALL state");
             enable_servos();
-            set_friction_wheels_speed(-800); // Set speed for friction wheels
+            set_friction_wheels_speed(g_params.search_friction_speed); // Set speed for friction wheels
             if(isShot || !stepper_is_homed()){ // Re-home after a shot, or retry a failed boot homing
                 home_stepper_motor();
                 isShot = false; // Reset shot flag after homing
             }
-            set_stepper_pos(1150); // Reset stepper position
-            tilt_servos(-20);
-            if (!sequence_delay(1000)) break; // Wait for servos to tilt
-            tilt_servos(-5); // Reset servos to neutral position
+            set_stepper_pos(g_params.search_stepper_pos); // Reset stepper position
+            tilt_servos(g_params.search_tilt_down_deg);
+            if (!sequence_delay(g_params.search_tilt_ms)) break; // Wait for servos to tilt
+            tilt_servos(g_params.search_tilt_hold_deg); // Reset servos to neutral position
             // Update the MCU state to indicate searching for a ball
             *mcu_state = MCU_SEARCHING_BALL;
             update_led_state_noHandle(SEARCHING_BALL); // Update LED state
@@ -78,14 +80,14 @@ void state_machine_task(void *arg) {
         case HOST_BALL_REACHED:
             ESP_LOGI(TAG, "HOST_BALL_REACHED state");
             enable_servos();
-            set_friction_wheels_speed(-300);
-            tilt_servos(30);
-            if (!sequence_delay(1000)) break;
+            set_friction_wheels_speed(g_params.pickup_friction_speed);
+            tilt_servos(g_params.pickup_tilt_deg);
+            if (!sequence_delay(g_params.pickup_tilt_ms)) break;
             disable_servos(); // Disable servos after tilting
-            moveLoader(20.0f);
-            if (!sequence_delay(500)) break;
-            moveLoader(-110.0f);
-            if (!sequence_delay(1000)) break;
+            moveLoader(g_params.pickup_loader1_deg);
+            if (!sequence_delay(g_params.pickup_loader1_ms)) break;
+            moveLoader(g_params.pickup_loader2_deg);
+            if (!sequence_delay(g_params.pickup_loader2_ms)) break;
             enable_servos();
             tilt_servos(-10);
             if (!sequence_delay(500)) break;
@@ -107,12 +109,12 @@ void state_machine_task(void *arg) {
                 home_stepper_motor();
                 isShot = false;
             }
-            set_stepper_pos(1600); // Reset stepper position
-            if (!sequence_delay(2000)) break; // Wait for friction wheels to reach speed
-            moveLoader(135.0f); // Move loader to shooting position
-            if (!sequence_delay(1000)) break; // Wait for loader to move
-            moveLoader(-45.0f);
-            if (!sequence_delay(500)) break; // Wait for loader to move
+            set_stepper_pos(g_params.shoot_stepper_pos); // Reset stepper position
+            if (!sequence_delay(g_params.shoot_spinup_ms)) break; // Wait for friction wheels to reach speed
+            moveLoader(g_params.shoot_loader1_deg); // Move loader to shooting position
+            if (!sequence_delay(g_params.shoot_loader1_ms)) break; // Wait for loader to move
+            moveLoader(g_params.shoot_loader2_deg);
+            if (!sequence_delay(g_params.shoot_loader2_ms)) break; // Wait for loader to move
             resetLoaderOrigin();
             isShot = true; // Set shot flag to true
             set_friction_wheels_speed(0); // Stop friction wheels
@@ -149,7 +151,11 @@ void serial_watchdog_task(void *arg) {
     while (1) {
 
         // Wait for a command from the source in control (serial host or BLE remote)
-        if (!cmd_hub_wait_command(&cmd, xSerialTimeout)) {
+        bool got = cmd_hub_wait_command(&cmd, xSerialTimeout);
+        if (motor_debug_active()) {
+            continue; // the BLE motor debug mode drives the motors itself
+        }
+        if (!got) {
             // Timeout occurred (or emergency stop latched), no command received
             motorStateHelper(false); // Ensure motors are off
             set_wheel_motors_speed(0, 0); // Stop wheel motors

@@ -24,6 +24,8 @@ static const ble_uuid128_t control_uuid = HB_UUID(0x02);
 static const ble_uuid128_t action_uuid = HB_UUID(0x03);
 static const ble_uuid128_t status_uuid = HB_UUID(0x04);
 static const ble_uuid128_t info_uuid = HB_UUID(0x05);
+static const ble_uuid128_t sdo_uuid = HB_UUID(0x06);
+static const ble_uuid128_t tpdo_uuid = HB_UUID(0x08);
 
 static ble_remote_config_t s_cfg;
 static char s_name[32];
@@ -32,6 +34,11 @@ static uint8_t s_own_addr_type;
 static uint16_t s_conn_handle = BLE_HS_CONN_HANDLE_NONE;
 static uint16_t s_status_handle;
 static bool s_status_subscribed;
+static uint16_t s_sdo_handle;
+static bool s_sdo_subscribed;
+static uint16_t s_tpdo_handle;
+static bool s_tpdo_subscribed;
+static uint16_t s_mtu = 23;
 
 static ble_remote_status_t s_status;
 static portMUX_TYPE s_status_lock = portMUX_INITIALIZER_UNLOCKED;
@@ -88,6 +95,18 @@ static int gatt_access(uint16_t conn_handle, uint16_t attr_handle,
         return 0;
     }
 
+    if (ble_uuid_cmp(uuid, &sdo_uuid.u) == 0 && ctxt->op == BLE_GATT_ACCESS_OP_WRITE_CHR) {
+        uint8_t req[BLE_REMOTE_MAX_PAYLOAD];
+        int rc = read_flat(ctxt->om, req, sizeof(req), &len);
+        if (rc != 0) {
+            return rc;
+        }
+        if (s_cfg.on_sdo) {
+            s_cfg.on_sdo(req, len, s_cfg.ctx);
+        }
+        return 0;
+    }
+
     if (ble_uuid_cmp(uuid, &status_uuid.u) == 0 && ctxt->op == BLE_GATT_ACCESS_OP_READ_CHR) {
         ble_remote_status_t st;
         taskENTER_CRITICAL(&s_status_lock);
@@ -130,6 +149,18 @@ static const struct ble_gatt_svc_def gatt_svcs[] = {
                 .access_cb = gatt_access,
                 .flags = BLE_GATT_CHR_F_READ,
             },
+            {
+                .uuid = &sdo_uuid.u,
+                .access_cb = gatt_access,
+                .val_handle = &s_sdo_handle,
+                .flags = BLE_GATT_CHR_F_WRITE | BLE_GATT_CHR_F_WRITE_NO_RSP | BLE_GATT_CHR_F_NOTIFY,
+            },
+            {
+                .uuid = &tpdo_uuid.u,
+                .access_cb = gatt_access,
+                .val_handle = &s_tpdo_handle,
+                .flags = BLE_GATT_CHR_F_NOTIFY,
+            },
             { 0 },
         },
     },
@@ -141,6 +172,9 @@ static void set_connected(uint16_t handle)
     bool connected = handle != BLE_HS_CONN_HANDLE_NONE;
     s_conn_handle = handle;
     s_status_subscribed = false;
+    s_sdo_subscribed = false;
+    s_tpdo_subscribed = false;
+    s_mtu = 23;
     if (s_cfg.on_connection) {
         s_cfg.on_connection(connected, s_cfg.ctx);
     }
@@ -167,6 +201,10 @@ static int gap_event(struct ble_gap_event *event, void *arg)
     case BLE_GAP_EVENT_SUBSCRIBE:
         if (event->subscribe.attr_handle == s_status_handle) {
             s_status_subscribed = event->subscribe.cur_notify;
+        } else if (event->subscribe.attr_handle == s_sdo_handle) {
+            s_sdo_subscribed = event->subscribe.cur_notify;
+        } else if (event->subscribe.attr_handle == s_tpdo_handle) {
+            s_tpdo_subscribed = event->subscribe.cur_notify;
         }
         return 0;
 
@@ -178,6 +216,7 @@ static int gap_event(struct ble_gap_event *event, void *arg)
 
     case BLE_GAP_EVENT_MTU:
         ESP_LOGI(TAG, "MTU %d", event->mtu.value);
+        s_mtu = event->mtu.value;
         return 0;
 
     default:
@@ -260,7 +299,7 @@ esp_err_t ble_remote_init(const ble_remote_config_t *cfg)
     esp_read_mac(mac, ESP_MAC_BT);
     const char *prefix = s_cfg.name_prefix ? s_cfg.name_prefix : CONFIG_BLE_REMOTE_NAME_PREFIX;
     snprintf(s_name, sizeof(s_name), "%s-%02X%02X", prefix, mac[4], mac[5]);
-    snprintf(s_info, sizeof(s_info), "proto=%d;fw=%s", BLE_REMOTE_PROTOCOL_VERSION,
+    snprintf(s_info, sizeof(s_info), "proto=%d;od=1;fw=%s", BLE_REMOTE_PROTOCOL_VERSION,
              s_cfg.fw_version ? s_cfg.fw_version : "unknown");
 
     ret = nimble_port_init();
@@ -272,6 +311,7 @@ esp_err_t ble_remote_init(const ble_remote_config_t *cfg)
     ble_hs_cfg.sync_cb = on_sync;
     ble_hs_cfg.reset_cb = on_reset;
 
+    ble_att_set_preferred_mtu(BLE_REMOTE_PREFERRED_MTU);
     ble_svc_gap_init();
     ble_svc_gatt_init();
 
@@ -310,6 +350,38 @@ esp_err_t ble_remote_notify_status(const ble_remote_status_t *status)
         return ESP_ERR_NO_MEM;
     }
     return ble_gatts_notify_custom(conn, s_status_handle, om) == 0 ? ESP_OK : ESP_FAIL;
+}
+
+static esp_err_t notify(uint16_t handle, bool subscribed, const uint8_t *data, size_t len)
+{
+    if (data == NULL || len > ble_remote_max_payload()) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    uint16_t conn = s_conn_handle;
+    if (conn == BLE_HS_CONN_HANDLE_NONE || !subscribed) {
+        return ESP_ERR_INVALID_STATE;
+    }
+    struct os_mbuf *om = ble_hs_mbuf_from_flat(data, len);
+    if (om == NULL) {
+        return ESP_ERR_NO_MEM;
+    }
+    return ble_gatts_notify_custom(conn, handle, om) == 0 ? ESP_OK : ESP_FAIL;
+}
+
+esp_err_t ble_remote_notify_sdo(const uint8_t *data, size_t len)
+{
+    return notify(s_sdo_handle, s_sdo_subscribed, data, len);
+}
+
+esp_err_t ble_remote_notify_tpdo(const uint8_t *data, size_t len)
+{
+    return notify(s_tpdo_handle, s_tpdo_subscribed, data, len);
+}
+
+size_t ble_remote_max_payload(void)
+{
+    size_t n = s_mtu > 3 ? (size_t)s_mtu - 3 : 20;
+    return n < BLE_REMOTE_MAX_PAYLOAD ? n : BLE_REMOTE_MAX_PAYLOAD;
 }
 
 bool ble_remote_is_connected(void)

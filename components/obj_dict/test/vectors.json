@@ -1,0 +1,80 @@
+{
+  "comment": "SDO request/response frames for the test dictionary in test_obj_dict.c, applied in order (writes change later reads). Hex, no spaces. The app's SDO client is checked against the same frames.",
+  "sdo": [
+    {
+      "name": "read I16 -1234",
+      "req": "014000200200",
+      "rsp": "0143002002022efb"
+    },
+    {
+      "name": "write F32 2.5",
+      "req": "02230120010400002040",
+      "rsp": "02600120010400002040"
+    },
+    {
+      "name": "write out of range",
+      "req": "0323012001040000a041",
+      "rsp": "03800120010430000906"
+    },
+    {
+      "name": "write read-only",
+      "req": "04230020010105",
+      "rsp": "04800020010402000106"
+    },
+    {
+      "name": "read missing object",
+      "req": "054000300100",
+      "rsp": "05800030010400000206"
+    },
+    {
+      "name": "read missing sub",
+      "req": "064000200900",
+      "rsp": "06800020090411000906"
+    },
+    {
+      "name": "write wrong length",
+      "req": "07230120020105",
+      "rsp": "07800120020410000706"
+    },
+    {
+      "name": "write blocked by device state",
+      "req": "0823012002026400",
+      "rsp": "08800120020422000008"
+    },
+    {
+      "name": "read short string",
+      "req": "094002200000",
+      "rsp": "09430220000a48656c6c6f42616c6c73"
+    },
+    {
+      "name": "segmented read from offset 5",
+      "req": "0a410220000405000000",
+      "rsp": "0a42022000090a00000042616c6c73"
+    },
+    {
+      "name": "read write-only",
+      "req": "0b4003200100",
+      "rsp": "0b800320010401000106"
+    },
+    {
+      "name": "write trigger",
+      "req": "0c230320010101",
+      "rsp": "0c6003200100"
+    },
+    {
+      "name": "read back F32",
+      "req": "0d4001200100",
+      "rsp": "0d430120010400002040"
+    },
+    {
+      "name": "unknown command",
+      "req": "0e9900200100",
+      "rsp": "0e800020010400000305"
+    },
+    {
+      "name": "length byte does not match",
+      "req": "0f4000200203",
+      "rsp": "0f800020020410000706"
+    }
+  ]
+}

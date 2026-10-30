@@ -87,6 +87,7 @@ public:
     int16_t getTargetSpeed() const      {return this->target_speed;}    // Deprecated, use getTarget() instead
     float getTarget() const             {return this->target;}
     int8_t getStatus() const            {return this->status;}
+    bool isEnabled() const              {return this->enabled;}
     int16_t getControlOutput() const    {return this->controlOutput;}
 
     int16_t* getTargetSpeedPtr()        {return &this->target_speed;}

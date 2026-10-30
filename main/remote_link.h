@@ -8,4 +8,7 @@ void remote_link_init(void);
 // e-stop only latches in cmd_hub and does not touch the motor drivers.
 void remote_link_set_hw_ready(void);
 
+// Latch the emergency stop and cut every actuator now
+void remote_link_emergency_stop(void);
+
 #endif // REMOTE_LINK_H

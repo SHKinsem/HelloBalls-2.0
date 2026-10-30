@@ -9,6 +9,8 @@
 #include "serial.h"
 #include "app_motors.h"
 #include "stepper_motors.h"
+#include "od_server.h"
+#include "robot_params.h"
 #include "esp_app_desc.h"
 #include "esp_log.h"
 #include "esp_timer.h"
@@ -28,27 +30,33 @@ static int16_t clamp16(int32_t v, int32_t lo, int32_t hi) {
 static void on_command(const ble_remote_cmd_t *in, void *ctx) {
     robot_cmd_t cmd;
     cmd.host_state = in->state <= HOST_ERROR ? in->state : (uint8_t)HOST_IDLE;
-    cmd.wheel1_speed = clamp16(in->wheel1_rpm, -CONFIG_HELLOBALLS_BLE_MAX_WHEEL_RPM, CONFIG_HELLOBALLS_BLE_MAX_WHEEL_RPM);
-    cmd.wheel2_speed = clamp16(in->wheel2_rpm, -CONFIG_HELLOBALLS_BLE_MAX_WHEEL_RPM, CONFIG_HELLOBALLS_BLE_MAX_WHEEL_RPM);
-    cmd.tilt_angle = clamp16(in->tilt_angle, -5, 35);
-    cmd.shoot_speed = clamp16(in->shoot_speed, -CONFIG_HELLOBALLS_BLE_MAX_SHOOT_SPEED, CONFIG_HELLOBALLS_BLE_MAX_SHOOT_SPEED);
+    // Limits are object dictionary parameters 0x3000 (defaults from Kconfig)
+    const int32_t wheel = g_params.max_wheel_rpm, shoot = g_params.max_shoot_speed;
+    cmd.wheel1_speed = clamp16(in->wheel1_rpm, -wheel, wheel);
+    cmd.wheel2_speed = clamp16(in->wheel2_rpm, -wheel, wheel);
+    cmd.tilt_angle = clamp16(in->tilt_angle, g_params.tilt_min_deg, g_params.tilt_max_deg);
+    cmd.shoot_speed = clamp16(in->shoot_speed, -shoot, shoot);
     last_seq = in->seq;
 
     cmd_hub_request_takeover((in->flags & BLE_REMOTE_FLAG_TAKEOVER) != 0);
     cmd_hub_submit(CMD_SRC_BLE, &cmd);
 }
 
+void remote_link_emergency_stop(void) {
+    cmd_hub_set_estop(true);
+    if (!hw_ready) return; // Latched in cmd_hub; nothing is driving yet
+    // Cut the motors now instead of waiting for the watchdog timeout
+    motorStateHelper(false);
+    set_wheel_motors_speed(0, 0);
+    set_friction_wheels_speed(0);
+    stop_stepper_motor();
+    disable_servos();
+}
+
 static void on_action(const ble_remote_action_t *action, void *ctx) {
     switch (action->action) {
     case BLE_REMOTE_ACTION_ESTOP:
-        cmd_hub_set_estop(true);
-        if (!hw_ready) break; // Latched in cmd_hub; nothing is driving yet
-        // Cut the motors now instead of waiting for the watchdog timeout
-        motorStateHelper(false);
-        set_wheel_motors_speed(0, 0);
-        set_friction_wheels_speed(0);
-        stop_stepper_motor();
-        disable_servos();
+        remote_link_emergency_stop();
         break;
     case BLE_REMOTE_ACTION_CLEAR_ESTOP:
         cmd_hub_set_estop(false);
@@ -59,7 +67,12 @@ static void on_action(const ble_remote_action_t *action, void *ctx) {
     }
 }
 
+static void on_sdo(const uint8_t *data, size_t len, void *ctx) {
+    od_server_on_sdo(data, len);
+}
+
 static void on_connection(bool connected, void *ctx) {
+    od_server_on_connection(connected);
     if (!connected) {
         cmd_hub_source_lost(CMD_SRC_BLE); // stop immediately if the remote was driving
     }
@@ -98,6 +111,7 @@ void remote_link_init(void) {
     ble_remote_config_t cfg = {};
     cfg.on_command = on_command;
     cfg.on_action = on_action;
+    cfg.on_sdo = on_sdo;
     cfg.on_connection = on_connection;
     cfg.fw_version = esp_app_get_description()->version;
 
@@ -107,6 +121,7 @@ void remote_link_init(void) {
         return;
     }
     ESP_LOGI(TAG, "BLE remote ready: %s", ble_remote_device_name());
+    od_server_init();
     xTaskCreate(status_task, "remote_status", 3072, NULL, 2, NULL);
 }
 
@@ -118,5 +133,6 @@ void remote_link_set_hw_ready(void) {
 
 void remote_link_init(void) {}
 void remote_link_set_hw_ready(void) {}
+void remote_link_emergency_stop(void) {}
 
 #endif // CONFIG_HELLOBALLS_BLE_REMOTE

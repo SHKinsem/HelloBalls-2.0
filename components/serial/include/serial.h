@@ -59,6 +59,9 @@ void set_tx_wheel_speed_feedback(int32_t wheel1_speed_rpm,
 void get_tx_wheel_speed_feedback(int32_t *wheel1_speed_rpm,
                                  int32_t *wheel2_speed_rpm);
 
+// Latest IMU sample read by the serial TX task (100 Hz) and its sequence number.
+void get_latest_imu_sample(t_sQMI8658 *imu, uint32_t *sequence);
+
 #ifdef __cplusplus
 }
 #endif

@@ -39,6 +39,8 @@ static mcu_state_t mcu_state = MCU_IDLE; // Initialize MCU state to MCU_IDLE
 static robot_cmd_t rx_cmd = {0};
 static tx_message_t tx_msg = {0};
 static portMUX_TYPE tx_msg_lock = portMUX_INITIALIZER_UNLOCKED;
+static t_sQMI8658 last_imu = {0};    // latest IMU sample, shared with the BLE object dictionary
+static uint32_t last_imu_sequence = 0;
 
 serial_state_t* getTaskState(void) {
     return &task_state;
@@ -61,6 +63,13 @@ void get_tx_wheel_speed_feedback(int32_t *wheel1_speed_rpm,
     taskENTER_CRITICAL(&tx_msg_lock);
     if (wheel1_speed_rpm) *wheel1_speed_rpm = tx_msg.wheel1_speed_rpm;
     if (wheel2_speed_rpm) *wheel2_speed_rpm = tx_msg.wheel2_speed_rpm;
+    taskEXIT_CRITICAL(&tx_msg_lock);
+}
+
+void get_latest_imu_sample(t_sQMI8658 *imu, uint32_t *sequence) {
+    taskENTER_CRITICAL(&tx_msg_lock);
+    if (imu) *imu = last_imu;
+    if (sequence) *sequence = last_imu_sequence;
     taskEXIT_CRITICAL(&tx_msg_lock);
 }
 
@@ -205,6 +214,10 @@ static void tx_task(void *arg)
         sample.mcu_state = (uint8_t)mcu_state;
         sample.host_state = cmd_hub_host_state();
         qmi8658_Read_AccAndGry(&sample.imu_data);
+        taskENTER_CRITICAL(&tx_msg_lock);
+        last_imu = sample.imu_data;
+        last_imu_sequence = sample.sample_sequence;
+        taskEXIT_CRITICAL(&tx_msg_lock);
 
         sendUartData(&sample);
         // ESP_LOGI(TX_TASK_TAG, "Sent: State=%u, Wheel1Speed=%"PRId32", Wheel2Speed=%"PRId32", IMU Acc=(%d, %d, %d), Gyr=(%d, %d, %d)",

@@ -15,6 +15,7 @@
 #include "state_machine.h"
 #include "cmd_hub.h"
 #include "remote_link.h"
+#include "robot_params.h"
 
 void szp_setup(){
     if(bsp_sdcard_mount() == ESP_OK) {
@@ -30,6 +31,7 @@ void szp_setup(){
 }
 
 void setup(){
+    robot_params_init(); // Tunable parameters (BLE object dictionary), saved ones from NVS
     cmd_hub_init();     // Command hub shared by the serial host and the BLE remote
     remote_link_init(); // BLE first, so the phone can see the robot even if a later step hangs
     led_init();         // Initialize LED strip
@@ -43,6 +45,7 @@ void setup(){
 
     motor_task_init();  // Initialize motor task
     servo_init();
+    robot_params_apply(); // Saved PID gains and servo origins
     button_init();
     stepper_motor_task_init(); // Initialize stepper motor task
     remote_link_set_hw_ready(); // Motors exist now, BLE e-stop may drive them
