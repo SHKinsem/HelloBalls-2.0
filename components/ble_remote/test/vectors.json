@@ -1,0 +1,27 @@
+{
+  "comment": "Shared BLE protocol test vectors. Firmware: run_tests.sh. App: test/protocol_test.dart.",
+  "control": [
+    {"fields": {"seq": 0, "state": 0, "flags": 0, "wheel1_rpm": 0, "wheel2_rpm": 0, "tilt_angle": 0, "shoot_speed": 0},
+     "hex": "010000000000000000000000"},
+    {"fields": {"seq": 7, "state": 4, "flags": 1, "wheel1_rpm": 1500, "wheel2_rpm": -1500, "tilt_angle": 20, "shoot_speed": 0},
+     "hex": "01070401dc0524fa14000000"},
+    {"fields": {"seq": 255, "state": 3, "flags": 1, "wheel1_rpm": -32768, "wheel2_rpm": 32767, "tilt_angle": -5, "shoot_speed": 6000},
+     "hex": "01ff03010080ff7ffbff7017"}
+  ],
+  "action": [
+    {"fields": {"action": 1, "param": 0}, "hex": "01010000"},
+    {"fields": {"action": 2, "param": -2}, "hex": "0102feff"}
+  ],
+  "status": [
+    {"fields": {"mcu_state": 2, "host_state": 2, "active_src": 2, "flags": 2, "last_seq": 7, "wheel1_rpm": 1490, "wheel2_rpm": -1488, "uptime_ms": 123456},
+     "hex": "0102020202 07d20530fa40e20100"},
+    {"fields": {"mcu_state": 0, "host_state": 0, "active_src": 0, "flags": 1, "last_seq": 0, "wheel1_rpm": 0, "wheel2_rpm": 0, "uptime_ms": 4294967295},
+     "hex": "0100000001000000 0000ffffffff"}
+  ],
+  "invalid": [
+    {"kind": "control", "hex": "020000000000000000000000", "why": "wrong version"},
+    {"kind": "control", "hex": "0100000000000000000000", "why": "too short"},
+    {"kind": "action", "hex": "010100", "why": "too short"},
+    {"kind": "status", "hex": "0100000000000000000000000000ff", "why": "too long"}
+  ]
+}

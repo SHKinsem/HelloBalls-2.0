@@ -9,10 +9,11 @@
 #include "driver/gpio.h"
 #include "leds.h"
 #include "esp32_s3_szp.h"
+#include "cmd_hub.h"
 
 /*
-    RX message format:
-    [machine_state, wheel1_speed, wheel2_speed]
+    RX message format (ASCII, one command per line):
+    "state,wheel1_speed,wheel2_speed[,tilt_angle,shoot_speed]\n"
     Frequency: 50 Hz
 
     TX message format:
@@ -29,33 +30,18 @@ static const int RX_BUF_SIZE = 128;
 #define IMU_SAMPLE_PERIOD_MS    10
 #define UART_TX_FRAME_LEN_V2    (2 + 1 + 1 + UART_TX_PAYLOAD_LEN_V2 + 1)
 
-SemaphoreHandle_t serial_rx_semaphore = NULL; // Semaphore for serial RX task synchronization
-SemaphoreHandle_t state_change_semaphore = NULL; // Semaphore for state change synchronization
+#define RX_LINE_MAX 64
 
 static serial_state_t task_state = SERIAL_IDEL; // Initialize task state to SERIAL_IDEL
-static host_state_t host_state = HOST_IDLE; // Initialize host state to HOST_IDLE
 static mcu_state_t mcu_state = MCU_IDLE; // Initialize MCU state to MCU_IDLE
 
 // Global variables for message data
-static rx_message_t rx_msg = {0};
+static robot_cmd_t rx_cmd = {0};
 static tx_message_t tx_msg = {0};
 static portMUX_TYPE tx_msg_lock = portMUX_INITIALIZER_UNLOCKED;
 
-// Function to get pointer to RX data for external access
-rx_message_t* getRXmsg(void) {
-    return &rx_msg;
-}
-
-rx_message_t get_rx_message(void) {
-    return rx_msg;
-}
-
 serial_state_t* getTaskState(void) {
     return &task_state;
-}
-
-host_state_t* getHostState(void) {
-    return &host_state;
 }
 
 mcu_state_t* getMcuState(void) {
@@ -67,6 +53,14 @@ void set_tx_wheel_speed_feedback(int32_t wheel1_speed_rpm,
     taskENTER_CRITICAL(&tx_msg_lock);
     tx_msg.wheel1_speed_rpm = wheel1_speed_rpm;
     tx_msg.wheel2_speed_rpm = wheel2_speed_rpm;
+    taskEXIT_CRITICAL(&tx_msg_lock);
+}
+
+void get_tx_wheel_speed_feedback(int32_t *wheel1_speed_rpm,
+                                 int32_t *wheel2_speed_rpm) {
+    taskENTER_CRITICAL(&tx_msg_lock);
+    if (wheel1_speed_rpm) *wheel1_speed_rpm = tx_msg.wheel1_speed_rpm;
+    if (wheel2_speed_rpm) *wheel2_speed_rpm = tx_msg.wheel2_speed_rpm;
     taskEXIT_CRITICAL(&tx_msg_lock);
 }
 
@@ -208,6 +202,8 @@ static void tx_task(void *arg)
         taskEXIT_CRITICAL(&tx_msg_lock);
         sample.sample_time_us = (uint64_t)esp_timer_get_time();
         sample.sample_sequence = sample_sequence++;
+        sample.mcu_state = (uint8_t)mcu_state;
+        sample.host_state = cmd_hub_host_state();
         qmi8658_Read_AccAndGry(&sample.imu_data);
 
         sendUartData(&sample);
@@ -219,100 +215,90 @@ static void tx_task(void *arg)
     }
 }
 
-static void rx_task(void *arg)
-{   
-    if (serial_rx_semaphore == NULL) {
-        ESP_LOGE("RX_TASK", "Failed to create serial_rx_semaphore");
-        vTaskDelete(NULL);
+// Parse one complete ASCII command line and submit it to cmd_hub
+static void handle_line(const char *line)
+{
+    static const char *RX_TASK_TAG = "RX_TASK";
+    int state = 0, wheel1 = 0, wheel2 = 0, servoAngle = 0, shootSpeed = 0;
+    int parsed = sscanf(line, "%d,%d,%d,%d,%d", &state, &wheel1, &wheel2, &servoAngle, &shootSpeed);
+    if (parsed < 1) {
+        ESP_LOGW(RX_TASK_TAG, "Ignoring malformed command: %s", line);
         return;
     }
+
+    // Fields that were not sent keep their previous values (3-field commands)
+    rx_cmd.host_state = (uint8_t)state;
+    if (parsed >= 2) rx_cmd.wheel1_speed = (int16_t)wheel1;
+    if (parsed >= 3) rx_cmd.wheel2_speed = (int16_t)wheel2;
+    if (parsed >= 4) rx_cmd.tilt_angle = (int16_t)servoAngle;
+    if (parsed >= 5) rx_cmd.shoot_speed = (int16_t)shootSpeed;
+    ESP_LOGD(RX_TASK_TAG, "Parsed: State=%u, Wheel1=%d, Wheel2=%d, Tilt=%d, Shoot=%d",
+             rx_cmd.host_state, rx_cmd.wheel1_speed, rx_cmd.wheel2_speed, rx_cmd.tilt_angle, rx_cmd.shoot_speed);
+    cmd_hub_submit(CMD_SRC_SERIAL, &rx_cmd);
+}
+
+static void rx_task(void *arg)
+{
     int receiveCount = 0;
     static const char *RX_TASK_TAG = "RX_TASK";
     esp_log_level_set(RX_TASK_TAG, ESP_LOG_INFO);
-    uint8_t* data = (uint8_t*) malloc(RX_BUF_SIZE + 1);
-    
+    uint8_t* data = (uint8_t*) malloc(RX_BUF_SIZE);
+    char line[RX_LINE_MAX];
+    int line_len = 0;
+    bool line_overflow = false;
+
     if (data == NULL) {
         ESP_LOGE(RX_TASK_TAG, "Failed to allocate memory for RX buffer");
         vTaskDelete(NULL);
         return;
     }
-    
+
     while (1) {
-        // Read from UART
-        const int rxBytes = uart_read_bytes(UART_NUM_0, data, RX_BUF_SIZE, pdMS_TO_TICKS(20)); // Non-blocking
-        
+        const int rxBytes = uart_read_bytes(UART_NUM_0, data, RX_BUF_SIZE, pdMS_TO_TICKS(20));
+
         if (rxBytes > 0) {
-            data[rxBytes] = 0; // Null terminate for safe printing
-
-            bool is_ascii_format = false;
+            /*
+             * Commands may arrive split across reads or several per read, so
+             * only complete lines are parsed (fixes half commands read as state=0).
+             */
             for (int i = 0; i < rxBytes; i++) {
-                if (data[i] == ' ' || data[i] == ',') {
-                    is_ascii_format = true;
-                    break;
-                }
-            }
-            
-            if (is_ascii_format) {
-                // ASCII text parsing (format: "machine_state,wheel1_speed,wheel2_speed" or "machine_state wheel1_speed wheel2_speed")
-                int state = 0, wheel1 = 0, wheel2 = 0, servoAngle = 0, shootSpeed = 0;
-                int parsed = 0;
-
-                if (strchr((char*)data, ',') != NULL)
-                    parsed = sscanf((char*)data, "%d,%d,%d,%d,%d", &state, &wheel1, &wheel2, &servoAngle, &shootSpeed);
-
-                if (parsed >= 1) {
-                    if(host_state != state) {
-                        host_state = (host_state_t)state; // Update host state
-                        xSemaphoreGive(state_change_semaphore); // Signal state change
+                char c = (char)data[i];
+                if (c == '\n' || c == '\r') {
+                    if (line_len > 0 && !line_overflow) {
+                        line[line_len] = '\0';
+                        handle_line(line);
                     }
-                    rx_msg.host_state = (uint8_t)state;
-                    if (parsed >= 2) rx_msg.wheel1_speed = (int16_t)wheel1;
-                    if (parsed >= 3) rx_msg.wheel2_speed = (int16_t)wheel2;
-                    if (parsed >= 4) rx_msg.tilt_angle = (int16_t)servoAngle;
-                    if (parsed >= 5) rx_msg.shoot_speed = (int16_t)shootSpeed;
-                    ESP_LOGI(RX_TASK_TAG, "ASCII Parsed: State=%u, Wheel1=%d, Wheel2=%d, Tilt=%d, Shoot=%d", 
-                            rx_msg.host_state, rx_msg.wheel1_speed, rx_msg.wheel2_speed, rx_msg.tilt_angle, rx_msg.shoot_speed);
+                    line_len = 0;
+                    line_overflow = false;
+                } else if (line_len < RX_LINE_MAX - 1) {
+                    line[line_len++] = c;
+                } else {
+                    line_overflow = true; // drop the rest of an over-long line
                 }
-            } else if (rxBytes >= 7) {
-                rx_msg.host_state =     data[0];
-                rx_msg.wheel1_speed =   (data[1] << 8) | data[2];
-                rx_msg.wheel2_speed =   (data[3] << 8) | data[4];
-                rx_msg.tilt_angle =     (data[5] << 8) | data[6];
-                rx_msg.shoot_speed =    (data[7] << 8) | data[8];
-
-                ESP_LOGI(RX_TASK_TAG, "Binary Parsed: State=%u, Wheel1=%d, Wheel2=%d, Tilt=%d, Shoot=%d", 
-                        rx_msg.host_state, rx_msg.wheel1_speed, rx_msg.wheel2_speed, rx_msg.tilt_angle, rx_msg.shoot_speed);
-            } else {
-                ESP_LOGW(RX_TASK_TAG, "Received data in unexpected format: %.*s", rxBytes, data);
             }
-            
+
             receiveCount = 0; // Reset the receive count on successful read
             if (task_state == SERIAL_IDEL) {
                 task_state = SERIAL_RECEIVING;
                 ESP_LOGI(RX_TASK_TAG, "Task state changed to SERIAL_RECEIVING");
             }
-            xSemaphoreGive(serial_rx_semaphore); // Signal that data has been received
             update_led_state_noHandle(SEARCHING_BALL); // Update LED state to SERIAL_RECEIVING
         }
         else if(receiveCount < 20) {
             receiveCount++;
-            // vTaskDelay(pdMS_TO_TICKS(20)); // Keep 50Hz timing
         }
 
         if (receiveCount >= 20) {
             if (task_state == SERIAL_RECEIVING) {
                 task_state = SERIAL_IDEL;
-                ESP_LOGI(RX_TASK_TAG, "No data received for 100ms");
+                ESP_LOGI(RX_TASK_TAG, "No data received for 400ms");
                 ESP_LOGI(RX_TASK_TAG, "Task state changed to SERIAL_IDEL");
             }
-            // vTaskDelay(pdMS_TO_TICKS(100)); // Wait for 100ms before checking again
-            update_led_state_noHandle(ERROR); // Update LED state to SERIAL_IDEL
-            continue;
-        }
-        
-        // For non-idle states, maintain the 50Hz timing
-        if (receiveCount < 20) {
-            // vTaskDelay(pdMS_TO_TICKS(20));
+            cmd_hub_status_t hub;
+            cmd_hub_get_status(&hub);
+            if (!(hub.takeover && hub.fresh[CMD_SRC_BLE])) {
+                update_led_state_noHandle(ERROR); // No host and no BLE remote driving
+            }
         }
     }
     free(data);

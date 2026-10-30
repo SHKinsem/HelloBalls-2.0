@@ -1,4 +1,5 @@
 #include "serial.h"
+#include "cmd_hub.h"
 #include "leds.h"
 #include "app_motors.h"
 #include "freertos/FreeRTOS.h"
@@ -12,6 +13,22 @@ SemaphoreHandle_t wheelControl_handle = NULL; // Handle for wheel control task
 
 bool isShot = false; // Flag to indicate if a shot has been made
 
+// Delay inside an actuator sequence. Returns false if an emergency stop latched
+// meanwhile, after making sure nothing keeps moving; the sequence must then end.
+static bool sequence_delay(uint32_t ms) {
+    vTaskDelay(pdMS_TO_TICKS(ms));
+    if (!cmd_hub_estopped()) {
+        return true;
+    }
+    ESP_LOGW(TAG, "Emergency stop: sequence aborted");
+    motorStateHelper(false);
+    set_wheel_motors_speed(0, 0);
+    set_friction_wheels_speed(0);
+    stop_stepper_motor();
+    disable_servos();
+    return false;
+}
+
 // Holds the tasks that execute only once when the state changes
 void state_machine_task(void *arg) {
     ESP_LOGI(TAG, "State machine task started");
@@ -24,13 +41,16 @@ void state_machine_task(void *arg) {
 
     // Get the task state pointer
     mcu_state_t* mcu_state = getMcuState();
-    const host_state_t* host_state = getHostState();
-    const rx_message_t* rx_msg = getRXmsg();
 
     while (1) {
-        xSemaphoreTake(state_change_semaphore, portMAX_DELAY); // Wait for state change signal
+        bool changed = false;
+        // Wait for state change signal from any command source (serial host or BLE remote)
+        host_state_t host_state = (host_state_t)cmd_hub_wait_state_change(portMAX_DELAY, &changed);
+        if (!changed) {
+            continue;
+        }
         // enable_servos(); // Ensure servos are enabled
-        switch (*host_state)
+        switch (host_state)
         {
         case HOST_IDLE:
             ESP_LOGI(TAG, "HOST_IDLE state");
@@ -42,13 +62,13 @@ void state_machine_task(void *arg) {
             ESP_LOGI(TAG, "HOST_SEARCHING_BALL state");
             enable_servos();
             set_friction_wheels_speed(-800); // Set speed for friction wheels
-            if(isShot){ 
+            if(isShot || !stepper_is_homed()){ // Re-home after a shot, or retry a failed boot homing
                 home_stepper_motor();
                 isShot = false; // Reset shot flag after homing
             }
             set_stepper_pos(1150); // Reset stepper position
             tilt_servos(-20);
-            vTaskDelay(pdMS_TO_TICKS(1000)); // Wait for servos to tilt
+            if (!sequence_delay(1000)) break; // Wait for servos to tilt
             tilt_servos(-5); // Reset servos to neutral position
             // Update the MCU state to indicate searching for a ball
             *mcu_state = MCU_SEARCHING_BALL;
@@ -60,17 +80,17 @@ void state_machine_task(void *arg) {
             enable_servos();
             set_friction_wheels_speed(-300);
             tilt_servos(30);
-            vTaskDelay(pdMS_TO_TICKS(1000));
+            if (!sequence_delay(1000)) break;
             disable_servos(); // Disable servos after tilting
             moveLoader(20.0f);
-            vTaskDelay(pdMS_TO_TICKS(500));
+            if (!sequence_delay(500)) break;
             moveLoader(-110.0f);
-            vTaskDelay(pdMS_TO_TICKS(1000));
+            if (!sequence_delay(1000)) break;
             enable_servos();
             tilt_servos(-10);
-            vTaskDelay(pdMS_TO_TICKS(500));
+            if (!sequence_delay(500)) break;
             tilt_servos(-3);
-            vTaskDelay(pdMS_TO_TICKS(500));
+            if (!sequence_delay(500)) break;
             disable_servos(); // Disable servos after reaching the ball
             set_friction_wheels_speed(0); // Stop friction wheels
             resetLoaderOrigin();
@@ -83,16 +103,16 @@ void state_machine_task(void *arg) {
             *mcu_state = MCU_SHOOTING;
             enable_servos();
             set_wheel_motors_speed(0, 0);
-            if(isShot){
+            if(isShot || !stepper_is_homed()){ // Re-home after a shot, or retry a failed boot homing
                 home_stepper_motor();
                 isShot = false;
             }
             set_stepper_pos(1600); // Reset stepper position
-            vTaskDelay(pdMS_TO_TICKS(2000)); // Wait for friction wheels to reach speed
+            if (!sequence_delay(2000)) break; // Wait for friction wheels to reach speed
             moveLoader(135.0f); // Move loader to shooting position
-            vTaskDelay(pdMS_TO_TICKS(1000)); // Wait for loader to move
+            if (!sequence_delay(1000)) break; // Wait for loader to move
             moveLoader(-45.0f);
-            vTaskDelay(pdMS_TO_TICKS(500)); // Wait for loader to move
+            if (!sequence_delay(500)) break; // Wait for loader to move
             resetLoaderOrigin();
             isShot = true; // Set shot flag to true
             set_friction_wheels_speed(0); // Stop friction wheels
@@ -118,22 +138,19 @@ void state_machine_task(void *arg) {
 }
 
 
-// Holds the task that monitors serial activity and controls motors based on received commands
+// Holds the task that monitors command activity and controls motors based on received commands
 void serial_watchdog_task(void *arg) {
-    ESP_LOGI(TAG, "Serial watchdog task started");
-    // Setup for serial activity detection
-    const rx_message_t* rx_msg = getRXmsg();
-    const serial_state_t* serial_state = getTaskState(); // Get the task state pointer
-    const host_state_t* host_state = getHostState();
+    ESP_LOGI(TAG, "Command watchdog task started");
+    robot_cmd_t cmd = {};
+    const robot_cmd_t* rx_msg = &cmd;
     
     const TickType_t xSerialTimeout = pdMS_TO_TICKS(500); // 500ms timeout
     
     while (1) {
 
-        // Wait for the semaphore with timeout 
-        if ((xSemaphoreTake(serial_rx_semaphore, xSerialTimeout) == pdFALSE) 
-            || (*serial_state != SERIAL_RECEIVING)) {
-            // Timeout occurred, no serial data received
+        // Wait for a command from the source in control (serial host or BLE remote)
+        if (!cmd_hub_wait_command(&cmd, xSerialTimeout)) {
+            // Timeout occurred (or emergency stop latched), no command received
             motorStateHelper(false); // Ensure motors are off
             set_wheel_motors_speed(0, 0); // Stop wheel motors
             set_friction_wheels_speed(0); // Stop friction wheels
@@ -144,7 +161,7 @@ void serial_watchdog_task(void *arg) {
         motorStateHelper(true);
         // Process commands based on host state
         int16_t tilt_angle;
-        switch(*host_state)
+        switch((host_state_t)cmd_hub_host_state())
         {
         case HOST_SEARCHING_BALL:
             // Fall through to set wheel motors speed

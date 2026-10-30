@@ -159,9 +159,6 @@ void resetLoaderOrigin() {
 
 void motor_task_init(){
 
-    serial_rx_semaphore = xSemaphoreCreateBinary();
-    state_change_semaphore = xSemaphoreCreateBinary();
-
     frictionWheel_1.setPIDParameters(20.0, 0.007, 0.005, 0.1, 0.1, 5000.0, -5000.0);
     frictionWheel_2.setPIDParameters(20.0, 0.007, 0.005, 0.1, 0.1, 5000.0, -5000.0);
     wheelMotor_1.setPIDParameters(25.0, 0.03, 0.5, 0.1, 0.1, 3000.0, -3000.0);
