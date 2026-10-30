@@ -81,9 +81,12 @@ static void od_task(void *arg)
     int64_t next_tick = esp_timer_get_time();
     while (true) {
         int64_t now = esp_timer_get_time();
+        // Round up: rounding down gives 0 ticks for anything under one tick
+        // (10 ms at 100 Hz), and this priority-4 task then spins and starves boot
         TickType_t wait = 0;
         if (next_tick > now) {
-            wait = pdMS_TO_TICKS((next_tick - now) / 1000);
+            const int64_t us_per_tick = 1000000 / configTICK_RATE_HZ;
+            wait = (TickType_t)((next_tick - now + us_per_tick - 1) / us_per_tick);
         }
 
         sdo_request_t req;
