@@ -41,7 +41,18 @@ esp_err_t bsp_i2c_init(void)
     };
     ESP_RETURN_ON_ERROR(i2c_new_master_bus(&bus_cfg, &s_i2c_bus), TAG, "I2C bus");
     s_qmi8658 = bsp_i2c_add(QMI8658_SENSOR_ADDR);
-    s_pca9557 = bsp_i2c_add(PCA9557_SENSOR_ADDR);
+    // The IO expander only switches the LCD, camera and speaker, which this robot does not use,
+    // and it does not answer on every board. Probe it (silently on a NACK) instead of letting
+    // each write log a NACK error.
+    esp_err_t found = ESP_ERR_NOT_FOUND;
+    for (int i = 0; i < 3 && found != ESP_OK; i++) {
+        found = i2c_master_probe(s_i2c_bus, PCA9557_SENSOR_ADDR, BSP_I2C_TIMEOUT_MS);
+    }
+    if (found == ESP_OK) {
+        s_pca9557 = bsp_i2c_add(PCA9557_SENSOR_ADDR);
+    } else {
+        ESP_LOGI(TAG, "PCA9557 IO expander not found at 0x%02x (%s), skipped", PCA9557_SENSOR_ADDR, esp_err_to_name(found));
+    }
     return ESP_OK;
 }
 
