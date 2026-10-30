@@ -27,3 +27,6 @@ CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH=y
 CONFIG_ESP_COREDUMP_DATA_FORMAT_ELF=y
 # TWAI interrupt keeps running during flash writes (NVS) instead of piling up frames
 CONFIG_TWAI_ISR_IN_IRAM=y
+# esp_codec_dev on the new I2C master driver; the legacy driver must not be linked
+# next to it (startup aborts on the conflict)
+# CONFIG_CODEC_I2C_BACKWARD_COMPATIBLE is not set
