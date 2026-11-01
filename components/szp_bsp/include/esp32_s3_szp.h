@@ -8,7 +8,7 @@
 #include "esp_err.h"
 #include "esp_log.h"
 #include "esp_check.h"
-#include "driver/i2c.h"
+#include "driver/i2c_master.h"
 #include "driver/spi_master.h"
 #include "driver/ledc.h"
 #include "freertos/FreeRTOS.h"
@@ -24,7 +24,6 @@
 #include "esp_codec_dev_defaults.h"
 #include "driver/spi_master.h"
 #include "driver/i2s_std.h"
-// #include "driver/i2c_master.h"
 
 #include "esp_spiffs.h"
 #include "esp_vfs_fat.h"
@@ -42,8 +41,10 @@ extern "C" {
 
 #define BSP_I2C_NUM           (0)            // I2C外设
 #define BSP_I2C_FREQ_HZ       100000         // 100kHz
+#define BSP_I2C_TIMEOUT_MS    20             // 单次传输超时；IMU 每 10 ms 读一次，不能一卡就是 1 秒
 
 esp_err_t bsp_i2c_init(void);   // 初始化I2C接口
+i2c_master_bus_handle_t bsp_i2c_bus(void); // I2C 总线句柄（触摸屏、音频芯片用）
 /***************************  I2C ↑  *******************************************/
 /*******************************************************************************/
 

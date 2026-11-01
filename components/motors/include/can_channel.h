@@ -33,6 +33,11 @@ private:
     uint32_t rx_timeout_ms;           // Timeout period in ms after which TX will stop if no messages received
 
     bool stop_flag; // Flag to indicate if the TWAI driver should stop
+
+    // Set by rx_task, printed by alert_task, so the RX path never blocks on the console
+    volatile bool tx_state_changed;
+    volatile uint32_t unregistered_id;
+    volatile uint32_t unregistered_count;
     
     void rx_task(void* arg);
     void tx_task(void* arg);
@@ -57,6 +62,7 @@ public:
     void sendMessage(twai_message_t* msg);
 
     void start();
+    bool isRunning() const { return this->twai_running; }
     void resume();
     void pause();
     void stop();

@@ -19,6 +19,7 @@
 static FastAccelStepperEngine engine;
 static FastAccelStepper* stepper = nullptr;
 static volatile bool homed = false;
+static int32_t target_pos = 0;
 
 void stepper_motor_task_init(void) {
     engine.init();
@@ -62,6 +63,7 @@ bool home_stepper_motor(void) {
         vTaskDelay(1);
     }
     stepper->forceStop();  // Abruptly stop the stepper without deceleration
+    target_pos = 0;
     stepper->setSpeedInHz(DEFAULT_SPEED); // Reset speed to default
     if (!hit) {
         homed = false;
@@ -87,6 +89,7 @@ void set_stepper_pos(int32_t pos) {
         return;
     }
     stepper->moveTo(-pos);
+    target_pos = pos;
     ESP_LOGI(TAG, "Moving stepper to position %" PRId32, pos);
 
     // int16_t pcnt = stepper->readPulseCounter();
@@ -96,4 +99,20 @@ void set_stepper_pos(int32_t pos) {
 void stop_stepper_motor(void) {
     if (!stepper) return;
     stepper->forceStop();
+}
+
+int32_t get_stepper_pos(void) {
+    return stepper ? -stepper->getCurrentPosition() : 0;
+}
+
+int32_t get_stepper_target(void) {
+    return target_pos;
+}
+
+bool stepper_is_running(void) {
+    return stepper && stepper->isRunning();
+}
+
+bool stepper_endstop_hit(void) {
+    return gpio_get_level((gpio_num_t)ENDSTOP_PIN) == 0;
 }

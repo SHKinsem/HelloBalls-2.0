@@ -8,6 +8,8 @@
 #include <stdint.h>
 #include "pid.h"
 #include "driver/twai.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include "esp_log.h"
 #include "controller.h"
 
@@ -63,6 +65,8 @@ protected:
 
     int16_t controlOutput;
 
+    TickType_t last_rx = 0;     // tick of the last feedback frame, 0 = never
+
 public:
 
     int16_t debug;
@@ -87,6 +91,12 @@ public:
     int16_t getTargetSpeed() const      {return this->target_speed;}    // Deprecated, use getTarget() instead
     float getTarget() const             {return this->target;}
     int8_t getStatus() const            {return this->status;}
+    bool isEnabled() const              {return this->enabled;}
+    void markRx()                       {this->last_rx = xTaskGetTickCount();}
+    // True when a feedback frame arrived within the last timeout_ms
+    bool isOnline(uint32_t timeout_ms) const {
+        return this->last_rx != 0 && xTaskGetTickCount() - this->last_rx < pdMS_TO_TICKS(timeout_ms);
+    }
     int16_t getControlOutput() const    {return this->controlOutput;}
 
     int16_t* getTargetSpeedPtr()        {return &this->target_speed;}

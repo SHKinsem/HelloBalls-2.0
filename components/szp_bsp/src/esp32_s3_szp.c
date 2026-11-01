@@ -1,23 +1,102 @@
 #include <stdio.h>
 #include "esp32_s3_szp.h"
+#include "esp_timer.h"
 
 static const char *TAG = "esp32_s3_szp";
 
 /******************************************************************************/
 /***************************  I2C ↓ *******************************************/
+/*
+ * New I2C master driver (driver/i2c_master.h). The legacy driver's ISR returns
+ * without clearing an interrupt it does not recognise (e.g. one arriving after
+ * a transfer timed out, or an SCL timeout from bus noise), so the interrupt
+ * fires again forever and the interrupt watchdog resets the chip. The new
+ * driver clears every pending interrupt.
+ */
+static i2c_master_bus_handle_t s_i2c_bus;
+static i2c_master_dev_handle_t s_qmi8658;
+static i2c_master_dev_handle_t s_pca9557;
+
+static i2c_master_dev_handle_t bsp_i2c_add(uint16_t addr)
+{
+    i2c_device_config_t dev_cfg = {
+        .dev_addr_length = I2C_ADDR_BIT_LEN_7,
+        .device_address = addr,
+        .scl_speed_hz = BSP_I2C_FREQ_HZ,
+    };
+    i2c_master_dev_handle_t dev = NULL;
+    ESP_ERROR_CHECK(i2c_master_bus_add_device(s_i2c_bus, &dev_cfg, &dev));
+    return dev;
+}
+
 esp_err_t bsp_i2c_init(void)
 {
-    i2c_config_t i2c_conf = {
-        .mode = I2C_MODE_MASTER,
+    i2c_master_bus_config_t bus_cfg = {
+        .i2c_port = BSP_I2C_NUM,
         .sda_io_num = BSP_I2C_SDA,
-        .sda_pullup_en = GPIO_PULLUP_ENABLE,
         .scl_io_num = BSP_I2C_SCL,
-        .scl_pullup_en = GPIO_PULLUP_ENABLE,
-        .master.clk_speed = BSP_I2C_FREQ_HZ
+        .clk_source = I2C_CLK_SRC_DEFAULT,
+        .glitch_ignore_cnt = 7, // motors and servos put spikes on SDA/SCL
+        .flags.enable_internal_pullup = true,
     };
-    i2c_param_config(BSP_I2C_NUM, &i2c_conf);
+    ESP_RETURN_ON_ERROR(i2c_new_master_bus(&bus_cfg, &s_i2c_bus), TAG, "I2C bus");
+    s_qmi8658 = bsp_i2c_add(QMI8658_SENSOR_ADDR);
+    // The IO expander only switches the LCD, camera and speaker, which this robot does not use,
+    // and it does not answer on every board. Probe it (silently on a NACK) instead of letting
+    // each write log a NACK error.
+    esp_err_t found = ESP_ERR_NOT_FOUND;
+    for (int i = 0; i < 3 && found != ESP_OK; i++) {
+        found = i2c_master_probe(s_i2c_bus, PCA9557_SENSOR_ADDR, BSP_I2C_TIMEOUT_MS);
+    }
+    if (found == ESP_OK) {
+        s_pca9557 = bsp_i2c_add(PCA9557_SENSOR_ADDR);
+    } else {
+        ESP_LOGI(TAG, "PCA9557 IO expander not found at 0x%02x (%s), skipped", PCA9557_SENSOR_ADDR, esp_err_to_name(found));
+    }
+    return ESP_OK;
+}
 
-    return i2c_driver_install(BSP_I2C_NUM, i2c_conf.mode, 0, 0, 0);
+i2c_master_bus_handle_t bsp_i2c_bus(void)
+{
+    return s_i2c_bus;
+}
+
+// After a failed transfer, free a bus a device may be holding low (rate-limited log)
+static esp_err_t bsp_i2c_check(esp_err_t err, const char *what)
+{
+    if (err == ESP_OK) {
+        return err;
+    }
+    static uint32_t failures = 0;
+    static int64_t last_log_us = 0;
+    failures++;
+    int64_t now = esp_timer_get_time();
+    if (now - last_log_us > 1000000) {
+        ESP_LOGW(TAG, "%s: %s (%lu failures since last report)", what, esp_err_to_name(err), (unsigned long)failures);
+        failures = 0;
+        last_log_us = now;
+    }
+    if (err == ESP_ERR_TIMEOUT || err == ESP_ERR_INVALID_STATE) {
+        i2c_master_bus_reset(s_i2c_bus);
+    }
+    return err;
+}
+
+static esp_err_t bsp_i2c_read(i2c_master_dev_handle_t dev, uint8_t reg_addr, uint8_t *data, size_t len, const char *what)
+{
+    if (dev == NULL) {
+        return ESP_ERR_INVALID_STATE;
+    }
+    return bsp_i2c_check(i2c_master_transmit_receive(dev, &reg_addr, 1, data, len, BSP_I2C_TIMEOUT_MS), what);
+}
+
+static esp_err_t bsp_i2c_write_byte(i2c_master_dev_handle_t dev, uint8_t reg_addr, uint8_t data, const char *what)
+{
+    if (dev == NULL) {
+        return ESP_ERR_INVALID_STATE;
+    }
+    uint8_t write_buf[2] = {reg_addr, data};
+    return bsp_i2c_check(i2c_master_transmit(dev, write_buf, sizeof(write_buf), BSP_I2C_TIMEOUT_MS), what);
 }
 
 // esp_err_t bsp_i2c_init_new(void)
@@ -54,15 +133,13 @@ esp_err_t bsp_i2c_init(void)
 // 读取QMI8658寄存器的值
 esp_err_t qmi8658_register_read(uint8_t reg_addr, uint8_t *data, size_t len)
 {
-    return i2c_master_write_read_device(BSP_I2C_NUM, QMI8658_SENSOR_ADDR,  &reg_addr, 1, data, len, 1000 / portTICK_PERIOD_MS);
+    return bsp_i2c_read(s_qmi8658, reg_addr, data, len, "QMI8658 read");
 }
 
 // 给QMI8658的寄存器写值
 esp_err_t qmi8658_register_write_byte(uint8_t reg_addr, uint8_t data)
 {
-    uint8_t write_buf[2] = {reg_addr, data};
-
-    return i2c_master_write_to_device(BSP_I2C_NUM, QMI8658_SENSOR_ADDR, write_buf, sizeof(write_buf), 1000 / portTICK_PERIOD_MS);
+    return bsp_i2c_write_byte(s_qmi8658, reg_addr, data, "QMI8658 write");
 }
 
 // 初始化qmi8658
@@ -131,15 +208,13 @@ void qmi8658_fetch_angleFromAcc(t_sQMI8658 *p)
 // 读取PCA9557寄存器的值
 esp_err_t pca9557_register_read(uint8_t reg_addr, uint8_t *data, size_t len)
 {
-    return i2c_master_write_read_device(BSP_I2C_NUM, PCA9557_SENSOR_ADDR,  &reg_addr, 1, data, len, 1000 / portTICK_PERIOD_MS);
+    return bsp_i2c_read(s_pca9557, reg_addr, data, len, "PCA9557 read");
 }
 
 // 给PCA9557的寄存器写值
 esp_err_t pca9557_register_write_byte(uint8_t reg_addr, uint8_t data)
 {
-    uint8_t write_buf[2] = {reg_addr, data};
-
-    return i2c_master_write_to_device(BSP_I2C_NUM, PCA9557_SENSOR_ADDR, write_buf, sizeof(write_buf), 1000 / portTICK_PERIOD_MS);
+    return bsp_i2c_write_byte(s_pca9557, reg_addr, data, "PCA9557 write");
 }
 
 // 初始化PCA9557 IO扩展芯片
@@ -379,8 +454,9 @@ esp_err_t bsp_touch_new(esp_lcd_touch_handle_t *ret_touch)
     };
     esp_lcd_panel_io_handle_t tp_io_handle = NULL;
     esp_lcd_panel_io_i2c_config_t tp_io_config = ESP_LCD_TOUCH_IO_I2C_FT5x06_CONFIG();
+    tp_io_config.scl_speed_hz = BSP_I2C_FREQ_HZ;
 
-    ESP_RETURN_ON_ERROR(esp_lcd_new_panel_io_i2c((esp_lcd_i2c_bus_handle_t)BSP_I2C_NUM, &tp_io_config, &tp_io_handle), TAG, "");
+    ESP_RETURN_ON_ERROR(esp_lcd_new_panel_io_i2c(s_i2c_bus, &tp_io_config, &tp_io_handle), TAG, "");
     ESP_ERROR_CHECK(esp_lcd_touch_new_i2c_ft5x06(tp_io_handle, &tp_cfg, ret_touch));
 
     return ESP_OK;
@@ -706,6 +782,7 @@ esp_codec_dev_handle_t bsp_audio_codec_speaker_init(void)
     audio_codec_i2c_cfg_t i2c_cfg = {
         .port = BSP_I2C_NUM,
         .addr = ES8311_CODEC_DEFAULT_ADDR,
+        .bus_handle = s_i2c_bus,
     };
     const audio_codec_ctrl_if_t *i2c_ctrl_if = audio_codec_new_i2c_ctrl(&i2c_cfg);
     assert(i2c_ctrl_if);
@@ -751,6 +828,7 @@ esp_codec_dev_handle_t bsp_audio_codec_microphone_init(void)
     audio_codec_i2c_cfg_t i2c_cfg = {
         .port = BSP_I2C_NUM,
         .addr = 0x82,
+        .bus_handle = s_i2c_bus,
     };
     const audio_codec_ctrl_if_t *i2c_ctrl_if = audio_codec_new_i2c_ctrl(&i2c_cfg);
     assert(i2c_ctrl_if);

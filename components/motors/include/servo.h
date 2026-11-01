@@ -233,11 +233,15 @@ public:
         uint32_t time_ms = (uint32_t)(diff * (100.0f / speed));
         if (time_ms == 0) time_ms = 1; // minimal non-zero time
 
-        // Install fade service if not already installed. Ignore "already installed" error.
-        esp_err_t r = ledc_fade_func_install(0);
-        if (r != ESP_OK && r != ESP_ERR_INVALID_STATE) {
-            move(target_duty);
-            return;
+        // Install the fade service once; installing again only logs an error each move
+        static bool fade_installed = false;
+        if (!fade_installed) {
+            esp_err_t r = ledc_fade_func_install(0);
+            if (r != ESP_OK && r != ESP_ERR_INVALID_STATE) {
+                move(target_duty);
+                return;
+            }
+            fade_installed = true;
         }
 
         esp_err_t err = ledc_set_fade_with_time(mode, channel, target_duty, time_ms);
