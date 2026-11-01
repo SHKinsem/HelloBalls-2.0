@@ -33,6 +33,11 @@ protected:
     int16_t prev_raw_angle = 0;
     int16_t maxBump = 4000;
     float* shaft_angle_ptr;         //used for angle PID control
+    // raw_angle and loopCounter are written by the CAN RX task and read as a pair by
+    // the 1 kHz TX task (possibly on the other core). Read alone, a fresh raw_angle with
+    // a stale loopCounter puts the shaft angle 10 degrees off for one cycle, which the
+    // angle loop's D term turns into a kick.
+    portMUX_TYPE angle_lock = portMUX_INITIALIZER_UNLOCKED;
     // Max RPM: ~16200, 16200/60 = 270 RPS, 270*8192 = 221,340 Counts/second
     // Max Bump = 221,340 Counts/second * 0.01 seconds = 2213 counts
 public:
@@ -54,12 +59,14 @@ public:
 
     void parseData(const uint8_t* data) override {
         // Parse the data received from the motor
-        this->raw_angle =   (uint16_t)((data[0] << 8) | data[1]); // Combine high and low byte for angle
+        int16_t angle = (uint16_t)((data[0] << 8) | data[1]); // Combine high and low byte for angle
         this->raw_speed =   (uint16_t)((data[2] << 8) | data[3]); // Combine high and low byte for speed
         this->raw_current = (uint16_t)((data[4] << 8) | data[5]); // Combine high and low byte for current
         // this->temperature = data[6]; // Temperature byte
         // this->raw_status = data[7]; // Status byte
 
+        portENTER_CRITICAL(&angle_lock);
+        this->raw_angle = angle;
         if(shaft_angle_ptr) {
             if(raw_angle - prev_raw_angle > maxBump){
                 loopCounter--;
@@ -68,16 +75,33 @@ public:
             }
             prev_raw_angle = raw_angle;
         }
+        portEXIT_CRITICAL(&angle_lock);
     }
 
-    void resetCounter() {loopCounter = 0;}
+    void resetCounter() {
+        portENTER_CRITICAL(&angle_lock);
+        loopCounter = 0;
+        portEXIT_CRITICAL(&angle_lock);
+    }
+    // Make the current rotor turn the origin and aim the angle loop at it, in one step
+    void resetOrigin() {
+        portENTER_CRITICAL(&angle_lock);
+        loopCounter = 0;
+        target = 0.0f;
+        portEXIT_CRITICAL(&angle_lock);
+    }
     int16_t getCounter() {return loopCounter;}
     float calShaftAngle() {
-        // Calculate the shaft angle based on the raw angle and loop counter
+        portENTER_CRITICAL(&angle_lock);
+        int16_t angle = raw_angle;
+        int16_t loops = loopCounter;
+        portEXIT_CRITICAL(&angle_lock);
+        return calShaftAngle(angle, loops);
+    }
+    // Shaft angle from a consistent (raw_angle, loopCounter) pair
+    float calShaftAngle(int16_t angle, int16_t loops) {
         if(shaft_angle_ptr) {
-            // *shaft_angle_ptr = _IQmpy(_IQ(raw_angle), scale_angle) + _IQ(360 * loopCounter); // Convert counts to degrees
-            // *shaft_angle_ptr = _IQdiv(*shaft_angle_ptr, gear_ratio);
-            *shaft_angle_ptr = (raw_angle * _IQtoF(scale_angle) + 360.0 * loopCounter) / _IQtoF(gear_ratio); // Convert counts to degrees
+            *shaft_angle_ptr = (angle * _IQtoF(scale_angle) + 360.0 * loops) / _IQtoF(gear_ratio); // Convert counts to degrees
             return *shaft_angle_ptr;
         } else {
             return 0.0; // Return zero if cumulative angle is not initialized
@@ -114,9 +138,15 @@ public:
     }
 
     int16_t& calOutput() override {
-        if(shaft_angle_ptr) calShaftAngle(); // Update the cumulative angle if pointer is set
+        // Angle, loop count and target as one snapshot (see angle_lock)
+        portENTER_CRITICAL(&angle_lock);
+        int16_t angle = raw_angle;
+        int16_t loops = loopCounter;
+        float tgt = target;
+        portEXIT_CRITICAL(&angle_lock);
+        if(shaft_angle_ptr) calShaftAngle(angle, loops); // Update the cumulative angle if pointer is set
 
-        _iq ref = _IQ(target);
+        _iq ref = _IQ(tgt);
         controlOutput = _IQint(controller->calOutput(ref));
         debug = controlOutput; // For debugging purposes
         if(!enabled){

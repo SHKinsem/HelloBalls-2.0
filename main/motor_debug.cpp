@@ -154,11 +154,21 @@ void motor_debug_exit(const char *why)
     ESP_LOGI(TAG, "Debug mode off: %s", why);
 }
 
+static void motor_debug_tick_locked(uint32_t dt_ms);
+
 void motor_debug_tick(uint32_t dt_ms)
 {
     if (!g_motor_debug.mode) {
         return;
     }
+    // allowed() checks the e-stop; hold the lock the e-stop takes until the motor is driven
+    app_motor_cmd_lock();
+    motor_debug_tick_locked(dt_ms);
+    app_motor_cmd_unlock();
+}
+
+static void motor_debug_tick_locked(uint32_t dt_ms)
+{
     const char *why = "";
     if (!allowed(&why)) {
         motor_debug_exit(why);

@@ -105,6 +105,17 @@ void set_servo_offsets(float servo1_deg, float servo2_deg) {
     servo2.moveRelativeToOrigin(servo2_deg);
 }
 
+static StaticSemaphore_t s_cmd_mutex_buf;
+static SemaphoreHandle_t s_cmd_mutex = xSemaphoreCreateRecursiveMutexStatic(&s_cmd_mutex_buf);
+
+void app_motor_cmd_lock(void) {
+    xSemaphoreTakeRecursive(s_cmd_mutex, portMAX_DELAY);
+}
+
+void app_motor_cmd_unlock(void) {
+    xSemaphoreGiveRecursive(s_cmd_mutex);
+}
+
 can_channel_t can_channel(0, TWAI_TX_PIN, TWAI_RX_PIN); // Create a CAN channel instance
 dm3519_t test_motor(1); // Create an instance of the motor
 
@@ -244,9 +255,9 @@ void moveLoader(float angle) {
 }
 
 void resetLoaderOrigin() {
-    // Reset the loader motor to its origin position
-    loaderMotor.resetCounter(); // Reset the loop counter
-    loaderMotor.setTarget(0.0f);
+    // Reset the loop counter and the target together, so the 1 kHz angle loop never
+    // runs one cycle with the new counter and the old target
+    loaderMotor.resetOrigin();
     loader_origin_angle = 0.0f; // Reset the global loader origin angle
 }
 

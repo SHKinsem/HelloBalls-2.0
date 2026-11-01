@@ -21,6 +21,12 @@ void disable_servos(void); // Disable both servos
 void enable_servos(void); // Enable both servos
 
 void motor_task_init(void);
+
+// Serialises "check e-stop, then enable/drive motors" against the e-stop itself.
+// Without it a task that passed its e-stop check could re-enable the motors just
+// after the BLE e-stop turned them off. Recursive; hold it only briefly.
+void app_motor_cmd_lock(void);
+void app_motor_cmd_unlock(void);
 void motorStateHelper(bool state);
 void set_friction_wheels_speed(const int16_t& speed); // Set speed for friction wheels
 void set_wheel_motors_speed(const int16_t& speed1, const int16_t& speed2);

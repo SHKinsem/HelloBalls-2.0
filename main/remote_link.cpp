@@ -43,14 +43,20 @@ static void on_command(const ble_remote_cmd_t *in, void *ctx) {
 }
 
 void remote_link_emergency_stop(void) {
+    // Latch and cut under the motor command lock: a task that is half way through
+    // enabling the motors finishes first and is then overridden here, and any task
+    // that takes the lock afterwards sees the latched e-stop
+    app_motor_cmd_lock();
     cmd_hub_set_estop(true);
-    if (!hw_ready) return; // Latched in cmd_hub; nothing is driving yet
-    // Cut the motors now instead of waiting for the watchdog timeout
-    motorStateHelper(false);
-    set_wheel_motors_speed(0, 0);
-    set_friction_wheels_speed(0);
-    stop_stepper_motor();
-    disable_servos();
+    if (hw_ready) { // otherwise latched in cmd_hub; nothing is driving yet
+        // Cut the motors now instead of waiting for the watchdog timeout
+        motorStateHelper(false);
+        set_wheel_motors_speed(0, 0);
+        set_friction_wheels_speed(0);
+        stop_stepper_motor();
+        disable_servos();
+    }
+    app_motor_cmd_unlock();
 }
 
 static void on_action(const ble_remote_action_t *action, void *ctx) {

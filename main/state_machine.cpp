@@ -164,6 +164,13 @@ void serial_watchdog_task(void *arg) {
             continue; // Go back to waiting
         }
 
+        // The e-stop may have latched after cmd_hub_wait_command() returned; check
+        // again under the lock the e-stop takes, so it cannot be undone here
+        app_motor_cmd_lock();
+        if (cmd_hub_estopped() || motor_debug_active()) {
+            app_motor_cmd_unlock();
+            continue;
+        }
         motorStateHelper(true);
         // Process commands based on host state
         int16_t tilt_angle;
@@ -209,6 +216,7 @@ void serial_watchdog_task(void *arg) {
             set_friction_wheels_speed(0);
             break;
         }
+        app_motor_cmd_unlock();
     }
 }
 

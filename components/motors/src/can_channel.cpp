@@ -20,7 +20,11 @@ can_channel_t::can_channel_t(uint8_t channel_id, gpio_num_t tx_io, gpio_num_t rx
     tx_failed_count(0),
     last_rx_time(0),
     tx_active(false),
-    rx_timeout_ms(500) {
+    rx_timeout_ms(500),
+    stop_flag(false),
+    tx_state_changed(false),
+    unregistered_id(0),
+    unregistered_count(0) {
 
     t_config = TWAI_TIMING_CONFIG_1MBITS(); // 1 Mbps
 
@@ -33,8 +37,9 @@ can_channel_t::can_channel_t(uint8_t channel_id, gpio_num_t tx_io, gpio_num_t rx
     g_config.clkout_io = TWAI_IO_UNUSED; 
     g_config.bus_off_io = TWAI_IO_UNUSED;  
     g_config.tx_queue_len = 16;
-    // Five motors report at 1 kHz each: a 5-frame queue overflows on any scheduling hiccup
-    g_config.rx_queue_len = 64;
+    // Five motors report at 1 kHz each: 64 frames lasted only ~13 ms, which a burst of
+    // boot logging could exceed once. 128 frames is ~25 ms (about 3 KB of RAM).
+    g_config.rx_queue_len = 128;
     // Error alerts only: TWAI_ALERT_ALL also raised RX_DATA/TX_SUCCESS/TX_IDLE, waking
     // the alert task for every one of the ~7000 frames per second
     g_config.alerts_enabled = TWAI_ALERT_BUS_OFF | TWAI_ALERT_BUS_RECOVERED | TWAI_ALERT_ERR_PASS |
@@ -90,7 +95,7 @@ void can_channel_t::rx_task(void* arg) {
             // Check if we've exceeded the RX timeout and need to stop TX
             if (tx_active && (xTaskGetTickCount() - last_rx_time) > pdMS_TO_TICKS(rx_timeout_ms)) {
                 tx_active = false;
-                ESP_LOGI(TAG, "No RX messages for %lu ms, stopping TX on channel %d", rx_timeout_ms, channel_id);
+                tx_state_changed = true; // logged by alert_task
             }
             continue;
         }
@@ -101,7 +106,7 @@ void can_channel_t::rx_task(void* arg) {
         // If TX is not active, activate it now that we've received a message
         if (!tx_active) {
             tx_active = true;
-            ESP_LOGI(TAG, "RX message received, enabling TX on channel %d", channel_id);
+            tx_state_changed = true; // logged by alert_task
         }
 
         // Feedback frames are 0x201-0x208; anything else (0x1FF, 0x200, other nodes)
@@ -111,13 +116,10 @@ void can_channel_t::rx_task(void* arg) {
             motors[msg_id - 1]->parseData(rx_msg.data);
             motors[msg_id - 1]->markRx();
         } else {
-            // At 1 kHz a log line per frame would block on the 115200 baud console
-            static TickType_t last_log = 0;
-            TickType_t now = xTaskGetTickCount();
-            if (now - last_log >= pdMS_TO_TICKS(1000)) {
-                ESP_LOGI(TAG, "Unregistered CAN frame 0x%03lx", (unsigned long)rx_msg.identifier);
-                last_log = now;
-            }
+            // Never log here: printing to the 115200 baud console blocks this task for
+            // milliseconds while 5 frames/ms keep arriving. alert_task reports it.
+            unregistered_id = rx_msg.identifier;
+            unregistered_count = unregistered_count + 1;
         }
     }
     vTaskDelete(NULL);
@@ -174,6 +176,26 @@ void can_channel_t::alert_task(void* arg) {
         
         // Wait for alerts with a timeout
         esp_err_t res = twai_read_alerts_v2(twai_handle, &alerts, pdMS_TO_TICKS(1000));
+
+        // Messages the RX task must not print itself (see rx_task)
+        if (tx_state_changed) {
+            tx_state_changed = false;
+            if (tx_active) {
+                ESP_LOGI(TAG, "RX message received, enabling TX on channel %d", channel_id);
+            } else {
+                ESP_LOGI(TAG, "No RX messages for %lu ms, stopping TX on channel %d", rx_timeout_ms, channel_id);
+            }
+        }
+        if (unregistered_count) {
+            static TickType_t last_unreg_log = 0;
+            TickType_t now = xTaskGetTickCount();
+            if (now - last_unreg_log >= pdMS_TO_TICKS(1000)) {
+                ESP_LOGI(TAG, "Unregistered CAN frame 0x%03lx (%lu frames)",
+                         (unsigned long)unregistered_id, (unsigned long)unregistered_count);
+                unregistered_count = 0;
+                last_unreg_log = now;
+            }
+        }
         if (res == ESP_OK && alerts) {
             // Bus off: the controller must count 128 recessive sequences before it may
             // restart. Stopping the driver and starting new tasks here (as before) left
